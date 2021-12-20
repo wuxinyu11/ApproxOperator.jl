@@ -1,6 +1,5 @@
 
-include("../mfea.jl")
-using .MFEA
+using ApproxOperator
 
 P = 1000.0
 Ẽ = 3e6
@@ -29,12 +28,19 @@ aps = import_msh("./msh/cantilever.msh")
 nₚ = length(aps["Domain"][1].nodes)
 
 ops = [
+    # 1
     PlaneStress_Ω(b,E,ν),
+    # 2
     PlaneStrain_Ωᵛ(Ẽ,ν̃),
+    # 3
     PlaneStrain_Ωᵈ(b,Ẽ,ν̃),
+    # 4
     PlaneStress_Γᵗ(t),
+    # 5
     PlaneStress_Γᵍ_penalty(u,n,E*1e7),
+    # 6
     HₑError_PlaneStress(u,E,ν),
+    # 7
     VTKExport(
                 filename="vtk/cantilever_locking.vtk",
                 topic="incompressible test for cantilever beam problem",
@@ -68,10 +74,10 @@ ops[2](aps["Domain"],k,f)
 ops[4](aps["Traction"],f)
 ops[5](aps["EssentialBC"],k,f)
 
-d_free = k\f
+d = k\f
 
 set_integration_rule!(aps["Domain"],:QuadGI2)
-Hₑ_Free,L₂_Free = ops[6](aps["Domain"],d_free)
+Hₑ_Free,L₂_Free = ops[6](aps["Domain"],d)
 
 ops[7].filename = "vtk/cantilever_free.vtk"
 ops[7](aps["Domain"],d)

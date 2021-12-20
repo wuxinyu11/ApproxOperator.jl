@@ -1,6 +1,5 @@
 
-include("../mfea.jl")
-using .MFEA
+using ApproxOperator
 
 P = 1000.0
 E = 3e6

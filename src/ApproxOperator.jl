@@ -36,7 +36,7 @@ export EBCDOFS, Potential_Ω, Potential_Γᵍ, Potential_Γᵗ, Potential_Γᵍ_
 include("import.jl")
 export import_msh
 include("export.jl")
-export export_shape_functions, export_VTK, export_VTK_init, export_VTK_data
+export export_shape_functions, VTKExport
 
 
 # debug
@@ -45,5 +45,4 @@ export get_shape_functions, cal_moment_matrix!, Node, get_coordinates, get_basis
 export AbstractSeg, Approximator
 include("efficiency.jl")
 export efficiency
-
 end
