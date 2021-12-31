@@ -122,8 +122,8 @@ mutable struct VTKExport
     pointdata::Union{Dict{String,Symbol},Nothing}
     celldata::Union{Dict{String,Symbol},Nothing}
     parameters::Union{Dict{String,Float64},Nothing}
-    VTKExport(;filename::String="default.vtk",topic::String="vtk file",celltype::String="UNSTRUCTURED_GRID",pointdata::Union{Dict{String,Symbol},Nothing}=nothing,celldata::Union{Dict{String,Symbol},Nothing}=nothing,parameters::Union{Dict{String,Float64},Nothing}=nothing) = new(filename,topic,celltype,pointdata,celldata,parameters)
 end
+VTKExport(;filename::String="default.vtk",topic::String="vtk file",celltype::String="UNSTRUCTURED_GRID",pointdata::Union{Dict{String,Symbol},Nothing}=nothing,celldata::Union{Dict{String,Symbol},Nothing}=nothing,parameters::Union{Dict{String,Float64},Nothing}=nothing) = VTKExport(filename,topic,celltype,pointdata,celldata,parameters)
 
 function (op::VTKExport)(aps::Vector{Approximator},d::AbstractVector{Float64})
     fid = open(op.filename,"w")
@@ -185,10 +185,11 @@ function (op::VTKExport)(fid::IO,aps::Vector{Approximator},::Val{:UNSTRUCTURED_G
     end
 end
 
-function (::VTKExport)(fid::IO,aps::Vector{Approximator},d::AbstractVector{Float64},name::String,::Val{:scale})
+function (::VTKExport)(fid::IO,aps::Vector{Approximator},d::AbstractVector{Float64},name::String,::Val{:Scale})
     write(fid,"SCALARS "*name*" float 1\n")
+    write(fid,"LOOKUP_TABLE "*name*"\n")
     for u in d
-        write(fid,"$u_\n")
+        write(fid,"$u\n")
     end
 end
 
@@ -214,7 +215,7 @@ function (::VTKExport)(fid::IO,aps::Vector{Approximator},d::AbstractVector{Float
     end
 end
 
-function (op::VTKExport)(fid::IO,aps::Vector{Approximator},d::AbstractVector{Float64},name::String,::Val{:σ_planestress})
+function (op::VTKExport)(fid::IO,aps::Vector{Approximator},d::AbstractVector{Float64},name::String,::Val{:σ_PlaneStress})
     write(fid,"TENSORS "*name*" float\n")
     E = op.parameters["E"]
     ν = op.parameters["ν"]
@@ -238,10 +239,11 @@ function (op::VTKExport)(fid::IO,aps::Vector{Approximator},d::AbstractVector{Flo
         write(fid,"$σ₁₁ $σ₁₂ 0.0\n")
         write(fid,"$σ₁₂ $σ₂₂ 0.0\n")
         write(fid,"0.0 0.0 0.0\n")
+        write(fid,"\n")
     end
 end
 
-function (op::VTKExport)(fid::IO,aps::Vector{Approximator},d::AbstractVector{Float64},name::String,::Val{:σ_planestrain})
+function (op::VTKExport)(fid::IO,aps::Vector{Approximator},d::AbstractVector{Float64},name::String,::Val{:σ_PlaneStrain})
     write(fid,"TENSORS "*name*" float\n")
     E = op.parameters["E"]
     ν = op.parameters["ν"]
@@ -266,6 +268,7 @@ function (op::VTKExport)(fid::IO,aps::Vector{Approximator},d::AbstractVector{Flo
         write(fid,"$σ₁₁ $σ₁₂ 0.0\n")
         write(fid,"$σ₁₂ $σ₂₂ 0.0\n")
         write(fid,"0.0 0.0 $σ₃₃\n")
+        write(fid,"\n")
     end
 end
 
@@ -302,6 +305,37 @@ function (op::VTKExport)(fid::IO,aps::Vector{Approximator},d::AbstractVector{Flo
         write(fid,"$σ₁₁ $σ₁₂ $σ₁₃\n")
         write(fid,"$σ₁₂ $σ₂₂ $σ₂₃\n")
         write(fid,"$σ₁₃ $σ₂₃ $σ₃₃\n")
+        write(fid,"\n")
     end
 end
-## calulate variables
+## Phase field export
+function (op::VTKExport)(aps::Vector{Approximator},d::AbstractVector{Float64},dᵥ::AbstractVector{Float64},::Val{:PFM_PlaneStress})
+    fid = open(op.filename,"w")
+    nₑ = length(aps)
+    nₚ = length(aps[1].nodes)
+    write(fid,"# vtk DataFile Version 2.0\n")
+    write(fid,op.topic*"\n")
+    write(fid,"ASCII\n")
+    write(fid,"DATASET "*op.celltype*"\n")
+    # POINTS
+    write(fid,"POINTS $nₚ float\n")
+    for node in aps[1].nodes
+        x = node.x[1]
+        y = node.x[2]
+        z = node.x[3]
+        write(fid,"$x $y $z\n")
+    end
+
+    # CELLS
+    op(fid,aps,Val(Meta.parse(op.celltype)))
+
+    # POINT_DATA
+    write(fid,"POINT_DATA $nₚ\n")
+    op(fid,aps,d,"disp",Val(:u_2D))
+    op(fid,aps,dᵥ,"damage",Val(:Scale))
+
+    # CELL_DATA
+    write(fid,"CELL_DATA $nₑ\n")
+    op(fid,aps,d,"stress",Val(:σ_PlaneStress))
+    close(fid)
+end

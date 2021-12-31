@@ -41,7 +41,7 @@ function import_msh_4(fid::IO)
             numNodes = parse(Int,numN_)
             minNodeTag = parse(Int,minN_)
             maxNodeTag = parse(Int,maxN_)
-            x = Vector{Node}()
+            x = Vector{PhysicalNode}()
             for i in 1:numEntityBlocks
                 line = readline(fid)
                 entityD_,entityE_,para_,numN_ = split(line," ")
@@ -54,7 +54,7 @@ end
 
 function import_msh_2(fid::IO)
     aps = Dict{String,Vector{Approximator}}()
-    nodes = Vector{Node}()
+    nodes = Vector{PhysicalNode}()
     phy = Dict{Int,String}()
     for line in eachline(fid)
         if line == "\$PhysicalNames"

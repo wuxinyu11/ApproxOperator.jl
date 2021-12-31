@@ -12,6 +12,8 @@ using LinearAlgebra
 # import PyPlot: plot
 # abstract type Approximator end
 abstract type AbstractNode end
+abstract type PhysicalNode<:AbstractNode end
+abstract type ParametricNode<:AbstractNode end
 abstract type Approximator end
 abstract type BasisFunction end
 abstract type KernelFunction end
@@ -28,11 +30,14 @@ abstract type Operator end
 include("linearalgebra.jl")
 include("approximation.jl")
 # export Poi1, PoiM, Seg2, SegM, Tri3, TriM
+export ParaPFM
 export Linear1D, Linear2D, Quadratic1D, Quadratic2D, Cubic1D, Cubic2D, TensorProductKernel
 export RegularGrid
 export set_integration_rule!
 include("operation.jl")
-export EBCDOFS, Potential_Ω, Potential_Γᵍ, Potential_Γᵗ, Potential_Γᵍ_Nitsche, Potential_Γᵍ_penalty, Potential_Γᵍ_Lagrange_multiplier, PlaneStress_Ω, PlaneStrain_Ωᵛ, PlaneStrain_Ωᵈ, PlaneStress_Γᵗ,PlaneStress_Γᵍ_penalty, L₂Error_scale, H₁Error_scale, L₂Error_tensor, L₂Error_2nd_order_tensor, HₑError_PlaneStress
+export EBCDOFS, Potential_Ω, Potential_Γᵍ, Potential_Γᵗ, Potential_Γᵍ_Nitsche, Potential_Γᵍ_penalty, Potential_Γᵍ_Lagrange_multiplier, PlaneStress_Ω, PlaneStrain_Ωᵛ, PlaneStrain_Ωᵈ, PlaneStress_Γᵗ,PlaneStress_Γᵍ_penalty, NonlinearElasticity_Γᵍ_penalty, NonlinearPlaneStress_Γᵍ_penalty, NonlinearPlaneStress_C_Ω
+export L₂Error_scale, H₁Error_scale, L₂Error_tensor, L₂Error_2nd_order_tensor, HₑError_PlaneStress
+export PlaneStress_PhaseField_Ω, SecondOrderPhaseField, Update_HistoryField_PlaneStress, Update_Friction_PhaseField_PlaneStress
 include("import.jl")
 export import_msh
 include("export.jl")

@@ -45,7 +45,7 @@ ops = [
                 filename="vtk/cantilever_locking.vtk",
                 topic="incompressible test for cantilever beam problem",
                 pointdata=Dict{String,Symbol}("disp"=>:u_2D),
-                celldata=Dict{String,Symbol}("stress"=>:σ_planestrain),
+                celldata=Dict{String,Symbol}("stress"=>:σ_PlaneStrain),
                 parameters=Dict{String,Float64}("E"=>Ẽ,"ν"=>ν̃)
             )
 ]

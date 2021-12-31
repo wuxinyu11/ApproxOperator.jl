@@ -1,7 +1,5 @@
 
-include("../mfea.jl")
-
-using .MFEA, BenchmarkTools, Plots
+using ApproxOperator, Plots
 
 a₁ = 1.
 a₂ = 1.
