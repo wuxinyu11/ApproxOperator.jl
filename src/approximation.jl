@@ -1,22 +1,22 @@
 ## Actions for general functions
 @inline get_global_indice(ap::Approximator,i::Int) = ap.id[i]
 @inline get_number_of_indices(ap::Approximator) = length(ap.id)
-@inline get_local_node(ap::Approximator,i::Int) = ap.nodes[ap.id[i]].x
+@inline get_local_node(ap::Approximator,i::Int) = ap.nd[ap.id[i]].x
 @inline get_shape_functions(ap::Approximator,ξ::AbstractVector{Float64},gs::Val...) = (get_shape_functions(ap,ξ,g) for g in gs)
 
 ## AbstractPoi
 get_jacobe(::AbstractPoi,::AbstractVector{Float64}) = 1.
-get_coordinates(ap::AbstractPoi,::AbstractVector{Float64}) = 1.0*ap.nodes[ap.id[1]]
+get_coordinates(ap::AbstractPoi,::AbstractVector{Float64}) = 1.0*ap.nd[ap.id[1]]
 
 # --------------- Poi1 ---------------
 struct Poi1 <: AbstractPoi
-    nodes::Vector{PhysicalNode}
-    id::Int
-    qw::Vector{ParametricNode}
+    𝒙::Vector{PhysicalNode}
+    𝓘::Int
+    𝓖::Vector{ParametricNode}
 end
 
 # constructions of Poi1
-Poi1(nodes::Vector{Node},d::Int;qw::Symbol=:PoiGI1) = Poi1(nodes,id,QuadratureRule[qw])
+Poi1(nd::Vector{Node},d::Int;qw::Symbol=:PoiGI1) = Poi1(nd,id,QuadratureRule[qw])
 
 # actions of Poi1
 get_shape_functions(::Poi1,::AbstractVector{Float64},::Val{:∂1}) = 1.
@@ -28,7 +28,7 @@ get_jacobe(ap::AbstractSeg,::AbstractVector{Float64}) = ap.norm/2
 function get_coordinates(ap::AbstractSeg,ξ::AbstractVector{Float64})
     N1 = (1.0-ξ[1])*0.5
     N2 = (1.0+ξ[1])*0.5
-    return N1*ap.nodes[ap.id[1]].x + N2*ap.nodes[ap.id[2]].x
+    return N1*ap.nd[ap.id[1]].x + N2*ap.nd[ap.id[2]].x
 end
 function get_coordinates(ap1::AbstractSeg,ap2::AbstractPoi,::AbstractVector{Float64})
     id₁ = findfirst(x -> x == ap2.id[1], ap1.id)
@@ -36,10 +36,10 @@ function get_coordinates(ap1::AbstractSeg,ap2::AbstractPoi,::AbstractVector{Floa
 end
 function get_normal(ap::AbstractSeg)
     L = ap.nm
-    x1 = ap.nodes[ap.id[1]].x[1]
-    y1 = ap.nodes[ap.id[1]].x[2]
-    x2 = ap.nodes[ap.id[2]].x[1]
-    y2 = ap.nodes[ap.id[2]].x[2]
+    x1 = ap.nd[ap.id[1]].x[1]
+    y1 = ap.nd[ap.id[1]].x[2]
+    x2 = ap.nd[ap.id[2]].x[1]
+    y2 = ap.nd[ap.id[2]].x[2]
     return (y2-y1)/L,(x1-x2)/L,0.
 end
 function get_normal(ap1::AbstractSeg,ap2::AbstractPoi)
@@ -49,27 +49,27 @@ end
 
 # --------------- Seg2 ---------------
 struct Seg2 <: AbstractSeg
-    nodes::Vector{PhysicalNode}
+    nd::Vector{PhysicalNode}
     id::Vector{Int}
     qw::Vector{ParametricNode}
     nm::Float64
 end
 
 # constructions of Seg2
-function Seg2(nodes::Vector{PhysicalNode},id::Vector{Int};qw::Symbol=:SegGI2)
-    L = norm(nodes[id[2]].x - nodes[id[1]].x)
+function Seg2(nd::Vector{PhysicalNode},id::Vector{Int};qw::Symbol=:SegGI2)
+    L = norm(nd[id[2]].x - nd[id[1]].x)
     qw = QuadratureRule[qw]
-    return Seg2(nodes,id,qw,L)
+    return Seg2(nd,id,qw,L)
 end
-function Seg2(nodes::Vector{PhysicalNode},ids::Vector{Vector{Int}};qw::Symbol=:SegGI2)
-    return [Seg2(nodes,id,qw=qw) for id in ids]
+function Seg2(nd::Vector{PhysicalNode},ids::Vector{Vector{Int}};qw::Symbol=:SegGI2)
+    return [Seg2(nd,id,qw=qw) for id in ids]
 end
 
 # actions of Seg2
 get_shape_functions(::Seg2,ξ::AbstractVector{Float64},::Val{:∂1}) = SVector{2,Float64}((1.0-ξ[1])*0.5,(1.0+ξ[1])*0.5)
 function get_shape_functions(ap::Seg2,::AbstractVector{Float64},::Val{:∂x})
-    x1 = ap.nodes[ap.id[1]].x[1]
-    x2 = ap.nodes[ap.id[2]].x[1]
+    x1 = ap.nd[ap.id[1]].x[1]
+    x2 = ap.nd[ap.id[2]].x[1]
     return SVector{2,Float64}(-1.0/(x2-x1),1.0/(x2-x1))
 end
 get_shape_functions(::Seg2,ξ::AbstractVector{Float64},::Val{:∂y}) = SVector{2,Float64}(0.,0.)
@@ -78,9 +78,9 @@ get_shape_functions(::Seg2,ξ::AbstractVector{Float64},::Val{:∂z}) = SVector{2
 ## AbstractTri
 get_jacobe(ap::AbstractTri,ξ::AbstractVector{Float64}) = ap.nm
 function get_coordinates(ap::AbstractTri,ξ::AbstractVector{Float64})
-    return ξ[1]*ap.nodes[ap.id[1]].x +
-           ξ[2]*ap.nodes[ap.id[2]].x +
-           (1-ξ[1]-ξ[2])*ap.nodes[ap.id[3]].x
+    return ξ[1]*ap.nd[ap.id[1]].x +
+           ξ[2]*ap.nd[ap.id[2]].x +
+           (1-ξ[1]-ξ[2])*ap.nd[ap.id[3]].x
 end
 function get_coordinates(ap1::AbstractTri,ap2::AbstractSeg,ξ::AbstractVector{Float64})
     id₁ = findfirst(x -> x == ap2.id[1], ap1.id)
@@ -90,15 +90,15 @@ function get_coordinates(ap1::AbstractTri,ap2::AbstractSeg,ξ::AbstractVector{Fl
 end
 function get_normal(ap::AbstractTri)
     A = ap.nm
-    x1 = ap.nodes[ap.id[1]].x[1]
-    y1 = ap.nodes[ap.id[1]].x[2]
-    z1 = ap.nodes[ap.id[1]].x[3]
-    x2 = ap.nodes[ap.id[2]].x[1]
-    y2 = ap.nodes[ap.id[2]].x[2]
-    z2 = ap.nodes[ap.id[2]].x[3]
-    x3 = ap.nodes[ap.id[3]].x[1]
-    y3 = ap.nodes[ap.id[3]].x[2]
-    z3 = ap.nodes[ap.id[3]].x[3]
+    x1 = ap.nd[ap.id[1]].x[1]
+    y1 = ap.nd[ap.id[1]].x[2]
+    z1 = ap.nd[ap.id[1]].x[3]
+    x2 = ap.nd[ap.id[2]].x[1]
+    y2 = ap.nd[ap.id[2]].x[2]
+    z2 = ap.nd[ap.id[2]].x[3]
+    x3 = ap.nd[ap.id[3]].x[1]
+    y3 = ap.nd[ap.id[3]].x[2]
+    z3 = ap.nd[ap.id[3]].x[3]
     Ax = 0.5*(y1*z2+y2*z3+y3*z1-y2*z1-y3x*z2-y1*z3)
     Ay = 0.5*(z1*x2+z2*x3+z3*x1-z2*x1-z3x*x2-z1*x3)
     Az = 0.5*(x1*y2+x2*y3+x3*y1-x2*y1-x3x*y2-x1*y3)
@@ -107,10 +107,10 @@ end
 function get_normal(ap1::AbstractTri,ap2::AbstractSeg)
     id₁ = findfirst(x -> x == ap2.id[1], ap1.id)
     id₂ = findfirst(x -> x == ap2.id[2], ap1.id)
-    x1 = ap1.nodes[ap1.id[id₁]].x[1]
-    y1 = ap1.nodes[ap1.id[id₁]].x[2]
-    x2 = ap1.nodes[ap1.id[id₂]].x[1]
-    y2 = ap1.nodes[ap1.id[id₂]].x[2]
+    x1 = ap1.nd[ap1.id[id₁]].x[1]
+    y1 = ap1.nd[ap1.id[id₁]].x[2]
+    x2 = ap1.nd[ap1.id[id₂]].x[1]
+    y2 = ap1.nd[ap1.id[id₂]].x[2]
     L = ap2.nm
     return (y2-y1)/L,(x1-x2)/L,0.
 end
@@ -118,7 +118,7 @@ end
 # --------------- Tri3 ---------------
 # Constant strain triangular Approximator (CST)
 struct Tri3 <: AbstractTri
-    nodes :: Vector{PhysicalNode}
+    nd :: Vector{PhysicalNode}
     id :: Vector{Int}
     qw::Vector{ParametricNode}
     nm :: Float64
@@ -146,16 +146,16 @@ end
 # actions
 get_shape_functions(ap::Tri3,ξ::AbstractVector{Float64},::Val{:∂1}) = SVector{3,Float64}(ξ[1],ξ[2],1-ξ[1]-ξ[2])
 function get_shape_functions(ap::Tri3,ξ::AbstractVector{Float64},::Val{:∂x})
-    y1 = ap.nodes[ap.id[1]].x[2]
-    y2 = ap.nodes[ap.id[2]].x[2]
-    y3 = ap.nodes[ap.id[3]].x[2]
+    y1 = ap.nd[ap.id[1]].x[2]
+    y2 = ap.nd[ap.id[2]].x[2]
+    y3 = ap.nd[ap.id[3]].x[2]
     A = ap.nm
     return SVector{3,Float64}((y2-y3)/(2A),(y3-y1)/(2A),(y1-y2)/(2A))
 end
 function get_shape_functions(ap::Tri3,ξ::AbstractVector{Float64},::Val{:∂y})
-    x1 = ap.nodes[ap.id[1]].x[1]
-    x2 = ap.nodes[ap.id[2]].x[1]
-    x3 = ap.nodes[ap.id[3]].x[1]
+    x1 = ap.nd[ap.id[1]].x[1]
+    x2 = ap.nd[ap.id[2]].x[1]
+    x3 = ap.nd[ap.id[3]].x[1]
     A = ap.nm
     return SVector{3,Float64}((x3-x2)/(2A),(x1-x3)/(2A),(x2-x1)/(2A))
 end
@@ -167,14 +167,14 @@ function get_jacobe(ap::AbstractQuad,ξ::AbstractVector{Float64})
     return J₁₁*J₂₂-J₂₁*J₁₂
 end
 function get_jacobe_matrix(ap::AbstractQuad,ξ::AbstractVector{Float64})
-    x₁ = ap.nodes[ap.id[1]].x[1]
-    x₂ = ap.nodes[ap.id[2]].x[1]
-    x₃ = ap.nodes[ap.id[3]].x[1]
-    x₄ = ap.nodes[ap.id[4]].x[1]
-    y₁ = ap.nodes[ap.id[1]].x[2]
-    y₂ = ap.nodes[ap.id[2]].x[2]
-    y₃ = ap.nodes[ap.id[3]].x[2]
-    y₄ = ap.nodes[ap.id[4]].x[2]
+    x₁ = ap.nd[ap.id[1]].x[1]
+    x₂ = ap.nd[ap.id[2]].x[1]
+    x₃ = ap.nd[ap.id[3]].x[1]
+    x₄ = ap.nd[ap.id[4]].x[1]
+    y₁ = ap.nd[ap.id[1]].x[2]
+    y₂ = ap.nd[ap.id[2]].x[2]
+    y₃ = ap.nd[ap.id[3]].x[2]
+    y₄ = ap.nd[ap.id[4]].x[2]
     ∂N₁∂ξ,∂N₂∂ξ,∂N₃∂ξ,∂N₄∂ξ = get_shape_functions(ap,ξ,Val(:∂ξ))
     ∂N₁∂η,∂N₂∂η,∂N₃∂η,∂N₄∂η = get_shape_functions(ap,ξ,Val(:∂η))
     J₁₁ = ∂N₁∂ξ*x₁ + ∂N₂∂ξ*x₂ + ∂N₃∂ξ*x₃ + ∂N₄∂ξ*x₄
@@ -185,10 +185,10 @@ function get_jacobe_matrix(ap::AbstractQuad,ξ::AbstractVector{Float64})
 end
 function get_coordinates(ap::AbstractQuad,ξ::AbstractVector{Float64})
     N₁,N₂,N₃,N₄ = get_shape_functions(ap,ξ,Val(:∂1))
-    return N₁*ap.nodes[ap.id[1]] +
-           N₂*ap.nodes[ap.id[2]] +
-           N₃*ap.nodes[ap.id[3]] +
-           N₄*ap.nodes[ap.id[4]]
+    return N₁*ap.nd[ap.id[1]] +
+           N₂*ap.nd[ap.id[2]] +
+           N₃*ap.nd[ap.id[3]] +
+           N₄*ap.nd[ap.id[4]]
 end
 function get_coordinates(ap1::AbstractQuad,ap2::AbstractSeg,ξ::AbstractVector{Float64})
     id₁ = findfirst(x -> x == ap2.id[1], ap1.id)
@@ -199,7 +199,7 @@ end
 
 # --------------- Quad ---------------
 mutable struct Quad <: AbstractQuad
-    nodes :: Vector{PhysicalNode}
+    nd :: Vector{PhysicalNode}
     id :: Vector{Int}
     qw::Vector{ParametricNode}
 end
@@ -232,14 +232,14 @@ function get_shape_functions(ap::Quad,ξ::AbstractVector{Float64},::Val{:∂η})
     return SVector{4,Float64}(∂N₁∂η,∂N₂∂η,∂N₃∂η,∂N₄∂η)
 end
 function get_shape_functions(ap::Quad,ξ::AbstractVector{Float64},::Val{:∂x},::Val{:∂y})
-    x₁ = ap.nodes[ap.id[1]].x[1]
-    x₂ = ap.nodes[ap.id[2]].x[1]
-    x₃ = ap.nodes[ap.id[3]].x[1]
-    x₄ = ap.nodes[ap.id[4]].x[1]
-    y₁ = ap.nodes[ap.id[1]].x[2]
-    y₂ = ap.nodes[ap.id[2]].x[2]
-    y₃ = ap.nodes[ap.id[3]].x[2]
-    y₄ = ap.nodes[ap.id[4]].x[2]
+    x₁ = ap.nd[ap.id[1]].x[1]
+    x₂ = ap.nd[ap.id[2]].x[1]
+    x₃ = ap.nd[ap.id[3]].x[1]
+    x₄ = ap.nd[ap.id[4]].x[1]
+    y₁ = ap.nd[ap.id[1]].x[2]
+    y₂ = ap.nd[ap.id[2]].x[2]
+    y₃ = ap.nd[ap.id[3]].x[2]
+    y₄ = ap.nd[ap.id[4]].x[2]
     ∂N₁∂ξ,∂N₂∂ξ,∂N₃∂ξ,∂N₄∂ξ = get_shape_functions(ap,ξ,Val(:∂ξ))
     ∂N₁∂η,∂N₂∂η,∂N₃∂η,∂N₄∂η = get_shape_functions(ap,ξ,Val(:∂η))
     ∂x∂ξ = ∂N₁∂ξ*x₁ + ∂N₂∂ξ*x₂ + ∂N₃∂ξ*x₃ + ∂N₄∂ξ*x₄
