@@ -1,3 +1,4 @@
+
 ## PhysicalNode
 # ------------- Node -------------
 struct Node <: PhysicalNode
@@ -194,117 +195,13 @@ const QuadratureRule = Dict(
 ]
 )
 
-# Phase field integration nodes
-mutable struct PFNode<:ParametricNode
-    ξ::AbstractVector{Float64}
-    w::Float64
-    ℋ::Float64
-    ℋₜ::Float64
+## Actions
+# set_integration_rule!
+function set_integration_rule!(ap::Approximator,qw::Symbol)
+    ap.qw = QuadratureRule[qw]
 end
-PFNode(node::ParametricNode) = PFNode(node.ξ,node.w,0.0,0.0)
-
-# Phase field friction integration nodes
-mutable struct PFFNode<:ParametricNode
-    ξ::AbstractVector{Float64}
-    w::Float64
-    ℋ::Float64
-    ℋₙ::Float64
-    ℋₘ::Float64
-    τ::Float64
-    σ::Vector{Float64}
-    C::Vector{Float64}
-end
-PFFNode(node::ParametricNode) = PFFNode(node.ξ,node.w,0.0,0.0,0.0,0.0,zeros(3),zeros(4))
-## Symmetric matrix with packed storge
-struct SymMat
-    n::Int
-    m::Vector{Float64}
-end
-
-SymMat(n::Int) = SymMat(n,zeros(Int(n*(n+1)/2)))
-function getindex(A::SymMat,i::Int,j::Int)
-# @inline function getindex(A::SymMat,i::Int,j::Int)
-    i > j ? A.m[Int(j+i*(i-1)/2)] : A.m[Int(i+j*(j-1)/2)]
-end
-function setindex!(A::SymMat,val::Float64,i::Int,j::Int)
-# @inline function setindex!(A::SymMat,val::Float64,i::Int,j::Int)
-    A.m[Int(i+j*(j-1)/2)] = val
-end
-*(A::SymMat,v::AbstractVector{Float64}) = sum(A[1,i]*v[i] for i in 1:A.n)
-# @inline *(A::SymMat,v::AbstractVector{Float64}) = sum(A[1,i]*v[i] for i in 1:A.n)
-function -(A::SymMat)
-# @inline function -(A::SymMat)
-    A.m .= .-A.m
-    return A
-end
-
-fill!(A::SymMat,val::Float64) = fill!(A.m,val)
-@inline fill!(A::SymMat,val::Float64) = fill!(A.m,val)
-# function inverse!(A::Matrix{Float64})
-function inverse!(A::SymMat)
-    # n = size(A,1)
-    n = A.n
-    for i in 1:n
-        A[i,i] = 1.0/A[i,i]
-        for j in i+1:n
-            A[i,j] = - sum(A[i,k]*A[k,j] for k in i:j-1)/A[j,j]
-        end
+function set_integration_rule!(aps::Vector{Approximator},qw::Symbol)
+    for ap in aps
+        set_integration_rule!(ap,qw)
     end
-    return A
-end
-
-# function UᵀU!(A::Matrix{Float64})
-function UUᵀ!(A::SymMat)
-    # n = size(A,1)
-    n = A.n
-    for i in 1:n
-        A[i,i] = sum(A[i,k]*A[i,k] for k in i:n)
-        for j in i+1:n
-            A[i,j] = sum(A[i,k]*A[j,k] for k in j:n)
-            # A[j,i] = A[i,j]
-        end
-    end
-    return A
-end
-
-function UᵀAU!(A::SymMat,U::SymMat)
-    n = A.n
-    for i in n:-1:1
-        for j in n:-1:i
-            A[i,j] = sum(U[k,i]*A[k,l]*U[l,j] for k in 1:i for l in 1:j)
-        end
-    end
-end
-
-function UAUᵀ!(A::SymMat,U::SymMat)
-    n = A.n
-    for i in 1:n
-        for j in i:n
-            A[i,j] = sum(U[i,k]*A[k,l]*U[j,l] for k in i:n for l in j:n)
-        end
-    end
-end
-
-function UUᵀAUUᵀ!(A::SymMat,U::SymMat)
-    UᵀAU!(A,U)
-    UAUᵀ!(A,U)
-    return A
-end
-
-
-function cholesky!(A::SymMat)
-    n = A.n
-    for i in 1:n
-        for k in 1:i-1
-            A[i,i] -= A[k,i]^2
-        end
-        A[i,i] = A[i,i]^0.5
-        for j in i+1:n
-            for k in 1:i-1
-                A[i,j] -= A[k,i]A[k,j]
-            end
-            A[i,j] = A[i,j]/A[i,i]
-        end
-    end
-    return nothing
 end
