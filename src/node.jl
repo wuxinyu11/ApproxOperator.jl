@@ -1,15 +1,14 @@
-
 ## PhysicalNode
 # ------------- Node -------------
 struct Node <: PhysicalNode
-    x :: AbstractVector{Float64}
+    coordinates :: AbstractVector{Float64}
 end
 Node(x::Float64,y::Float64,z::Float64) = Node(SVector{3,Float64}(x,y,z))
 
 ## ParametricNode
 # --------------- Gauss integration point ----------------
 struct GaussPoint <: ParametricNode
-    ξ::AbstractVector{Float64}
+    coordinates::AbstractVector{Float64}
     w::Float64
 end
 GaussPoint(ξ::Float64,w::Float64) = GaussPoint(SVector{1,Float64}(ξ),w)
@@ -196,6 +195,8 @@ const QuadratureRule = Dict(
 )
 
 ## Actions
+getindex(x::AbstractNode,i::Int) = x.coordinates[i]
+
 # set_integration_rule!
 function set_integration_rule!(ap::Approximator,qw::Symbol)
     ap.qw = QuadratureRule[qw]

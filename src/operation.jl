@@ -41,6 +41,7 @@ struct Potential_Γᵍ_Nitsche{F<:Function} <:Operator
     α :: Float64
 end
 Potential_Γᵍ_Nitsche(g::Function) = Potential_Γᵍ_Nitsche(g,1.,1e3)
+
 struct Potential_HR_Ω{F<:Function} <:Operator
     b :: F
     k :: Float64
@@ -53,7 +54,7 @@ struct Potential_HR_Γᵍ{F<:Function} <:Operator
 end
 
 function (op::Potential_Ω)(ap::Approximator,k::Matrix{Float64},f::Vector{Float64})
-    for qw in ap.qw
+    for qw in ap.𝓖
         ξᵢ = qw.ξ
         wᵢ = qw.w
         N,B₁,B₂,B₃ = get_shape_functions(ap,ξᵢ,Val(:∂1),Val(:∂x),Val(:∂y),Val(:∂z))
@@ -73,7 +74,7 @@ function (op::Potential_Ω)(ap::Approximator,k::Matrix{Float64},f::Vector{Float6
 end
 
 function (op::Potential_Γᵗ)(ap::Approximator,f::Vector{Float64})
-    for qw in ap.qw
+    for qw in ap.𝓖
         ξᵢ = qw.ξ
         wᵢ = qw.w
         N = get_shape_functions(ap,ξᵢ,Val(:∂1))
@@ -90,7 +91,7 @@ end
 function (op::Potential_Γᵍ_penalty)(ap::Approximator,
                                     k ::Matrix{Float64},
                                     f ::Vector{Float64})
-    for qw in ap.qw
+    for qw in ap.𝓖
         ξᵢ = qw.ξ
         wᵢ = qw.w
         N = get_shape_functions(ap,ξᵢ,Val(:∂1))
@@ -113,7 +114,7 @@ function (op::Potential_Γᵍ_Lagrange_multiplier)(ap1::Approximator,
                                                 ap2::Approximator,
                                                 g  ::Matrix{Float64},
                                                 q  ::Vector{Float64})
-    for qw in ap.qw
+    for qw in ap.𝓖
         ξᵢ = qw.ξ
         wᵢ = qw.w
         N = get_shape_functions(ap1,ξᵢ,Val(:∂1))
@@ -137,7 +138,7 @@ function (op::Potential_Γᵍ_Nitsche)(ap1::Approximator,
                                     k  ::Matrix{Float64},
                                     f  ::Vector{Float64})
     n₁,n₂,n₃ = get_normal(ap1,ap2)
-    for qw in ap.qw
+    for qw in ap.𝓖
         ηᵢ = qw.ξ
         wᵢ = qw.w
         ξᵢ = get_coordinates(ap1,ap2,ηᵢ)
@@ -225,7 +226,7 @@ struct PlaneStress_Γᵍ_Nitsche{F<:Function} <: Operator
 end
 
 function (op::Elasticity_Ω)(ap::Approximator,k::AbstractMatrix{Float64},f::AbstractVector{Float64})
-    for qw in ap.qw
+    for qw in ap.𝓖
         ξᵢ = qw.ξ
         wᵢ = qw.w
         N,B₁,B₂ = get_shape_functions(ap,ξᵢ,Val(:∂1),Val(:∂x),Val(:∂y))
