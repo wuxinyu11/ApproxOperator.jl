@@ -1,6 +1,6 @@
 module ApproxOperator
 
-import Base: getindex, length
+import Base: +, -, *, getindex, length
 import InteractiveUtils: subtypes
 
 using StaticArrays

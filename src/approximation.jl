@@ -1,12 +1,11 @@
 ## Actions for general functions
-# @inline get_local_node(ap::Approximator,i::Int) = ap.𝓧[ap.𝓒[i]].x
-@inline get_shape_functions(ap::Approximator,ξ::AbstractVector{Float64},gs::Val...) = (get_shape_functions(ap,ξ,g) for g in gs)
+# @inline get_shape_functions(ap::Approximator,ξ::ParametricCoordinates,gs::Val...) = (get_shape_functions(ap,ξ,g) for g in gs)
 setindex!(ap::Approximator,i::Int) = ap.𝓒[i]
 length(ap::Approximator) = length(ap.𝓒)
 
 ## AbstractPoi
-get_jacobe(::AbstractPoi,::AbstractVector{Float64}) = 1.
-get_coordinates(ap::AbstractPoi,::AbstractVector{Float64}) = ap.𝓧[ap.𝓒[1]].coordinates
+get_jacobe(::AbstractPoi,::Float64) = 1.
+get_coordinates(ap::AbstractPoi,::Float64) = ap.𝓧[ap.𝓒[1]].coordinates
 
 # --------------- Poi1 ---------------
 struct Poi1 <: AbstractPoi
@@ -19,17 +18,17 @@ end
 Poi1(𝓒::Int,𝓧::Vector{T};𝓖::Symbol=:PoiGI1) where T<:PhysicalNode = Poi1(𝓒,𝓧,QuadratureRule[𝓖])
 
 # actions of Poi1
-get_shape_functions(::Poi1,::AbstractVector{Float64},::Val{:∂1}) = 1.
+get_shape_functions(::Poi1,::Float64,::Val{:∂1}) = 1.
 
 
 ## AbstractSeg
-get_jacobe(ap::AbstractSeg,::AbstractVector{Float64}) = 0.5*ap.L
-function get_coordinates(ap::AbstractSeg,ξ::AbstractVector{Float64})
-    N₁ = (1.0-ξ[1])*0.5
-    N₂ = (1.0+ξ[1])*0.5
+get_jacobe(ap::AbstractSeg,::Float64) = 0.5*ap.L
+function get_coordinates(ap::AbstractSeg,ξ::Float64)
+    N₁ = (1.0-ξ)*0.5
+    N₂ = (1.0+ξ)*0.5
     return N₁*ap.𝓧[ap.𝓒[1]].coordinates + N₂*ap.𝓧[ap.𝓒[2]].coordinates
 end
-function get_coordinates(ap1::AbstractSeg,ap2::AbstractPoi,::AbstractVector{Float64})
+function get_coordinates(ap1::AbstractSeg,ap2::AbstractPoi,::Float64)
     c₁ = findfirst(x -> x == ap2.𝓒[1], ap1.𝓒)
     return (c₁ == 1 ? -1. : 1.)
 end
@@ -56,30 +55,34 @@ end
 
 # constructions of Seg2
 function Seg2(𝓒::Vector{Int},𝓧::Vector{T};𝓖::Symbol=:SegGI2) where T<:PhysicalNode
-    L = norm(𝓧[𝓒[2]].coordinates - 𝓧[𝓒[1]].coordinates)
+    x₁ = 𝓧[𝓒[1]].coordinates[1]
+    y₁ = 𝓧[𝓒[1]].coordinates[2]
+    x₂ = 𝓧[𝓒[2]].coordinates[1]
+    y₂ = 𝓧[𝓒[2]].coordinates[2]
+    L = ((x₂-x₁)^2+(y₂-y₁)^2)^0.5
     𝓖 = QuadratureRule[𝓖]
     return Seg2(𝓒,𝓧,𝓖,L)
 end
 
 # actions of Seg2
-get_shape_functions(::Seg2,ξ::AbstractVector{Float64},::Val{:∂1}) = SVector{2,Float64}((1.0-ξ[1])*0.5,(1.0+ξ[1])*0.5)
-function get_shape_functions(ap::Seg2,::AbstractVector{Float64},::Val{:∂x})
+get_shape_functions(::Seg2,ξ::Float64,::Val{:∂1}) = ((1.0-ξ)*0.5,(1.0+ξ)*0.5)
+function get_shape_functions(ap::Seg2,::Float64,::Val{:∂x})
     x₁ = ap.𝓧[ap.𝓒[1]].coordinates[1]
     x₂ = ap.𝓧[ap.𝓒[2]].coordinates[1]
-    return SVector{2,Float64}(-1.0/(x₂-x₁),1.0/(x₂-x₁))
+    return (-1.0/(x₂-x₁),1.0/(x₂-x₁))
 end
-get_shape_functions(::Seg2,ξ::AbstractVector{Float64},::Val{:∂y}) = SVector{2,Float64}(0.,0.)
-get_shape_functions(::Seg2,ξ::AbstractVector{Float64},::Val{:∂z}) = SVector{2,Float64}(0.,0.)
+get_shape_functions(::Seg2,ξ::Float64,::Val{:∂y}) = (0.,0.)
+get_shape_functions(::Seg2,ξ::Float64,::Val{:∂z}) = (0.,0.)
 
 ## AbstractTri
-get_jacobe(ap::AbstractTri,ξ::AbstractVector{Float64}) = ap.A
-function get_coordinates(ap::AbstractTri,ξ::AbstractVector{Float64})
+get_jacobe(ap::AbstractTri,ξ::NTuple{2,Float64}) = ap.A
+function get_coordinates(ap::AbstractTri,ξ::NTuple{2,Float64})
     N₁ = ξ[1]
     N₂ = ξ[2]
     N₃ = 1-ξ[1]-ξ[2]
     return N₁*ap.𝓧[ap.𝓒[1]].coordinates + N₂*ap.𝓧[ap.𝓒[2]].coordinates + N₃*ap.𝓧[ap.𝓒[3]].coordinates
 end
-function get_coordinates(ap1::AbstractTri,ap2::AbstractSeg,ξ::AbstractVector{Float64})
+function get_coordinates(ap1::AbstractTri,ap2::AbstractSeg,ξ::NTuple{2,Float64})
     c₁ = findfirst(x -> x == ap2.𝓒[1], ap1.𝓒)
     c₂ = findfirst(x -> x == ap2.𝓒[2], ap1.𝓒)
     return SVector{2,Float64}((1-ξ[1])/2*(c₁ == 1) + (1+ξ[1])/2*(c₂ == 1),
@@ -141,29 +144,29 @@ function Tri3(𝓒::Vector{Int},𝓧::Vector{T};𝓖::Symbol=:TriGI3) where T<:P
 end
 
 # actions
-get_shape_functions(ap::Tri3,ξ::AbstractVector{Float64},::Val{:∂1}) = SVector{3,Float64}(ξ[1],ξ[2],1-ξ[1]-ξ[2])
-function get_shape_functions(ap::Tri3,ξ::AbstractVector{Float64},::Val{:∂x})
+get_shape_functions(ap::Tri3,ξ::NTuple{2,Float64},::Val{:∂1}) = SVector{3,Float64}(ξ[1],ξ[2],1-ξ[1]-ξ[2])
+function get_shape_functions(ap::Tri3,ξ::NTuple{2,Float64},::Val{:∂x})
     y₁ = ap.𝓧[ap.𝓒[1]].coordinates[2]
     y₂ = ap.𝓧[ap.𝓒[2]].coordinates[2]
     y₃ = ap.𝓧[ap.𝓒[3]].coordinates[2]
     A = ap.A
-    return SVector{3,Float64}((y₂-y₃)/(2^A),(y₃-y₁)/(2*A),(y₁-y₃)/(2*A))
+    return ((y₂-y₃)/(2^A),(y₃-y₁)/(2*A),(y₁-y₃)/(2*A))
 end
-function get_shape_functions(ap::Tri3,ξ::AbstractVector{Float64},::Val{:∂y})
+function get_shape_functions(ap::Tri3,ξ::NTuple{2,Float64},::Val{:∂y})
     x₁ = ap.𝓧[ap.𝓒[1]].coordinates[1]
     x₂ = ap.𝓧[ap.𝓒[2]].coordinates[1]
     x₃ = ap.𝓧[ap.𝓒[3]].coordinates[1]
     A = ap.A
-    return SVector{3,Float64}((x₃-x₂)/(2*A),(x₁-x₃)/(2*A),(x₂-x₁)/(2*A))
+    return ((x₃-x₂)/(2*A),(x₁-x₃)/(2*A),(x₂-x₁)/(2*A))
 end
-get_shape_functions(ap::Tri3,ξ::AbstractVector{Float64},::Val{:∂z}) = SVector{3,Float64}(0.,0.,0.)
+get_shape_functions(ap::Tri3,ξ::NTuple{2,Float64},::Val{:∂z}) = (0.,0.,0.)
 
 ## AbstractQuad
-function get_jacobe(ap::AbstractQuad,ξ::AbstractVector{Float64})
+function get_jacobe(ap::AbstractQuad,ξ::NTuple{2,Float64})
     J₁₁,J₂₁,J₁₂,J₂₂ = get_jacobe_matrix(ap,ξ)
     return J₁₁*J₂₂-J₂₁*J₁₂
 end
-function get_jacobe_matrix(ap::AbstractQuad,ξ::AbstractVector{Float64})
+function get_jacobe_matrix(ap::AbstractQuad,ξ::NTuple{2,Float64})
     x₁ = ap.𝓧[ap.𝓒[1]].coordinates[1]
     x₂ = ap.𝓧[ap.𝓒[2]].coordinates[1]
     x₃ = ap.𝓧[ap.𝓒[3]].coordinates[1]
@@ -180,11 +183,11 @@ function get_jacobe_matrix(ap::AbstractQuad,ξ::AbstractVector{Float64})
     J₂₂ = ∂N₁∂η*y₁ + ∂N₂∂η*y₂ + ∂N₃∂η*y₃ + ∂N₄∂η*y₄
     return J₁₁,J₂₁,J₁₂,J₂₂
 end
-function get_coordinates(ap::AbstractQuad,ξ::AbstractVector{Float64})
+function get_coordinates(ap::AbstractQuad,ξ::NTuple{2,Float64})
     N₁,N₂,N₃,N₄ = get_shape_functions(ap,ξ,Val(:∂1))
     return N₁*ap.𝓧[ap.𝓒[1]].coordinates + N₂*ap.𝓧[ap.𝓒[2]].coordinates + N₃*ap.𝓧[ap.𝓒[3]].coordinates + N₄*ap.𝓧[ap.𝓒[4]].coordinates
 end
-function get_coordinates(ap1::AbstractQuad,ap2::AbstractSeg,ξ::AbstractVector{Float64})
+function get_coordinates(ap1::AbstractQuad,ap2::AbstractSeg,ξ::NTuple{2,Float64})
     c₁ = findfirst(x -> x == ap2.𝓒[1], ap1.𝓒)
     c₂ = findfirst(x -> x == ap2.𝓒[2], ap1.𝓒)
     return SVector{2,Float64}((1-ξ[1])/2*(c₁ == 1)*(c₂ == 2) + (1+ξ[1])/2*(c₁ == 3)*(c₂ == 4),
@@ -204,28 +207,28 @@ function Quad(𝓒::Vector{Int},𝓧::Vector{T};𝓖::Symbol=:QuadGI2) where T<:
 end
 
 # actions
-function get_shape_functions(ap::Quad,ξ::AbstractVector{Float64},::Val{:∂1})
+function get_shape_functions(ap::Quad,ξ::NTuple{2,Float64},::Val{:∂1})
     N₁ = 0.25*(1-ξ[1])*(1-ξ[2])
     N₂ = 0.25*(1+ξ[1])*(1-ξ[2])
     N₃ = 0.25*(1+ξ[1])*(1+ξ[2])
     N₄ = 0.25*(1-ξ[1])*(1+ξ[2])
-    return SVector{4,Float64}(N₁,N₂,N₃,N₄)
+    return (N₁,N₂,N₃,N₄)
 end
-function get_shape_functions(ap::Quad,ξ::AbstractVector{Float64},::Val{:∂ξ})
+function get_shape_functions(ap::Quad,ξ::NTuple{2,Float64},::Val{:∂ξ})
     ∂N₁∂ξ = - 0.25*(1-ξ[2])
     ∂N₂∂ξ =   0.25*(1-ξ[2])
     ∂N₃∂ξ =   0.25*(1+ξ[2])
     ∂N₄∂ξ = - 0.25*(1+ξ[2])
-    return SVector{4,Float64}(∂N₁∂ξ,∂N₂∂ξ,∂N₃∂ξ,∂N₄∂ξ)
+    return (∂N₁∂ξ,∂N₂∂ξ,∂N₃∂ξ,∂N₄∂ξ)
 end
-function get_shape_functions(ap::Quad,ξ::AbstractVector{Float64},::Val{:∂η})
+function get_shape_functions(ap::Quad,ξ::NTuple{2,Float64},::Val{:∂η})
     ∂N₁∂η = - 0.25*(1-ξ[1])
     ∂N₂∂η = - 0.25*(1+ξ[1])
     ∂N₃∂η =   0.25*(1+ξ[1])
     ∂N₄∂η =   0.25*(1-ξ[1])
-    return SVector{4,Float64}(∂N₁∂η,∂N₂∂η,∂N₃∂η,∂N₄∂η)
+    return (∂N₁∂η,∂N₂∂η,∂N₃∂η,∂N₄∂η)
 end
-function get_shape_functions(ap::Quad,ξ::AbstractVector{Float64},::Val{:∂x},::Val{:∂y})
+function get_shape_functions(ap::Quad,ξ::NTuple{2,Float64},::Val{:∂x},::Val{:∂y})
     x₁ = ap.𝓧[ap.𝓒[1]].coordinates[1]
     x₂ = ap.𝓧[ap.𝓒[2]].coordinates[1]
     x₃ = ap.𝓧[ap.𝓒[3]].coordinates[1]
@@ -253,9 +256,9 @@ function get_shape_functions(ap::Quad,ξ::AbstractVector{Float64},::Val{:∂x},:
     ∂N₂∂y = ∂N₂∂ξ*∂ξ∂y + ∂N₂∂η*∂η∂y
     ∂N₃∂y = ∂N₃∂ξ*∂ξ∂y + ∂N₃∂η*∂η∂y
     ∂N₄∂y = ∂N₄∂ξ*∂ξ∂y + ∂N₄∂η*∂η∂y
-    return SVector{4,Float64}(∂N₁∂x,∂N₂∂x,∂N₃∂x,∂N₄∂x),SVector{4,Float64}(∂N₁∂y,∂N₂∂y,∂N₃∂y,∂N₄∂y)
+    return (∂N₁∂x,∂N₂∂x,∂N₃∂x,∂N₄∂x),(∂N₁∂y,∂N₂∂y,∂N₃∂y,∂N₄∂y)
 end
 
-get_shape_functions(ap::Quad,ξ::AbstractVector{Float64},::Val{:∂z}) = SVector{4,Float64}(0.,0.,0.,0.)
-@inline get_shape_functions(ap::Quad,ξ::AbstractVector{Float64},::Val{:∂1},::Val{:∂x},::Val{:∂y}) = get_shape_functions(ap,ξ,Val(:∂1)),get_shape_functions(ap,ξ,Val(:∂x),Val(:∂y))...
-@inline get_shape_functions(ap::Quad,ξ::AbstractVector{Float64},::Val{:∂1},::Val{:∂x},::Val{:∂y},::Val{:∂z}) = get_shape_functions(ap,ξ,Val(:∂1)),get_shape_functions(ap,ξ,Val(:∂x),Val(:∂y))...,get_shape_functions(ap,ξ,Val(:∂z))
+get_shape_functions(ap::Quad,ξ::NTuple{2,Float64},::Val{:∂z}) = (0.,0.,0.,0.)
+@inline get_shape_functions(ap::Quad,ξ::NTuple{2,Float64},::Val{:∂1},::Val{:∂x},::Val{:∂y}) = get_shape_functions(ap,ξ,Val(:∂1)),get_shape_functions(ap,ξ,Val(:∂x),Val(:∂y))...
+@inline get_shape_functions(ap::Quad,ξ::NTuple{2,Float64},::Val{:∂1},::Val{:∂x},::Val{:∂y},::Val{:∂z}) = get_shape_functions(ap,ξ,Val(:∂1)),get_shape_functions(ap,ξ,Val(:∂x),Val(:∂y))...,get_shape_functions(ap,ξ,Val(:∂z))

@@ -1,19 +1,22 @@
+ParametricCoordinates = Union{Float64,NTuple{2,Float64},NTuple{3,Float64}}
 ## PhysicalNode
+@inline +(n::NTuple{3,Float64},m::NTuple{3,Float64}) = (n[1]+m[1], n[2]+m[2], n[3]+m[3])
+@inline -(n::NTuple{3,Float64},m::NTuple{3,Float64}) = (n[1]-m[1], n[2]-m[2], n[3]-m[3])
+@inline *(c::Float64,n::NTuple{3,Float64}) = (c*n[1], c*n[2], c*n[3])
 # ------------- Node -------------
 struct Node <: PhysicalNode
-    coordinates :: AbstractVector{Float64}
+    coordinates::NTuple{3,Float64}
 end
-Node(x::Float64,y::Float64,z::Float64) = Node(SVector{3,Float64}(x,y,z))
+Node(x::Float64,y::Float64,z::Float64) = Node((x,y,z))
 
 ## ParametricNode
 # --------------- Gauss integration point ----------------
 struct GaussPoint <: ParametricNode
-    coordinates::AbstractVector{Float64}
+    coordinates::ParametricCoordinates
     w::Float64
 end
-GaussPoint(ξ::Float64,w::Float64) = GaussPoint(SVector{1,Float64}(ξ),w)
-GaussPoint(ξ₁::Float64,ξ₂::Float64,w::Float64) = GaussPoint(SVector{2,Float64}(ξ₁,ξ₂),w)
-GaussPoint(ξ₁::Float64,ξ₂::Float64,ξ₃::Float64,w::Float64) = GaussPoint(SVector{3,Float64}(ξ₁,ξ₂,ξ₃),w)
+GaussPoint(ξ₁::Float64,ξ₂::Float64,w::Float64) = GaussPoint((ξ₁,ξ₂),w)
+GaussPoint(ξ₁::Float64,ξ₂::Float64,ξ₃::Float64,w::Float64) = GaussPoint((ξ₁,ξ₂,ξ₃),w)
 
 const QuadratureRule = Dict(
 :PoiGI1 => [GaussPoint(-1.0,1.0)],
