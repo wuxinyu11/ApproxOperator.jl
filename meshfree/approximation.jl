@@ -504,11 +504,13 @@ end
 
 function (mf::MFSpace)(aps::Vector{T},bf::Val) where T<:Approximator
     for ap in aps
-        mf(ap,bf)
+        𝓖 = ap.𝓖
+        for i in 1:length(𝓖)
+            𝓖[i] = mf(ap,𝓖[i],bf)
+        end
     end
 end
 
-function (mf::MFSpace)(ap::T,bf::Val) where T<:Approximator
-    𝓖 = ap.𝓒
-    for ξ in 𝓖
+function (mf::MFSpace)(ap::T,ξ::S,bf::Val) where {T<:Approximator,S<:ParametricNode}
+
 end

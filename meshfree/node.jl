@@ -2,6 +2,7 @@
 ## ParametricNode
 struct MFPoint <: ParametricNode
     coordinates::ParametricCoordinates
+    w::Float64
     𝝭::Vector{Float64}
     ∂𝝭∂x::Union{Vector{Float64},Nothing}
     ∂𝝭∂y::Union{Vector{Float64},Nothing}
@@ -9,6 +10,9 @@ struct MFPoint <: ParametricNode
     ∂²𝝭∂x²::Union{Vector{Float64},Nothing}
     ∂²𝝭∂xy::Union{Vector{Float64},Nothing}
     ∂²𝝭∂y²::Union{Vector{Float64},Nothing}
+end
+function MFPoint(ξ::T,𝝭::Vector{Float64},::Val{:∂1}) where T<:ParametricNode
+    return MFPoint(ξ.coordinates,ξ.w,𝝭,nothing,nothing,nothing,nothing,nothing,nothing)
 end
 
 # action
