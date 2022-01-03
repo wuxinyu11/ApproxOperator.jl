@@ -22,7 +22,7 @@ abstract type AbstractTet <: Approximator end
 abstract type Operator end
 
 include("node.jl")
-# export Node
+export Node
 # export getindex
 # export set_nodes!
 # export setindex!
@@ -38,5 +38,7 @@ include("export.jl")
 include("efficiency.jl")
 export efficiency
 
-
+# debug
+# export Seg2
+# export get_jacobe, get_coordinates, get_shape_functions
 end

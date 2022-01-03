@@ -54,36 +54,35 @@ struct Potential_HR_Γᵍ{F<:Function} <:Operator
 end
 
 function (op::Potential_Ω)(ap::Approximator,k::Matrix{Float64},f::Vector{Float64})
-    for qw in ap.𝓖
-        ξᵢ = qw.ξ
-        wᵢ = qw.w
-        N,B₁,B₂,B₃ = get_shape_functions(ap,ξᵢ,Val(:∂1),Val(:∂x),Val(:∂y),Val(:∂z))
-        Jᵢ = get_jacobe(ap,ξᵢ)
-        xᵢ = get_coordinates(ap,ξᵢ)
-        W = Jᵢ*wᵢ
-        bᵢ = op.b(xᵢ...)
-        for i in 1:get_number_of_indices(ap)
-            I = get_global_indice(ap,i)
-            for j in 1:get_number_of_indices(ap)
-                J = get_global_indice(ap,j)
-                k[I,J] += op.k*(B₁[i]*B₁[j] + B₂[i]*B₂[j] + B₃[i]*B₃[j])*W
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    for ξ in 𝓖
+        N,B₁,B₂,B₃ = get_shape_functions(ap,ξ,Val(:∂1),Val(:∂x),Val(:∂y),Val(:∂z))
+        w = get_jacobe(ap,ξ)
+        x = get_coordinates(ap,ξ)
+        b = op.b(x...)
+        for i in 1:length(𝓒)
+            I = 𝓒[i]
+            for j in 1:length(𝓒)
+                J = 𝓒[j]
+                k[I,J] += op.k*(B₁[i]*B₁[j] + B₂[i]*B₂[j] + B₃[i]*B₃[j])*w
             end
-            f[I] += N[i]*bᵢ*W
+            f[I] += N[i]*b*w
         end
     end
 end
 
 function (op::Potential_Γᵗ)(ap::Approximator,f::Vector{Float64})
-    for qw in ap.𝓖
-        ξᵢ = qw.ξ
-        wᵢ = qw.w
-        N = get_shape_functions(ap,ξᵢ,Val(:∂1))
-        W = get_jacobe(ap,ξᵢ)*wᵢ
-        xᵢ = get_coordinates(ap,ξᵢ)
-        tᵢ = op.t(xᵢ...)
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    for ξᵢ in 𝓖
+        ξ = ξᵢ.ξ
+        w = ξᵢ.w
+        N = get_shape_functions(ap,ξ,Val(:∂1))
+        W = get_jacobe(ap,ξ)*w
+        x = get_coordinates(ap,ξ)
+        t = op.t(xᵢ...)
         for i in 1:get_number_of_indices(ap)
             I = get_global_indice(ap,i)
-            f[I] = f[I] + N[i]*tᵢ*W
+            f[I] = f[I] + N[i]*t*W
         end
     end
 end

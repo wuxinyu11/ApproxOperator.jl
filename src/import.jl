@@ -101,10 +101,3 @@ function import_msh_2(fid::IO)
     end
     return aps
 end
-
-# function import(filename::String)
-#     filetype = split(filename,".")[end]
-#     if filetype == "msh"
-#         import_msh(filename)
-#     end
-# end

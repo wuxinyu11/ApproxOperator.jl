@@ -102,6 +102,10 @@ const QuadratureRule = Dict(
     GaussPoint( 0.865063366688984510732096688424,0.149451349150580593145776339658),
     GaussPoint( 0.973906528517171720077964012085,0.066671344308688137593568809893)
 ],
+:TriGI1 =>
+[
+    GaussPoint(0.0,0.0,1.0)
+],
 :TriGI3 =>
 [
     GaussPoint(2/3,1/6,1/3),
@@ -201,11 +205,11 @@ const QuadratureRule = Dict(
 getindex(x::AbstractNode,i::Int) = x.coordinates[i]
 
 # set_integration_rule!
-function set_integration_rule!(ap::Approximator,qw::Symbol)
-    ap.qw = QuadratureRule[qw]
+function set_integration_rule!(ap::Approximator,𝓖::Symbol)
+    ap.𝓖 = QuadratureRule[𝓖]
 end
-function set_integration_rule!(aps::Vector{Approximator},qw::Symbol)
+function set_integration_rule!(aps::Vector{Approximator},𝓖::Symbol)
     for ap in aps
-        set_integration_rule!(ap,qw)
+        set_integration_rule!(ap,𝓖)
     end
 end
