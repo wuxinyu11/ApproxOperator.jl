@@ -92,6 +92,7 @@ function cholesky!(A::SymMat)
 end
 
 ## Spatial Partition
+# -------------- RegularGrid ------------------
 struct RegularGrid<:SpatialPartition
     xmin::Vector{Float64}
     dx::Vector{Float64}
@@ -100,12 +101,12 @@ struct RegularGrid<:SpatialPartition
 end
 
 # constructions of RegularGrid
-function RegularGrid(x::Vector{PhysicalNode};n::Int=1,γ::Int=1)
+function RegularGrid(x::Vector{T};n::Int=1,γ::Int=1) where T<:PhysicalNode
     n *= γ
     nₚ  = length(x)
-    xmin, xmax = extrema(x[i].x for i in 1:nₚ)
-    ymin, ymax = extrema(x[i].y for i in 1:nₚ)
-    zmin, zmax = extrema(x[i].z for i in 1:nₚ)
+    xmin, xmax = extrema(x[i].coordinates[1] for i in 1:nₚ)
+    ymin, ymax = extrema(x[i].coordinates[2] for i in 1:nₚ)
+    zmin, zmax = extrema(x[i].coordinates[3] for i in 1:nₚ)
     dx = xmax - xmin
     dy = ymax - ymin
     dz = zmax - zmin
@@ -124,9 +125,9 @@ function RegularGrid(x::Vector{PhysicalNode};n::Int=1,γ::Int=1)
         cells[i] = Set{Int}()
     end
     for i in 1:nₚ
-        ix = floor(Int, (x[i].x - xmin)/dx * nx)
-        iy = floor(Int, (x[i].y - ymin)/dy * ny)
-        iz = floor(Int, (x[i].z - zmin)/dz * nz)
+        ix = floor(Int, (x[i].coordinates[1] - xmin)/dx * nx)
+        iy = floor(Int, (x[i].coordinates[2] - ymin)/dy * ny)
+        iz = floor(Int, (x[i].coordinates[3] - zmin)/dz * nz)
 
         ix > nx-1 ? ix = nx-1 : nothing
         iy > ny-1 ? iy = ny-1 : nothing
@@ -154,10 +155,10 @@ function RegularGrid(x::Vector{PhysicalNode};n::Int=1,γ::Int=1)
 end
 
 # actions of RegularGrid
-function (rg::RegularGrid)(x::PhysicalNode)
-    ix = floor(Int, (x.x[1] - rg.xmin[1])/rg.dx[1] * rg.nx[1])
-    iy = floor(Int, (x.x[2] - rg.xmin[2])/rg.dx[2] * rg.nx[2])
-    iz = floor(Int, (x.x[3] - rg.xmin[3])/rg.dx[3] * rg.nx[3])
+function (rg::RegularGrid)(x::NTuple{3,Float64})
+    ix = floor(Int, (x[1] - rg.xmin[1])/rg.dx[1] * rg.nx[1])
+    iy = floor(Int, (x[2] - rg.xmin[2])/rg.dx[2] * rg.nx[2])
+    iz = floor(Int, (x[3] - rg.xmin[3])/rg.dx[3] * rg.nx[3])
 
     ix > rg.nx[1]-1 ? ix = rg.nx[1]-1 : nothing
     iy > rg.nx[2]-1 ? iy = rg.nx[2]-1 : nothing
@@ -165,16 +166,33 @@ function (rg::RegularGrid)(x::PhysicalNode)
     return rg.cells[rg.nx[1]*rg.nx[2]*iz + rg.nx[1]*iy + ix + 1]
 end
 
-function (rg::RegularGrid)(xs::PhysicalNode...)
-    indices = Set{Int}()
-    for x in xs
-        union!(indices,rg(x))
+for t in subtypes(SpatialPartition)
+    (sp::t)(x::T) where T<:PhysicalNode = sp(x.coordinates)
+    function (sp::t)(xs::T...) where T<:PhysicalNode
+        indices = Set{Int}()
+        for x in xs
+            union!(indices,sp(x))
+        end
+        return indices
     end
-    return indices
+    (sp::t)(xs::T) where T<:AbstractVector{PhysicalNode} = sp(xs...)
+    function (sp::t)(ap::T) where T<:Approximator
+        𝓖 = ap.𝓖;𝓒 = ap.𝓒
+        for ξ in 𝓖
+            x = get_coordinates(ap,ξ)
+            union!(𝓒,collect(sp(x)))
+        end
+    end
+    function (sp::t)(aps::Vector{T}) where T<:Approximator
+        for ap in aps
+            sp(ap)
+        end
+    end
 end
-(rg::RegularGrid)(xs::Vector{Node}) = rg(xs...)
 
 ## Basis Function
+@inline get_length_of_basis_function(bf::Val) = length(get_basis_function(bf,(0.0,0.0,0.0),Val(:∂1)))
+
 # ------------ Linear1D ---------------
 @inline get_basis_function(::Val{:Linear1D},x::NTuple{3,Float64},::Val{:∂1}) = (1.,x[1])
 @inline get_basis_function(::Val{:Linear1D}, ::NTuple{3,Float64},::Val{:∂x}) = (0.,1.)
@@ -182,11 +200,11 @@ end
 @inline get_basis_function(::Val{:Linear1D}, ::NTuple{3,Float64},::Val{:∂z}) = (0.,0.)
 
 # ------------ Quadaratic1D ---------------
-@inline get_basis_function(::Val{:Quadratic1D},x::NTuple{3,Float64},::Val{:∂1}) = {3,Float64}(1.,x[1],x[1]^2)
-@inline get_basis_function(::Val{:Quadratic1D},x::NTuple{3,Float64},::Val{:∂x}) = {3,Float64}(0.,1.,2*x[1])
-@inline get_basis_function(::Val{:Quadratic1D}, ::NTuple{3,Float64},::Val{:∂y}) = {3,Float64}(0.,0.,0.)
-@inline get_basis_function(::Val{:Quadratic1D}, ::NTuple{3,Float64},::Val{:∂z}) = {3,Float64}(0.,0.,0.)
-@inline get_basis_function(::Val{:Quadratic1D}, ::NTuple{3,Float64},::Val{:∂x²}) = {3,Float64}(0.,0.,2.)
+@inline get_basis_function(::Val{:Quadratic1D},x::NTuple{3,Float64},::Val{:∂1}) = (1.,x[1],x[1]^2)
+@inline get_basis_function(::Val{:Quadratic1D},x::NTuple{3,Float64},::Val{:∂x}) = (0.,1.,2*x[1])
+@inline get_basis_function(::Val{:Quadratic1D}, ::NTuple{3,Float64},::Val{:∂y}) = (0.,0.,0.)
+@inline get_basis_function(::Val{:Quadratic1D}, ::NTuple{3,Float64},::Val{:∂z}) = (0.,0.,0.)
+@inline get_basis_function(::Val{:Quadratic1D}, ::NTuple{3,Float64},::Val{:∂x²}) =(0.,0.,2.)
 
 # ------------ Cubic1D ---------------
 @inline get_basis_function(::Val{:Cubic1D},x::NTuple{3,Float64},::Val{:∂1}) = (1.,x[1],x[1]^2,x[1]^3)
@@ -328,189 +346,248 @@ function get_kernel(::Val{:CubicSpline},r::Float64,::Val{:∂r²})
 end
 
 ## calulate shape functions
-function cal_shape_functions(ap::ReproducingKernel,ξ::Union{Float64,AbstractVector{Float64}},::Val{:∂1})
-    x = get_coordinates(ap,ξ)
-    p₀ᵀ𝗠⁻¹ = cal_moment_matrix!(ap,x,Val(:∂1))
-    𝝭 = get_shape_function(ap,:∂1)
-    for i in 1:get_number_of_indices(ap)
-        xᵢ = get_local_node(ap,i)
-        Δx = x - xᵢ
-        p = get_basis_function(ap.bf,Δx,Val(:∂1))
-        w = get_kernel_function(ap.kf,Δx,Val(:∂1))
-        𝝭[i] = p₀ᵀ𝗠⁻¹*p*w
-    end
-    return 𝝭
-end
-
-function cal_shape_functions(ap::ReproducingKernel,ξ::Union{Float64,AbstractVector{Float64}},::Val{:∂1},::Val{:∂x})
-    x = get_coordinates(ap,ξ)
-    p₀ᵀ𝗠⁻¹, p₀ᵀ∂𝗠⁻¹∂x = cal_moment_matrix!(ap,x,Val(:∂1),Val(:∂x))
-    # 𝝭, ∂𝝭∂x = get_shape_function(ap,:∂1,:∂x)
-    𝝭 = get_shape_function(ap,:∂1)
-    ∂𝝭∂x = get_shape_function(ap,:∂x)
-    for i in 1:get_number_of_indices(ap)
-        xᵢ = get_local_node(ap,i)
-        Δx = x - xᵢ
-        p = get_basis_function(ap.bf,Δx,Val(:∂1))
-        ∂p∂x = get_basis_function(ap.bf,Δx,Val(:∂x))
-        w, ∂w∂x = get_kernel_function(ap.kf,Δx,Val(:∂1),Val(:∂x))
-        𝝭[i] = p₀ᵀ𝗠⁻¹*p*w
-        ∂𝝭∂x[i] = p₀ᵀ∂𝗠⁻¹∂x*p*w + p₀ᵀ𝗠⁻¹*∂p∂x*w + p₀ᵀ𝗠⁻¹*p*∂w∂x
-    end
-    return 𝝭, ∂𝝭∂x
-end
-
-function cal_shape_functions(ap::ReproducingKernel,ξ::AbstractVector{Float64},::Val{:∂1},::Val{:∂x},::Val{:∂y})
-    x = get_coordinates(ap,ξ)
-    p₀ᵀ𝗠⁻¹, p₀ᵀ∂𝗠⁻¹∂x, p₀ᵀ∂𝗠⁻¹∂y = cal_moment_matrix!(ap,x,Val(:∂1),Val(:∂x),Val(:∂y))
-    # 𝝭, ∂𝝭∂x, ∂𝝭∂y = get_shape_function(ap,:∂1,:∂x,:∂y)
-    𝝭 = get_shape_function(ap,:∂1)
-    ∂𝝭∂x = get_shape_function(ap,:∂x)
-    ∂𝝭∂y = get_shape_function(ap,:∂y)
-    for i in 1:get_number_of_indices(ap)
-        xᵢ = get_local_node(ap,i)
-        Δx = x - xᵢ
-        # p, ∂p∂x, ∂p∂y = get_basis_function(ap,Δx,Val(:∂1),Val(:∂x),Val(:∂y))
-        p = get_basis_function(ap.bf,Δx,Val(:∂1))
-        ∂p∂x = get_basis_function(ap.bf,Δx,Val(:∂x))
-        ∂p∂y = get_basis_function(ap.bf,Δx,Val(:∂y))
-        w, ∂w∂x, ∂w∂y = get_kernel_function(ap.kf,Δx,Val(:∂1),Val(:∂x),Val(:∂y))
-        𝝭[i] = p₀ᵀ𝗠⁻¹*p*w
-        ∂𝝭∂x[i] = p₀ᵀ∂𝗠⁻¹∂x*p*w + p₀ᵀ𝗠⁻¹*∂p∂x*w + p₀ᵀ𝗠⁻¹*p*∂w∂x
-        ∂𝝭∂y[i] = p₀ᵀ∂𝗠⁻¹∂y*p*w + p₀ᵀ𝗠⁻¹*∂p∂y*w + p₀ᵀ𝗠⁻¹*p*∂w∂y
-    end
-    return 𝝭, ∂𝝭∂x, ∂𝝭∂y
-end
-
-function cal_shape_functions(ap::ReproducingKernel,ξ::AbstractVector{Float64},::Val{:∂1},::Val{:∂x},::Val{:∂y},::Val{:∂z})
-    x = get_coordinates(ap,ξ)
-    p₀ᵀ𝗠⁻¹, p₀ᵀ∂𝗠⁻¹∂x, p₀ᵀ∂𝗠⁻¹∂y, p₀ᵀ∂𝗠⁻¹∂z = cal_moment_matrix!(ap,x,Val(:∂1),Val(:∂x),Val(:∂y),Val(:∂z))
-    # 𝝭, ∂𝝭∂x, ∂𝝭∂y, ∂𝝭∂z = get_shape_function(ap,:∂1,:∂x,:∂y,:∂z)
-    𝝭 = get_shape_function(ap,:∂1)
-    ∂𝝭∂x = get_shape_function(ap,:∂x)
-    ∂𝝭∂y = get_shape_function(ap,:∂y)
-    ∂𝝭∂z = get_shape_function(ap,:∂z)
-    for i in 1:get_number_of_indices(ap)
-        xᵢ = get_local_node(ap,i)
-        Δx = x - xᵢ
-        # p, ∂p∂x, ∂p∂y, ∂p∂z = get_basis_function(ap,Δx,Val(:∂1),Val(:∂x),Val(:∂y),Val(:∂z))
-        p = get_basis_function(ap.bf,Δx,Val(:∂1))
-        ∂p∂x = get_basis_function(ap.bf,Δx,Val(:∂x))
-        ∂p∂y = get_basis_function(ap.bf,Δx,Val(:∂y))
-        ∂p∂z = get_basis_function(ap.bf,Δx,Val(:∂z))
-        w, ∂w∂x, ∂w∂y, ∂w∂z = get_kernel_function(ap.kf,Δx,Val(:∂1),Val(:∂x),Val(:∂y),Val(:∂z))
-        𝝭[i] = p₀ᵀ𝗠⁻¹*p*w
-        ∂𝝭∂x[i] = p₀ᵀ∂𝗠⁻¹∂x*p*w + p₀ᵀ𝗠⁻¹*∂p∂x*w + p₀ᵀ𝗠⁻¹*p*∂w∂x
-        ∂𝝭∂y[i] = p₀ᵀ∂𝗠⁻¹∂y*p*w + p₀ᵀ𝗠⁻¹*∂p∂y*w + p₀ᵀ𝗠⁻¹*p*∂w∂y
-        ∂𝝭∂z[i] = p₀ᵀ∂𝗠⁻¹∂z*p*w + p₀ᵀ𝗠⁻¹*∂p∂z*w + p₀ᵀ𝗠⁻¹*p*∂w∂z
-    end
-    return 𝝭, ∂𝝭∂x, ∂𝝭∂y, ∂𝝭∂z
-end
-
-function cal_moment_matrix!(ap::ReproducingKernel,x::AbstractVector,::Val{:∂1})
-    n = get_number_of_basis_function(ap)
-    𝗠 = get_moment_matrix(ap,:∂1)
-    fill!(𝗠,0.)
-    for i in 1:get_number_of_indices(ap)
-        xᵢ = get_local_node(ap,i)
-        Δx = x - xᵢ
-        p = get_basis_function(ap.bf,Δx,Val(:∂1))
-        w = get_kernel_function(ap.kf,Δx,Val(:∂1))
-        for I in 1:n
-            for J in I:n
-                𝗠[I,J] += w*p[I]*p[J]
-            end
-        end
-    end
-    cholesky!(𝗠)
-    U⁻¹ = inverse!(𝗠)
-    𝗠⁻¹ = UUᵀ!(U⁻¹)
-    return 𝗠⁻¹
-end
-
-function cal_moment_matrix!(ap::ReproducingKernel,x::AbstractVector,::Val{:∂1},::Val{:∂x})
-    n = get_number_of_basis_function(ap)
-    # 𝗠, ∂𝗠∂x = get_moment_matrix(ap,:∂1,:∂x)
-    𝗠 = get_moment_matrix(ap,:∂1)
-    ∂𝗠∂x = get_moment_matrix(ap,:∂x)
-    fill!(𝗠,0.)
-    fill!(∂𝗠∂x,0.)
-    for i in 1:get_number_of_indices(ap)
-        xᵢ = get_local_node(ap,i)
-        Δx = x - xᵢ
-        # p, ∂p∂x = get_basis_function(ap,Δx,Val(:∂1),Val(:∂x))
-        p = get_basis_function(ap.bf,Δx,Val(:∂1))
-        ∂p∂x = get_basis_function(ap.bf,Δx,Val(:∂x))
-        w, ∂w∂x = get_kernel_function(ap.kf,Δx,Val(:∂1),Val(:∂x))
-        for I in 1:n
-            for J in I:n
-                𝗠[I,J] += w*p[I]*p[J]
-                ∂𝗠∂x[I,J] += ∂w∂x*p[I]*p[J] + w*∂p∂x[I]*p[J] + w*p[I]*∂p∂x[J]
-            end
-        end
-    end
-    cholesky!(𝗠)
-    U⁻¹ = inverse!(𝗠)
-    ∂𝗠⁻¹∂x = - UUᵀAUUᵀ!(∂𝗠∂x,U⁻¹)
-    𝗠⁻¹ = UUᵀ!(U⁻¹)
-    return 𝗠⁻¹, ∂𝗠⁻¹∂x
-end
-
-function cal_moment_matrix!(ap::ReproducingKernel,x::AbstractVector,::Val{:∂1},::Val{:∂x},::Val{:∂y},::Val{:∂z})
-    n = get_number_of_basis_function(ap)
-    # 𝗠, ∂𝗠∂x, ∂𝗠∂y, ∂𝗠∂z = get_moment_matrix(ap,:∂1,:∂x,:∂y,:∂z)
-    𝗠 = get_moment_matrix(ap,:∂1)
-    ∂𝗠∂x = get_moment_matrix(ap,:∂x)
-    ∂𝗠∂y = get_moment_matrix(ap,:∂y)
-    ∂𝗠∂z = get_moment_matrix(ap,:∂z)
-    fill!(𝗠,0.)
-    fill!(∂𝗠∂x,0.)
-    fill!(∂𝗠∂y,0.)
-    fill!(∂𝗠∂z,0.)
-    for i in 1:get_number_of_indices(ap)
-        xᵢ = get_local_node(ap,i)
-        Δx = x - xᵢ
-        # p, ∂p∂x, ∂p∂y, ∂p∂z = get_basis_function(ap,Δx,Val(:∂1),Val(:∂x),Val(:∂y),Val(:∂z))
-        p = get_basis_function(ap.bf,Δx,Val(:∂1))
-        ∂p∂x = get_basis_function(ap.bf,Δx,Val(:∂x))
-        ∂p∂y = get_basis_function(ap.bf,Δx,Val(:∂y))
-        ∂p∂z = get_basis_function(ap.bf,Δx,Val(:∂z))
-        w, ∂w∂x, ∂w∂y, ∂w∂z = get_kernel_function(ap.kf,Δx,Val(:∂1),Val(:∂x),Val(:∂y),Val(:∂z))
-        for I in 1:n
-            for J in I:n
-                𝗠[I,J] += w*p[I]*p[J]
-                ∂𝗠∂x[I,J] += ∂w∂x*p[I]*p[J] + w*∂p∂x[I]*p[J] + w*p[I]*∂p∂x[J]
-                ∂𝗠∂y[I,J] += ∂w∂y*p[I]*p[J] + w*∂p∂y[I]*p[J] + w*p[I]*∂p∂y[J]
-                ∂𝗠∂z[I,J] += ∂w∂z*p[I]*p[J] + w*∂p∂z[I]*p[J] + w*p[I]*∂p∂z[J]
-            end
-        end
-    end
-    cholesky!(𝗠)
-    U⁻¹ = inverse!(𝗠)
-    ∂𝗠⁻¹∂x = - UUᵀAUUᵀ!(∂𝗠∂x,U⁻¹)
-    ∂𝗠⁻¹∂y = - UUᵀAUUᵀ!(∂𝗠∂y,U⁻¹)
-    ∂𝗠⁻¹∂z = - UUᵀAUUᵀ!(∂𝗠∂z,U⁻¹)
-    𝗠⁻¹ = UUᵀ!(U⁻¹)
-    return 𝗠⁻¹, ∂𝗠⁻¹∂x, ∂𝗠⁻¹∂y, ∂𝗠⁻¹∂z
-end
+# function cal_shape_functions(ap::ReproducingKernel,ξ::Union{Float64,AbstractVector{Float64}},::Val{:∂1})
+#     x = get_coordinates(ap,ξ)
+#     p₀ᵀ𝗠⁻¹ = cal_moment_matrix!(ap,x,Val(:∂1))
+#     𝝭 = get_shape_function(ap,:∂1)
+#     for i in 1:get_number_of_indices(ap)
+#         xᵢ = get_local_node(ap,i)
+#         Δx = x - xᵢ
+#         p = get_basis_function(ap.bf,Δx,Val(:∂1))
+#         w = get_kernel_function(ap.kf,Δx,Val(:∂1))
+#         𝝭[i] = p₀ᵀ𝗠⁻¹*p*w
+#     end
+#     return 𝝭
+# end
+#
+# function cal_shape_functions(ap::ReproducingKernel,ξ::Union{Float64,AbstractVector{Float64}},::Val{:∂1},::Val{:∂x})
+#     x = get_coordinates(ap,ξ)
+#     p₀ᵀ𝗠⁻¹, p₀ᵀ∂𝗠⁻¹∂x = cal_moment_matrix!(ap,x,Val(:∂1),Val(:∂x))
+#     # 𝝭, ∂𝝭∂x = get_shape_function(ap,:∂1,:∂x)
+#     𝝭 = get_shape_function(ap,:∂1)
+#     ∂𝝭∂x = get_shape_function(ap,:∂x)
+#     for i in 1:get_number_of_indices(ap)
+#         xᵢ = get_local_node(ap,i)
+#         Δx = x - xᵢ
+#         p = get_basis_function(ap.bf,Δx,Val(:∂1))
+#         ∂p∂x = get_basis_function(ap.bf,Δx,Val(:∂x))
+#         w, ∂w∂x = get_kernel_function(ap.kf,Δx,Val(:∂1),Val(:∂x))
+#         𝝭[i] = p₀ᵀ𝗠⁻¹*p*w
+#         ∂𝝭∂x[i] = p₀ᵀ∂𝗠⁻¹∂x*p*w + p₀ᵀ𝗠⁻¹*∂p∂x*w + p₀ᵀ𝗠⁻¹*p*∂w∂x
+#     end
+#     return 𝝭, ∂𝝭∂x
+# end
+#
+# function cal_shape_functions(ap::ReproducingKernel,ξ::AbstractVector{Float64},::Val{:∂1},::Val{:∂x},::Val{:∂y})
+#     x = get_coordinates(ap,ξ)
+#     p₀ᵀ𝗠⁻¹, p₀ᵀ∂𝗠⁻¹∂x, p₀ᵀ∂𝗠⁻¹∂y = cal_moment_matrix!(ap,x,Val(:∂1),Val(:∂x),Val(:∂y))
+#     # 𝝭, ∂𝝭∂x, ∂𝝭∂y = get_shape_function(ap,:∂1,:∂x,:∂y)
+#     𝝭 = get_shape_function(ap,:∂1)
+#     ∂𝝭∂x = get_shape_function(ap,:∂x)
+#     ∂𝝭∂y = get_shape_function(ap,:∂y)
+#     for i in 1:get_number_of_indices(ap)
+#         xᵢ = get_local_node(ap,i)
+#         Δx = x - xᵢ
+#         # p, ∂p∂x, ∂p∂y = get_basis_function(ap,Δx,Val(:∂1),Val(:∂x),Val(:∂y))
+#         p = get_basis_function(ap.bf,Δx,Val(:∂1))
+#         ∂p∂x = get_basis_function(ap.bf,Δx,Val(:∂x))
+#         ∂p∂y = get_basis_function(ap.bf,Δx,Val(:∂y))
+#         w, ∂w∂x, ∂w∂y = get_kernel_function(ap.kf,Δx,Val(:∂1),Val(:∂x),Val(:∂y))
+#         𝝭[i] = p₀ᵀ𝗠⁻¹*p*w
+#         ∂𝝭∂x[i] = p₀ᵀ∂𝗠⁻¹∂x*p*w + p₀ᵀ𝗠⁻¹*∂p∂x*w + p₀ᵀ𝗠⁻¹*p*∂w∂x
+#         ∂𝝭∂y[i] = p₀ᵀ∂𝗠⁻¹∂y*p*w + p₀ᵀ𝗠⁻¹*∂p∂y*w + p₀ᵀ𝗠⁻¹*p*∂w∂y
+#     end
+#     return 𝝭, ∂𝝭∂x, ∂𝝭∂y
+# end
+#
+# function cal_shape_functions(ap::ReproducingKernel,ξ::AbstractVector{Float64},::Val{:∂1},::Val{:∂x},::Val{:∂y},::Val{:∂z})
+#     x = get_coordinates(ap,ξ)
+#     p₀ᵀ𝗠⁻¹, p₀ᵀ∂𝗠⁻¹∂x, p₀ᵀ∂𝗠⁻¹∂y, p₀ᵀ∂𝗠⁻¹∂z = cal_moment_matrix!(ap,x,Val(:∂1),Val(:∂x),Val(:∂y),Val(:∂z))
+#     # 𝝭, ∂𝝭∂x, ∂𝝭∂y, ∂𝝭∂z = get_shape_function(ap,:∂1,:∂x,:∂y,:∂z)
+#     𝝭 = get_shape_function(ap,:∂1)
+#     ∂𝝭∂x = get_shape_function(ap,:∂x)
+#     ∂𝝭∂y = get_shape_function(ap,:∂y)
+#     ∂𝝭∂z = get_shape_function(ap,:∂z)
+#     for i in 1:get_number_of_indices(ap)
+#         xᵢ = get_local_node(ap,i)
+#         Δx = x - xᵢ
+#         # p, ∂p∂x, ∂p∂y, ∂p∂z = get_basis_function(ap,Δx,Val(:∂1),Val(:∂x),Val(:∂y),Val(:∂z))
+#         p = get_basis_function(ap.bf,Δx,Val(:∂1))
+#         ∂p∂x = get_basis_function(ap.bf,Δx,Val(:∂x))
+#         ∂p∂y = get_basis_function(ap.bf,Δx,Val(:∂y))
+#         ∂p∂z = get_basis_function(ap.bf,Δx,Val(:∂z))
+#         w, ∂w∂x, ∂w∂y, ∂w∂z = get_kernel_function(ap.kf,Δx,Val(:∂1),Val(:∂x),Val(:∂y),Val(:∂z))
+#         𝝭[i] = p₀ᵀ𝗠⁻¹*p*w
+#         ∂𝝭∂x[i] = p₀ᵀ∂𝗠⁻¹∂x*p*w + p₀ᵀ𝗠⁻¹*∂p∂x*w + p₀ᵀ𝗠⁻¹*p*∂w∂x
+#         ∂𝝭∂y[i] = p₀ᵀ∂𝗠⁻¹∂y*p*w + p₀ᵀ𝗠⁻¹*∂p∂y*w + p₀ᵀ𝗠⁻¹*p*∂w∂y
+#         ∂𝝭∂z[i] = p₀ᵀ∂𝗠⁻¹∂z*p*w + p₀ᵀ𝗠⁻¹*∂p∂z*w + p₀ᵀ𝗠⁻¹*p*∂w∂z
+#     end
+#     return 𝝭, ∂𝝭∂x, ∂𝝭∂y, ∂𝝭∂z
+# end
+#
+# function cal_moment_matrix!(mf::M,ap::T,x::NTuple{3,Float64},::Val{:∂1}) where {M<:MeshfreeSpace,T<:Approximator}
+#     n = get_number_of_basis_function(ap)
+#     𝗠 = get_moment_matrix(ap,:∂1)
+#     fill!(𝗠,0.)
+#     for i in 1:get_number_of_indices(ap)
+#         xᵢ = get_local_node(ap,i)
+#         Δx = x - xᵢ
+#         p = get_basis_function(ap.bf,Δx,Val(:∂1))
+#         w = get_kernel_function(ap.kf,Δx,Val(:∂1))
+#         for I in 1:n
+#             for J in I:n
+#                 𝗠[I,J] += w*p[I]*p[J]
+#             end
+#         end
+#     end
+#     cholesky!(𝗠)
+#     U⁻¹ = inverse!(𝗠)
+#     𝗠⁻¹ = UUᵀ!(U⁻¹)
+#     return 𝗠⁻¹
+# end
+#
+# function cal_moment_matrix!(ap::ReproducingKernel,x::AbstractVector,::Val{:∂1},::Val{:∂x})
+#     n = get_number_of_basis_function(ap)
+#     # 𝗠, ∂𝗠∂x = get_moment_matrix(ap,:∂1,:∂x)
+#     𝗠 = get_moment_matrix(ap,:∂1)
+#     ∂𝗠∂x = get_moment_matrix(ap,:∂x)
+#     fill!(𝗠,0.)
+#     fill!(∂𝗠∂x,0.)
+#     for i in 1:get_number_of_indices(ap)
+#         xᵢ = get_local_node(ap,i)
+#         Δx = x - xᵢ
+#         # p, ∂p∂x = get_basis_function(ap,Δx,Val(:∂1),Val(:∂x))
+#         p = get_basis_function(ap.bf,Δx,Val(:∂1))
+#         ∂p∂x = get_basis_function(ap.bf,Δx,Val(:∂x))
+#         w, ∂w∂x = get_kernel_function(ap.kf,Δx,Val(:∂1),Val(:∂x))
+#         for I in 1:n
+#             for J in I:n
+#                 𝗠[I,J] += w*p[I]*p[J]
+#                 ∂𝗠∂x[I,J] += ∂w∂x*p[I]*p[J] + w*∂p∂x[I]*p[J] + w*p[I]*∂p∂x[J]
+#             end
+#         end
+#     end
+#     cholesky!(𝗠)
+#     U⁻¹ = inverse!(𝗠)
+#     ∂𝗠⁻¹∂x = - UUᵀAUUᵀ!(∂𝗠∂x,U⁻¹)
+#     𝗠⁻¹ = UUᵀ!(U⁻¹)
+#     return 𝗠⁻¹, ∂𝗠⁻¹∂x
+# end
+#
+# function cal_moment_matrix!(ap::ReproducingKernel,x::AbstractVector,::Val{:∂1},::Val{:∂x},::Val{:∂y},::Val{:∂z})
+#     n = get_number_of_basis_function(ap)
+#     # 𝗠, ∂𝗠∂x, ∂𝗠∂y, ∂𝗠∂z = get_moment_matrix(ap,:∂1,:∂x,:∂y,:∂z)
+#     𝗠 = get_moment_matrix(ap,:∂1)
+#     ∂𝗠∂x = get_moment_matrix(ap,:∂x)
+#     ∂𝗠∂y = get_moment_matrix(ap,:∂y)
+#     ∂𝗠∂z = get_moment_matrix(ap,:∂z)
+#     fill!(𝗠,0.)
+#     fill!(∂𝗠∂x,0.)
+#     fill!(∂𝗠∂y,0.)
+#     fill!(∂𝗠∂z,0.)
+#     for i in 1:get_number_of_indices(ap)
+#         xᵢ = get_local_node(ap,i)
+#         Δx = x - xᵢ
+#         # p, ∂p∂x, ∂p∂y, ∂p∂z = get_basis_function(ap,Δx,Val(:∂1),Val(:∂x),Val(:∂y),Val(:∂z))
+#         p = get_basis_function(ap.bf,Δx,Val(:∂1))
+#         ∂p∂x = get_basis_function(ap.bf,Δx,Val(:∂x))
+#         ∂p∂y = get_basis_function(ap.bf,Δx,Val(:∂y))
+#         ∂p∂z = get_basis_function(ap.bf,Δx,Val(:∂z))
+#         w, ∂w∂x, ∂w∂y, ∂w∂z = get_kernel_function(ap.kf,Δx,Val(:∂1),Val(:∂x),Val(:∂y),Val(:∂z))
+#         for I in 1:n
+#             for J in I:n
+#                 𝗠[I,J] += w*p[I]*p[J]
+#                 ∂𝗠∂x[I,J] += ∂w∂x*p[I]*p[J] + w*∂p∂x[I]*p[J] + w*p[I]*∂p∂x[J]
+#                 ∂𝗠∂y[I,J] += ∂w∂y*p[I]*p[J] + w*∂p∂y[I]*p[J] + w*p[I]*∂p∂y[J]
+#                 ∂𝗠∂z[I,J] += ∂w∂z*p[I]*p[J] + w*∂p∂z[I]*p[J] + w*p[I]*∂p∂z[J]
+#             end
+#         end
+#     end
+#     cholesky!(𝗠)
+#     U⁻¹ = inverse!(𝗠)
+#     ∂𝗠⁻¹∂x = - UUᵀAUUᵀ!(∂𝗠∂x,U⁻¹)
+#     ∂𝗠⁻¹∂y = - UUᵀAUUᵀ!(∂𝗠∂y,U⁻¹)
+#     ∂𝗠⁻¹∂z = - UUᵀAUUᵀ!(∂𝗠∂z,U⁻¹)
+#     𝗠⁻¹ = UUᵀ!(U⁻¹)
+#     return 𝗠⁻¹, ∂𝗠⁻¹∂x, ∂𝗠⁻¹∂y, ∂𝗠⁻¹∂z
+# end
 
 ## MFSpace
-mutable struct MFSpace{S<:SpatialPartition,K<:KernelFunction}
-    spatialpartition::S
-    kernelfunction::K
-    𝗠::Dict{Symbol,SymMat}
-    𝝭::Dict{Symbol,Vector{Float64}}
+struct MFSpace{K<:KernelFunction}
+    kf::K
+    𝗠::SymMat
+    ∂𝗠∂x::Union{SymMat,Nothing}
+    ∂𝗠∂y::Union{SymMat,Nothing}
+    ∂𝗠∂z::Union{SymMat,Nothing}
+    ∂²𝗠∂x²::Union{SymMat,Nothing}
+    ∂²𝗠∂x∂y::Union{SymMat,Nothing}
+    ∂²𝗠∂y²::Union{SymMat,Nothing}
 end
 
-function (mf::MFSpace)(aps::Vector{T},bf::Val) where T<:Approximator
+function MFSpace(sp::S,kf::K,bf::Val,gs::Val...) where {S<:SpatialPartition,K<:KernelFunction}
+    n = get_length_of_basis_function(bf)
+    𝗠 = SymMat(n)
+    ∂𝗠∂x = nothing
+    ∂𝗠∂y = nothing
+    ∂𝗠∂z = nothing
+    ∂²𝗠∂x² = nothing
+    ∂²𝗠∂x∂y = nothing
+    ∂²𝗠∂y² = nothing
+    for g in gs
+        if isa(g,Val{:∂x})
+            ∂𝗠∂x = SymMat(n)
+        elseif isa(g,Val{:∂y})
+            ∂𝗠∂y = SymMat(n)
+        elseif isa(g,Val{:∂z})
+            ∂𝗠∂z = SymMat(n)
+        elseif isa(g,Val{:∂x²})
+            ∂²𝗠∂x² = SymMat(n)
+        elseif isa(g,Val{:∂x∂y})
+            ∂²𝗠∂x∂y = SymMat(n)
+        elseif isa(g,Val{:∂y²})
+            ∂²𝗠∂y² = SymMat(n)
+        end
+    end
+    MFSpace(sp,kf,𝗠,∂𝗠∂x,∂𝗠∂y,∂𝗠∂z,∂²𝗠∂x²,∂²𝗠∂x∂y,∂²𝗠∂y²)
+end
+
+function (mf::MFSpace)(aps::Vector{T},bf::Val,gs::Val...) where T<:Approximator
     for ap in aps
         𝓖 = ap.𝓖
+        𝓒 = ap.𝓒
+        union!(𝓒,collect(mf.sp(@views 𝓧[𝓒])))
+        n = length(𝓒)
         for i in 1:length(𝓖)
-            𝓖[i] = mf(ap,𝓖[i],bf)
+            ξ = 𝓖[i]
+            𝓖[i] = MFPoint(ξ,n,gs...)
+        end
+    end
+    for ap in aps
+        𝓖 = ap.𝓖
+        for ξ in 𝓖
+            mf(ap,ξ,bf)
         end
     end
 end
 
-function (mf::MFSpace)(ap::T,ξ::S,bf::Val) where {T<:Approximator,S<:ParametricNode}
-
+function (mf::MFSpace)(ap::T,ξ::S,bf::Val,::Val{:∂1}) where {T<:Approximator,S<:ParametricNode}
+    𝓒 = ap.𝓒
+    x = get_coordinates(ap,ξ)
+    p₀ᵀ𝗠⁻¹ = cal_moment_matrix!(mf,ap,x,Val(:∂1))
+    𝝭 = ξ.𝝭
+    for i in 1:length(𝓒)
+        xᵢ = ap.𝓧[𝓒[i]]
+        Δx = x - xᵢ
+        p = get_basis_function(bf,Δx,Val(:∂1))
+        w = mf.kf(Δx,Val(:∂1))
+        𝝭[i] = p₀ᵀ𝗠⁻¹*p*w
+    end
 end
+
+## RKSpace
+# struct RKSpace{S<:SpatialPartition,K<:KernelFunction}
+#     spatialpartition::S
+#     kernelfunction::K
+#     𝗠::SymMat
+#     𝝭::SparseVector{Float64}
+# end

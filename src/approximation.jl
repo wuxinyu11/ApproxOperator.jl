@@ -49,8 +49,7 @@ function get_normal(ap1::AbstractSeg,ap2::AbstractPoi)
 end
 
 # --------------- Seg2 ---------------
-# mutable struct Seg2 <: AbstractSeg
-mutable struct Seg2{T<:ParametricNode} <: AbstractSeg
+struct Seg2{T<:ParametricNode} <: AbstractSeg
     𝓒::Vector{Int}
     𝓧::Vector{Node}
     𝓖::Vector{T}
@@ -58,13 +57,13 @@ mutable struct Seg2{T<:ParametricNode} <: AbstractSeg
 end
 
 # constructions of Seg2
-function Seg2(𝓒::Vector{Int},𝓧::Vector{Node};𝓖::Symbol=:SegGI2)
+function Seg2(𝓒::Vector{Int},𝓧::Vector{Node};ptype::Symbol=:GaussPoint,qtype::Symbol=:SegGI2)
     x₁ = 𝓧[𝓒[1]].coordinates[1]
     y₁ = 𝓧[𝓒[1]].coordinates[2]
     x₂ = 𝓧[𝓒[2]].coordinates[1]
     y₂ = 𝓧[𝓒[2]].coordinates[2]
     L = ((x₂-x₁)^2+(y₂-y₁)^2)^0.5
-    𝓖 = QuadratureRule[𝓖]
+    𝓖 = get_integration_points(qtype,Val(ptype))
     return Seg2(𝓒,𝓧,𝓖,L)
 end
 
