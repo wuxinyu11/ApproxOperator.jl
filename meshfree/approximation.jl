@@ -180,7 +180,7 @@ for t in subtypes(SpatialPartition)
         𝓖 = ap.𝓖;𝓒 = ap.𝓒
         for ξ in 𝓖
             x = get_coordinates(ap,ξ)
-            union!(𝓒,collect(sp(x)))
+            union!(𝓒,sp(x))
         end
     end
     function (sp::t)(aps::Vector{T}) where T<:Approximator

@@ -11,14 +11,14 @@ get_weight(::AbstractPoi,::ParametricNode) = 1.
 get_coordinates(ap::AbstractPoi,::ParametricNode) = ap.𝓧[ap.𝓒[1]].coordinates
 
 # --------------- Poi1 ---------------
-mutable struct Poi1{T<:ParametricNode} <: AbstractPoi
+struct Poi1{T<:ParametricNode} <: AbstractPoi
     𝓒::Int
     𝓧::Vector{Node}
     𝓖::Vector{T}
 end
 
 # constructions of Poi1
-Poi1(𝓒::Int,𝓧::Vector{Node};𝓖::Symbol=:PoiGI1) = Poi1(𝓒,𝓧,QuadratureRule[𝓖])
+Poi1(𝓧::Vector{Node},𝓒::Int;𝓖::Symbol=:PoiGI1) = Poi1(𝓒,𝓧,QuadratureRule[𝓖])
 
 # actions of Poi1
 get_shape_functions(::Poi1,::Float64,::Val{:∂1}) = 1.
@@ -57,7 +57,7 @@ struct Seg2{T<:ParametricNode} <: AbstractSeg
 end
 
 # constructions of Seg2
-function Seg2(𝓒::Vector{Int},𝓧::Vector{Node};ptype::Symbol=:GaussPoint,qtype::Symbol=:SegGI2)
+function Seg2(𝓧::Vector{Node},𝓒::Vector{Int};ptype::Symbol=:GaussPoint,qtype::Symbol=:SegGI2)
     x₁ = 𝓧[𝓒[1]].coordinates[1]
     y₁ = 𝓧[𝓒[1]].coordinates[2]
     x₂ = 𝓧[𝓒[2]].coordinates[1]
@@ -120,7 +120,7 @@ end
 
 # --------------- Tri3 ---------------
 # Constant strain triangular Approximator (CST)
-mutable struct Tri3{T<:ParametricNode} <: AbstractTri
+struct Tri3{T<:ParametricNode} <: AbstractTri
     𝓒::Vector{Int}
     𝓧::Vector{Node}
     𝓖::Vector{T}
@@ -128,7 +128,7 @@ mutable struct Tri3{T<:ParametricNode} <: AbstractTri
 end
 
 # constructions
-function Tri3(𝓒::Vector{Int},𝓧::Vector{Node};𝓖::Symbol=:TriGI3)
+function Tri3(𝓧::Vector{Node},𝓒::Vector{Int};𝓖::Symbol=:TriGI3)
     x₁ = 𝓧[𝓒[1]].coordinates[1]
     y₁ = 𝓧[𝓒[1]].coordinates[2]
     z₁ = 𝓧[𝓒[1]].coordinates[3]
@@ -198,13 +198,13 @@ get_shape_functions(ap::Tri3,ξ::NTuple{2,Float64},::Val{:∂z}) = (0.,0.,0.)
 # end
 
 # --------------- Quad ---------------
-mutable struct Quad{T<:ParametricNode} <: AbstractQuad
+struct Quad{T<:ParametricNode} <: AbstractQuad
     𝓒::Vector{Int}
     𝓧::Vector{Node}
     𝓖::Vector{T}
 end
 # constructions
-function Quad(𝓒::Vector{Int},𝓧::Vector{Node};𝓖::Symbol=:QuadGI2)
+function Quad(𝓧::Vector{Node},𝓒::Vector{Int};𝓖::Symbol=:QuadGI2)
     𝓖 = QuadratureRule[𝓖]
     return Quad(𝓒,𝓧,𝓖)
 end

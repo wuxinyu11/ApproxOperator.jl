@@ -41,6 +41,7 @@ include("../meshfree/efficiency_meshfree.jl")
 export efficiency_meshfree
 export Node, Seg2, MFPoint
 export RegularGrid, TensorProductKernel, MFSpace
+export SparseShapePool, SparseShape
 # export get_jacobe, get_coordinates, get_shape_functions
 
 end
