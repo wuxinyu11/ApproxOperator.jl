@@ -1,11 +1,11 @@
 module ApproxOperator
 
-# import Base: +, -, *, getindex, length
-# import InteractiveUtils: subtypes
-#
-# abstract type AbstractNode end
-# abstract type PhysicalNode<:AbstractNode end
-# abstract type ParametricNode<:AbstractNode end
+import Base: +, -, *, getindex, getproperty, length
+import InteractiveUtils: subtypes
+
+abstract type AbstractNode end
+abstract type PhysicalNode<:AbstractNode end
+abstract type ParametricNode<:AbstractNode end
 # abstract type Approximator end
 # abstract type BasisFunction end
 # abstract type KernelFunction end
@@ -18,7 +18,7 @@ module ApproxOperator
 # abstract type AbstractTet <: Approximator end
 # abstract type Operator end
 #
-# include("node.jl")
+include("node.jl")
 # export Node
 # include("approximation.jl")
 # include("operation.jl")
@@ -45,11 +45,11 @@ module ApproxOperator
 # # export get_jacobe, get_coordinates, get_shape_functions
 
 
-import Base: getindex
-abstract type AbstractCell end
-abstract type AbstractSeg<:AbstractCell end
-include("node.jl")
-include("cell.jl")
+# import Base: getindex
+# abstract type AbstractCell end
+# abstract type AbstractSeg<:AbstractCell end
+# include("node.jl")
+# include("cell.jl")
 include("efficiency.jl")
 
 

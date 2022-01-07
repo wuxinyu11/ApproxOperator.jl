@@ -6,19 +6,21 @@ to = TimerOutput()
 
 nₚ = 11
 nₑ = nₚ-1
-poolx = Dict{Symbol,Vector{Float64}}()
-push!(poolx,:x=>[1.0/nₑ*i for i in 0:10],:y=>zeros(nₚ),:z=>zeros(nₚ))
-poolξ = Dict{Symbol,Vector{Float64}}()
-push!(poolξ,:ξ=>[0.0],:η=>[0.0],:γ=>[0.0],:w=>[1.0])
+
+coordinates = [(1/nₑ*i,0.0,0.0) for i in 0:nₑ]
 
 # poolx = DataPool([[1.0/nₑ*i for i in 0:10],zeros(nₚ),zeros(nₚ)],Dict(:x=>1,:y=>2,:z=>3))
 # poolξ = DataPool([[0.0],[0.0],[0.0],[1.0]],Dict(:ξ=>1,:η=>2,:γ=>3,:w=>4))
 
-𝓒 = [Node(i,poolx) for i in 1:3]
-𝓖 = [Node(1,poolξ)]
+𝓒 = [Node(i,coordinates) for i in 1:3]
+# 𝓖 = [Node(1,poolξ)]
 @timeit to "node" begin
-    @timeit to "construct node" x = Node(1,poolx)
-    @timeit to "getindex node" x[:x]
+    @timeit to "construct node" node = Node(1,coordinates)
+    @timeit to "getindex id" node.id
+    @timeit to "getindex node" node.coordinates
+    @timeit to "getindex x" node.x
+    @timeit to "getindex y" node.y
+    @timeit to "getindex z" node.z
 end
 @timeit to "cell" begin
     # @timeit to "AbstractPoi" begin
@@ -27,17 +29,17 @@ end
     #     @timeit to "get_coordinates" get_coordinates(ap,ξ₁)
     #     @timeit to "get_shape_functions Poi1" get_shape_functions(ap,ξ₁,Val(:∂1))
     # end
-    @timeit to "AbstractSeg" begin
-        ξ = 𝓖[1]
-        @timeit to "construct Seg2" ap = Seg2(𝓒,𝓖)
-        @timeit to "get_weight" get_weight(ap,ξ)
-        @timeit to "get_coordinates" get_coordinates(ap,ξ)
-        @timeit to "get_shape_functions Seg2 ∂1" get_shape_functions(ap,ξ,Val(:∂1))
-        @timeit to "get_shape_functions Seg2 ∂x" get_shape_functions(ap,ξ,Val(:∂x))
-        @timeit to "get_shape_functions Seg2 ∂y" get_shape_functions(ap,ξ,Val(:∂y))
+    # @timeit to "AbstractSeg" begin
+    #     ξ = 𝓖[1]
+    #     @timeit to "construct Seg2" ap = Seg2(𝓒,𝓖)
+    #     @timeit to "get_weight" get_weight(ap,ξ)
+    #     @timeit to "get_coordinates" get_coordinates(ap,ξ)
+    #     @timeit to "get_shape_functions Seg2 ∂1" get_shape_functions(ap,ξ,Val(:∂1))
+    #     @timeit to "get_shape_functions Seg2 ∂x" get_shape_functions(ap,ξ,Val(:∂x))
+    #     @timeit to "get_shape_functions Seg2 ∂y" get_shape_functions(ap,ξ,Val(:∂y))
         # @timeit to "get_shape_functions Seg2 ∂1 ∂x ∂y" get_shape_functions(ap,ξ₁,Val(:∂1),Val(:∂x),Val(:∂y))
         # @timeit to "get_shape_functions Seg2 ∂1 ∂x ∂y ∂z" get_shape_functions(ap,ξ₁,Val(:∂1),Val(:∂x),Val(:∂y),Val(:∂z))
-    end
+    # end
     # 𝒞 = [1,2,12]
     # @timeit to "AbstractTri" begin
     #     @timeit to "construct Tri3" ap = Tri3(𝒞,x)

@@ -28,26 +28,26 @@ end
 @inline get_weight(ap::T,ξ::Node) where T<:AbstractSeg = 0.5*ap.L*ξ[:w]
 
 # ---------------- Seg2 -------------------
-struct Seg2 <: AbstractSeg
+struct Seg2{T}<:AbstractSeg where T<:ParametricNode
     𝓒::Vector{Node}
-    𝓖::Vector{Node}
+    𝓖::Vector{T}
     L::Float64
 end
 
 # constructions of Seg2
-function Seg2(𝓒::Vector{Node},𝓖::Vector{Node})
-    x₁ = 𝓒[1][:x]
-    y₁ = 𝓒[1][:y]
-    x₂ = 𝓒[2][:x]
-    y₂ = 𝓒[2][:y]
+function Seg2(𝓒::Vector{Node},𝓖::Vector{T},i::Int,j::Int) where T<:ParametricNode
+    x₁ = 𝓒[1].x
+    y₁ = 𝓒[1].y
+    x₂ = 𝓒[2].x
+    y₂ = 𝓒[2].y
     L = ((x₂-x₁)^2+(y₂-y₁)^2)^0.5
     return Seg2(𝓒,𝓖,L)
 end
 
 # actions for Seg2
-@inline get_shape_functions(::Seg2,ξ::Float64,::Val{:∂1}) = ((1.0-ξ)*0.5,(1.0+ξ)*0.5)
-@inline function get_shape_functions(ap::Seg2,::Float64,::Val{:∂x})
-    return (-1.0/ap.L,1.0/ap.L)
-end
-@inline get_shape_functions(::Seg2,::Float64,::Val{:∂y}) = (0.,0.)
-@inline get_shape_functions(::Seg2,::Float64,::Val{:∂z}) = (0.,0.)
+# @inline get_shape_functions(::Seg2,ξ::Float64,::Val{:∂1}) = ((1.0-ξ)*0.5,(1.0+ξ)*0.5)
+# @inline function get_shape_functions(ap::Seg2,::Float64,::Val{:∂x})
+#     return (-1.0/ap.L,1.0/ap.L)
+# end
+# @inline get_shape_functions(::Seg2,::Float64,::Val{:∂y}) = (0.,0.)
+# @inline get_shape_functions(::Seg2,::Float64,::Val{:∂z}) = (0.,0.)
