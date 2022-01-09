@@ -4,11 +4,13 @@ using BenchmarkTools
 
 efficiency()
 
-#
 
 nₚ = 11
-nₑ = nₚ-1
+nₑ = nₚ - 1
+x = [1 / nₑ * i for i = 0:nₑ]
+data = Dict(:x => x, :y => zeros(nₚ), :z => zeros(nₚ))
+@btime Node(1, data)
 
-coordinates = [(1/nₑ*i,0.0,0.0) for i in 0:nₑ]
-node = Node(1,coordinates)
-@btime $node.id
+a = Node(1, data)
+@btime $a.x
+@code_warntype a.x

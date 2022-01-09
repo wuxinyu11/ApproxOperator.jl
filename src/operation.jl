@@ -1,3 +1,25 @@
+
+struct Operator
+    type::Symbol
+    coefficients::Dict{Symbol,Float64}
+    functions::Dict{Symbol,Function}
+end
+@inline getproperty(op::Operator,f::Symbol) = hasfield(Operator,f) ? getfield(op,f) : getdata(op,f)
+@inline getdata(op::Operator,f::Symbol) = hashkey(op.functions,f) ? op.functions[f] : op.coefficients[f]
+@inline (op::Operator)(ap::T,k::AbstractMatrix{Float64},f::Vector{Float64}) where T<:Approximator = op(ap,k,f,Val(op.type))
+@inline (op::Operator)(ap::T,f::Vector{Float64}) where T<:Approximator = op(ap,f,Val(op.type))
+@inline function (op::Operator)(aps::Vector{T},k::AbstractMatrix{Float64},f::Vector{Float64}) where T<:Approximator
+    for ap in aps
+        op(ap,k,f,Val(op.type))
+    end
+end
+@inline function (op::Operator)(aps::Vector{T},f::Vector{Float64}) where T<:Approximator
+    for ap in aps
+        op(ap,f,Val(op.type))
+    end
+end
+
+
 ## DOFs for essential boundary
 struct EBCDOFS <: Operator
     g :: Function

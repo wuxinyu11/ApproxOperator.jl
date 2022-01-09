@@ -1,31 +1,26 @@
 
 ##
-function get_shape_functions(ap::T,ξ::Node,g::Val) where T<:AbstractCell
-    ξ₁ = ξ[:ξ]
-    ξ₂ = ξ[:η]
-    ξ₃ = ξ[:γ]
-    return get_shape_functions(ap,ξ₁,ξ₂,ξ₃,g)
-end
-function get_shape_functions(ap::T,ξ::Node,gs::Val...) where T<:AbstractCell
-    return (get_shape_functions(ap,ξ,g) for g in gs)
-end
-function get_coordinates(ap::T,ξ::Node) where T<:AbstractCell
-    N = get_shape_functions(ap,ξ,Val(:∂1))
-    x = 0.0
-    y = 0.0
-    z = 0.0
-    for i in 1:length(ap.𝓒)
-        x += ap.𝓒[i][:x]
-        y += ap.𝓒[i][:y]
-        z += ap.𝓒[i][:z]
-    end
-    return x, y, z
+@inline getproperty(ap::T,f::Symbol) where T<:Approximator = getdata(ap,Val(f))
+@inline getdata(ap::T,::Val{:𝓒}) where T<:Approximator = getfield(ap,:𝓒)
+@inline getdata(ap::T,::Val{:𝓖}) where T<:Approximator = getfield(ap,:𝓖)
+@inline getdata(ap::T,::Val{:𝝭}) where T<:Approximator = (ξ::Point)->ap.𝝭(ξ.coordinates)
+@inline function getdata(ap::T,::Val{:coordinates}) where T<:Approximator
+    return (ξ)->(sum(ap.𝝭(ξ)[i]*ap.𝓒[i].x for i in 1:length(ap.𝓒)),sum(ap.𝝭(ξ)[j]*ap.𝓒[j].y for j in 1:length(ap.𝓒)),sum(ap.𝝭(ξ)[k]*ap.𝓒[k].z for k in 1:length(ap.𝓒)))
 end
 
+## AbstractPoi
+@inline getdata(ap::T,::Val{:J}) where T<:AbstractPoi = (::Any)->1.0
+
+# ---------------- Poi1 ----------------
+struct Poi1{T}<:AbstractPoi where T<:ParametricNode
+    𝓒::Node
+    𝓖::Vector{T}
+end
+@inline getdata(::Poi1,::Val{:𝝭}) = (::Any)->1.0
 
 ## AbstractSeg
-@inline get_shape_functions(ap::T,ξ::Float64,::Float64,::Float64,g::Val) where T<:AbstractSeg = get_shape_functions(ap,ξ,g)
-@inline get_weight(ap::T,ξ::Node) where T<:AbstractSeg = 0.5*ap.L*ξ[:w]
+@inline getdata(ap::T,::Val{:L}) where T<:AbstractSeg = getfield(ap,:L)
+@inline getdata(ap::T,::Val{:J}) where T<:AbstractSeg = (::Any)->0.5*ap.L
 
 # ---------------- Seg2 -------------------
 struct Seg2{T}<:AbstractSeg where T<:ParametricNode
@@ -35,7 +30,7 @@ struct Seg2{T}<:AbstractSeg where T<:ParametricNode
 end
 
 # constructions of Seg2
-function Seg2(𝓒::Vector{Node},𝓖::Vector{T},i::Int,j::Int) where T<:ParametricNode
+function Seg2(𝓒::Vector{Node},𝓖::Vector{T}) where T<:ParametricNode
     x₁ = 𝓒[1].x
     y₁ = 𝓒[1].y
     x₂ = 𝓒[2].x
@@ -45,9 +40,12 @@ function Seg2(𝓒::Vector{Node},𝓖::Vector{T},i::Int,j::Int) where T<:Paramet
 end
 
 # actions for Seg2
-# @inline get_shape_functions(::Seg2,ξ::Float64,::Val{:∂1}) = ((1.0-ξ)*0.5,(1.0+ξ)*0.5)
-# @inline function get_shape_functions(ap::Seg2,::Float64,::Val{:∂x})
-#     return (-1.0/ap.L,1.0/ap.L)
-# end
-# @inline get_shape_functions(::Seg2,::Float64,::Val{:∂y}) = (0.,0.)
-# @inline get_shape_functions(::Seg2,::Float64,::Val{:∂z}) = (0.,0.)
+@inline function getdata(ap::Seg2,::Val{:𝝭})
+    @inline get𝝭(ξ::Float64) = ((1.0-ξ)*0.5,(1.0+ξ)*0.5)
+    @inline get𝝭(ξ::Point) = ((1.0-ξ.ξ)*0.5,(1.0+ξ.ξ)*0.5)
+    return get𝝭
+end
+@inline getdata(ap::Seg2,::Val{:∂𝝭∂x}) = (::Any)->(-1.0/ap.L,1.0/ap.L)
+@inline getdata(  ::Seg2,::Val{:∂𝝭∂y}) = (::Any)->(0.,0.)
+@inline getdata(  ::Seg2,::Val{:∂𝝭∂z}) = (::Any)->(0.,0.)
+@inline getdata(ap::Seg2,::Val{:∇𝝭}) = (ξ)->(ap.∂𝝭∂x(ξ),ap.∂𝝭∂y(ξ),ap.∂𝝭∂z(ξ))
