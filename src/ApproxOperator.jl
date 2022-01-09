@@ -23,7 +23,7 @@ include("cell.jl")
 
 # export Node
 # include("approximation.jl")
-# include("operation.jl")
+include("operation.jl")
 # include("import.jl")
 # export import_msh
 # include("export.jl")
@@ -41,7 +41,7 @@ include("cell.jl")
 #
 # # debug
 # export efficiency_meshfree
-export Node, Seg2, Point
+export Node, Seg2, Point, Operator
 # export RegularGrid, TensorProductKernel, MFSpace
 # export SparseShapePool, SparseShape
 # # export get_jacobe, get_coordinates, get_shape_functions
