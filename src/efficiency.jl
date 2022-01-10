@@ -78,7 +78,7 @@ end
     # end
 end
 @timeit to "Operator" begin
-    @timeit to "Construction" op = Operator(Val(:∇v∇u),coefficients)
+    @timeit to "Construction" op = Operator(Val(:∫∇v∇udΩ),coefficients)
     # @timeit to "∇v∇u 1" op(ap,k,f,Val(:∇v∇u))
     @timeit to "∇v∇u 2" op(ap,k,f)
 end

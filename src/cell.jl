@@ -8,16 +8,6 @@
     return (ξ)->(sum(ap.𝝭(ξ)[i]*ap.𝓒[i].x for i in 1:length(ap.𝓒)),sum(ap.𝝭(ξ)[j]*ap.𝓒[j].y for j in 1:length(ap.𝓒)),sum(ap.𝝭(ξ)[k]*ap.𝓒[k].z for k in 1:length(ap.𝓒)))
 end
 
-## AbstractPoi
-@inline getdata(ap::T,::Val{:J}) where T<:AbstractPoi = (::Any)->1.0
-
-# ---------------- Poi1 ----------------
-struct Poi1{T}<:AbstractPoi where T<:ParametricNode
-    𝓒::Node
-    𝓖::Vector{T}
-end
-@inline getdata(::Poi1,::Val{:𝝭}) = (::Any)->1.0
-
 ## AbstractSeg
 @inline getdata(ap::T,::Val{:L}) where T<:AbstractSeg = getfield(ap,:L)
 @inline getdata(ap::T,::Val{:J}) where T<:AbstractSeg = (::Any)->0.5*ap.L
@@ -48,4 +38,4 @@ end
 @inline getdata(ap::Seg2,::Val{:∂𝝭∂x}) = (::Any)->(-1.0/ap.L,1.0/ap.L)
 @inline getdata(  ::Seg2,::Val{:∂𝝭∂y}) = (::Any)->(0.,0.)
 @inline getdata(  ::Seg2,::Val{:∂𝝭∂z}) = (::Any)->(0.,0.)
-@inline getdata(ap::Seg2,::Val{:∇𝝭}) = (ξ)->(ap.∂𝝭∂x(ξ),ap.∂𝝭∂y(ξ),ap.∂𝝭∂z(ξ))
+@inline getdata(ap::Seg2,::Val{:∇𝝭}) = (ξ)->(ap.𝝭(ξ),ap.∂𝝭∂x(ξ),ap.∂𝝭∂y(ξ),ap.∂𝝭∂z(ξ))
