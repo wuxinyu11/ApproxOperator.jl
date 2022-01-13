@@ -7,3 +7,12 @@ struct Node<:AbstractNode
     id::Int
     data::Dict{Symbol,Vector{Float64}}
 end
+
+# ----------------- MFNode ------------------
+struct MFNode{B,K}<:AbstractNode
+    id::Int
+    data::Dict{Symbol,Vector{Float64}}
+    type::Tuple{Val{B},Val{K}}
+end
+:○cubicspline
+:□cubicspline

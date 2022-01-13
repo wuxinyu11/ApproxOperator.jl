@@ -53,9 +53,7 @@ function import_msh_4(fid::IO)
 end
 
 function import_msh_2(fid::IO)
-    aps = Dict{String,Vector{Approximator}}()
-    data = Dict{Symbol,String}()
-    phy = Dict{Int,String}()
+    data = Dict{Symbol,Vector{Any}}()
     for line in eachline(fid)
         if line == "\$PhysicalNames"
             numPhysicalNames = parse(Int,readline(fid))

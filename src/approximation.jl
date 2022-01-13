@@ -14,9 +14,10 @@
 end
 
 ## AbstractSeg
-@inline getw(ap::Seg2,ξ::T) where T<:AbstractNode = 0.5*ap.L*ξ.w
+@inline getw(ap::A,ξ::N) where {A<:AbstractSeg,N<:AbstractNode} = 0.5*ap.L*ξ.w
+
 # ---------------- Seg2 -------------------
-struct Seg2{T}<:Approximator where T<:AbstractNode
+struct Seg2{T}<:AbstractSeg where T<:AbstractNode
     𝓒::Vector{Node}
     𝓖::Vector{T}
     L::Float64
