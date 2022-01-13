@@ -19,7 +19,6 @@ end
 struct Seg2{T}<:Approximator where T<:AbstractNode
     𝓒::Vector{Node}
     𝓖::Vector{T}
-    𝓡::Vector{SamplePoint}
     L::Float64
 end
 

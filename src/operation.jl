@@ -24,9 +24,9 @@ function (op::Operator{:∫∇v∇udΩ})(ap::Approximator,k::AbstractMatrix{Floa
         w = ap.J(ξ)*ξ.w
         x = ap.coordinates(ξ)
         for i in 1:length(𝓒)
-            I = 𝓒[i].I
+            I = 𝓒[i].id
             for j in 1:length(𝓒)
-                J = 𝓒[j].I
+                J = 𝓒[j].id
                 k[I,J] += op.k*(B₁[i]*B₁[j] + B₂[i]*B₂[j] + B₃[i]*B₃[j])*w
             end
             f[I] += N[i]*ξ.b*w

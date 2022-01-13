@@ -1,6 +1,6 @@
 const etype = Dict{Int,Any}(1=>Seg2, 2=>Tri3, 3=>Quad, 15=>Poi1)
 
-function import_msh(filename::String)
+function (op::Operator{:msh})(filename::String)
     fid = open(filename,"r")
     readline(fid)
     line = readline(fid)
@@ -10,9 +10,9 @@ function import_msh(filename::String)
     datasize = parse(Int,d_)
     readline(fid)
     if version == 4.1
-        aps = import_msh_4(fid)
+        data = import_msh_4(fid)
     elseif version == 2.2
-        aps = import_msh_2(fid)
+        data = import_msh_2(fid)
     else
         println("Version does not match!")
     end
@@ -54,7 +54,7 @@ end
 
 function import_msh_2(fid::IO)
     aps = Dict{String,Vector{Approximator}}()
-    nodes = Vector{PhysicalNode}()
+    data = Dict{Symbol,String}()
     phy = Dict{Int,String}()
     for line in eachline(fid)
         if line == "\$PhysicalNames"
