@@ -1,25 +1,34 @@
 
-##
-@inline function getx(ap::A,ξ::N) where {A<:Approximator,N<:AbstractNode}
-    x = 0.0
-    y = 0.0
-    z = 0.0
-    N = get𝝭(ap,ξ)
-    for i in 1:length(𝓒)
-        x += ap.𝓒[i].x*N[i]
-        y += ap.𝓒[i].y*N[i]
-        z += ap.𝓒[i].z*N[i]
-    end
-    return (x,y,z)
+## AbstractPoi
+@inline getx(ap::AbstractPoi,::Node) = (ap.𝓒[1].x,ap.𝓒[1].y,ap.𝓒[1].z)
+@inline getw(ap::AbstractPoi,::Node) = 1.0
+# -------------- Poi1 --------------
+struct Poi1{T}<:AbstractPoi where T<:AbstractNode
+    𝓒::Vector{T}
+    𝓖::Vector{Node}
 end
+get𝝭(::Poi1,::Node) = 1.0
 
 ## AbstractSeg
-@inline getw(ap::A,ξ::N) where {A<:AbstractSeg,N<:AbstractNode} = 0.5*ap.L*ξ.w
+@inline getx(ap::A,ξ::Node) where A<:AbstractSeg = getx(ap,ξ.ξ)
+@inline function getx(ap::A,ξ::Float64) where A<:AbstractSeg
+    x₁ = ap.𝓒[1].x
+    y₁ = ap.𝓒[1].y
+    z₁ = ap.𝓒[1].z
+    x₂ = ap.𝓒[2].x
+    y₂ = ap.𝓒[2].y
+    z₂ = ap.𝓒[2].z
+    N₁ = 0.5*(1-ξ)
+    N₂ = 0.5*(1+ξ)
+    return (x₁*N₁+x₂*N₂,y₁*N₁+y₂*N₂,z₁*N₁+z₂*N₂)
+end
+
+@inline getw(ap::A,ξ::Node) where A<:AbstractSeg = 0.5*ap.L*ξ.w
 
 # ---------------- Seg2 -------------------
 struct Seg2{T}<:AbstractSeg where T<:AbstractNode
-    𝓒::Vector{Node}
-    𝓖::Vector{T}
+    𝓒::Vector{T}
+    𝓖::Vector{Node}
     L::Float64
 end
 
@@ -41,3 +50,14 @@ end
 @inline get∂𝝭∂y(ap::Seg2,::Node) = (0.0,0.0)
 @inline get∂𝝭∂z(ap::Seg2,::Node) = (0.0,0.0)
 @inline get∇𝝭(ap::Seg2,ξ::Node) = (get𝝭(ap,ξ),get∂𝝭∂x(ap,ξ),(0.0,0.0),(0.0,0.0))
+
+##
+struct Tri3
+    fields
+end
+
+
+##
+struct Quad
+    fields
+end
