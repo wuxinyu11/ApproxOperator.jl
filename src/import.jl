@@ -55,7 +55,7 @@ end
 function import_msh_2(fid::IO,op::Operator{:msh})
     phy = Dict{Int,String}()
     aps = Dict{String,Vector{Approximator}}()
-    datas = Dict{String,Dict{Symbol,Vector{Float64}}}()
+    datas = Dict{String,Any}()
     push!(datas,"Nodes"=>Dict(:x=>Float64[],:y=>Float64[],:z=>Float64[]))
     for line in eachline(fid)
         if line == "\$PhysicalNames"
@@ -75,6 +75,7 @@ function import_msh_2(fid::IO,op::Operator{:msh})
         elseif line == "\$Nodes"
             line = readline(fid)
             nₚ = parse(Int,line)
+            push!(datas,"nₚ"=>nₚ)
             for i in 1:nₚ
                 line = readline(fid)
                 t_,x_,y_,z_ = split(line," ")
@@ -90,6 +91,7 @@ function import_msh_2(fid::IO,op::Operator{:msh})
         elseif line == "\$Elements"
             line = readline(fid)
             nₑ = parse(Int,line)
+            push!(datas,"nₑ"=>nₑ)
             for i in 1:nₑ
                 line = readline(fid)
                 elmN_,elmT_,numT_,phyT_,elmE_,l_... = split(line," ")
@@ -102,7 +104,7 @@ function import_msh_2(fid::IO,op::Operator{:msh})
                 name = phy[phyTag]
                 𝓒 = [eval(op.nodetype)(i,datas["Nodes"]) for i in nodeList]
                 𝓖 = Node[]
-                quadraturepoints = QuadratureRule[op.pointtype]
+                quadraturepoints = QuadratureRule[op.pointtype[name]]
                 for ξ in quadraturepoints
                     haskey(datas[name],:w) ? push!(datas[name][:w],ξ[1]) : push!(datas[name],:w=>[ξ[1]])
                     haskey(datas[name],:ξ) ? push!(datas[name][:ξ],ξ[2]) : push!(datas[name],:ξ=>[ξ[2]])
@@ -124,8 +126,8 @@ end
 
 ## Quadrature Points
 const QuadratureRule = Dict(
-:PoiGI1 => ((1.0,-1.0)),
-:SegGI1 => ((2.0,0.0)),
+:PoiGI1 => ((1.0,-1.0),),
+:SegGI1 => ((2.0,0.0),),
 :SegGI2 =>
 (
     (1.0,-0.5773502691896257645091487805),

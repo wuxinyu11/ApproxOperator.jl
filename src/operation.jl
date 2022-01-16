@@ -20,12 +20,20 @@ end
     end
 end
 
-function (op::Operator{:update})(ap::Approximator,s::Symbol,f::Function)
+@inline function (op::Operator)(aps::Vector{T},s::Symbol) where T<:Approximator
+    for ap in aps
+        op(ap,s)
+    end
+end
+
+function prescribe(ap::Approximator,s::Symbol,f::Function)
     𝓖 = ap.𝓖
+    data = 𝓖[1].data
+    ~haskey(data,s) ? push!(data,s=>similar(data[:w])) :
     for ξ in 𝓖
         x = getx(ap,ξ)
         v = f(x...)
-        ξ.s = v
+        setproperty!(ξ,s,v)
     end
 end
 

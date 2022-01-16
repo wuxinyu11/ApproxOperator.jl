@@ -26,14 +26,14 @@ end
 @inline getw(ap::A,ξ::Node) where A<:AbstractSeg = 0.5*ap.L*ξ.w
 
 # ---------------- Seg2 -------------------
-struct Seg2{T}<:AbstractSeg where T<:AbstractNode
-    𝓒::Vector{T}
+struct Seg2<:AbstractSeg
+    𝓒::Vector{Node}
     𝓖::Vector{Node}
     L::Float64
 end
 
 # constructions of Seg2
-function Seg2(𝓒::Vector{Node},𝓖::Vector{T}) where T<:AbstractNode
+function Seg2(𝓒::Vector{Node},𝓖::Vector{Node})
     x₁ = 𝓒[1].x
     y₁ = 𝓒[1].y
     x₂ = 𝓒[2].x
@@ -60,4 +60,13 @@ end
 ##
 struct Quad
     fields
+end
+
+## SegN
+struct SegN{T}<:AbstractSeg where T<:AbstractNode
+    𝓒::Vector{Node}
+    𝓖::Vector{T}
+    𝗠::Dict{Symbol,SymMat}
+    𝝭::Dict{Symbol,Vector{Float64}}
+    L::Float64
 end

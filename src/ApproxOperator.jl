@@ -23,6 +23,6 @@ include("import.jl")
 # include("efficiency.jl")
 # export efficiency
 # export efficiency, f
-export Operator
+export Operator, prescribe
 
 end
