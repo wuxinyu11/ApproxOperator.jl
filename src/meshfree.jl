@@ -99,12 +99,12 @@ struct RegularGrid<:SpatialPartition
 end
 
 # constructions of RegularGrid
-function RegularGrid(data::Dict{Symbol,Vector{Float64}};n::Int=1,γ::Int=1)
+function RegularGrid(x::Vector{Float64},y::Vector{Float64},z::Vector{Float64};n::Int=1,γ::Int=1)
     n *= γ
     nₚ  = length(x)
-    xmin, xmax = extrema(data[:x][i] for i in 1:nₚ)
-    ymin, ymax = extrema(data[:y][i] for i in 1:nₚ)
-    zmin, zmax = extrema(data[:z][i] for i in 1:nₚ)
+    xmin, xmax = extrema(x[i] for i in 1:nₚ)
+    ymin, ymax = extrema(y[i] for i in 1:nₚ)
+    zmin, zmax = extrema(z[i] for i in 1:nₚ)
     dx = xmax - xmin
     dy = ymax - ymin
     dz = zmax - zmin
@@ -123,9 +123,9 @@ function RegularGrid(data::Dict{Symbol,Vector{Float64}};n::Int=1,γ::Int=1)
         cells[i] = Set{Int}()
     end
     for i in 1:nₚ
-        ix = floor(Int, (data[:x][i] - xmin)/dx * nx)
-        iy = floor(Int, (data[:y][i] - ymin)/dy * ny)
-        iz = floor(Int, (data[:z][i] - zmin)/dz * nz)
+        ix = floor(Int, (x[i] - xmin)/dx * nx)
+        iy = floor(Int, (y[i] - ymin)/dy * ny)
+        iz = floor(Int, (z[i] - zmin)/dz * nz)
 
         ix > nx-1 ? ix = nx-1 : nothing
         iy > ny-1 ? iy = ny-1 : nothing
@@ -153,10 +153,10 @@ function RegularGrid(data::Dict{Symbol,Vector{Float64}};n::Int=1,γ::Int=1)
 end
 
 # actions of RegularGrid
-function (rg::RegularGrid)(x::NTuple{3,Float64})
-    ix = floor(Int, (x[1] - rg.xmin[1])/rg.dx[1] * rg.nx[1])
-    iy = floor(Int, (x[2] - rg.xmin[2])/rg.dx[2] * rg.nx[2])
-    iz = floor(Int, (x[3] - rg.xmin[3])/rg.dx[3] * rg.nx[3])
+function (rg::RegularGrid)(x::Float64,y::Float64,z::Float64)
+    ix = floor(Int, (x - rg.xmin[1])/rg.dx[1] * rg.nx[1])
+    iy = floor(Int, (y - rg.xmin[2])/rg.dx[2] * rg.nx[2])
+    iz = floor(Int, (z - rg.xmin[3])/rg.dx[3] * rg.nx[3])
 
     ix > rg.nx[1]-1 ? ix = rg.nx[1]-1 : nothing
     iy > rg.nx[2]-1 ? iy = rg.nx[2]-1 : nothing

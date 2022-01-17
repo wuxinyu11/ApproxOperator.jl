@@ -3,7 +3,7 @@
 using Revise
 using ApproxOperator
 
-ip = Operator(:msh)
+ip = Operator(Val(:msh),meshfree=true)
 aps = ip("./msh/bar.msh")
 nₚ = ip.nₚ
 

@@ -1,5 +1,23 @@
-function Operator(::Val{:msh};meshfree::Bool=false)
+function Operator(::Val{:DataPool})
     data = Dict{Symbol,Any}()
+    :physicalnodes
+        Symbol=>Vector{Float64}
+        :x
+        :y
+        :z
+        :s₁
+        :s₂
+        :s₃
+    :elements
+        String=>Vector{Approximator}
+    :parametricnodes
+        String=>(Symbol=>Vector{Float64})
+    :config
+
+    return elements, physicalnodes, parametricnodes
+
+
+function Operator(::Val{:msh};meshfree::Bool=false)
     ntype = Dict(1=>Node,2=>Node,3=>Node,15=>Node)
     if meshfree
         etype = Dict(1=>SegN,2=>TriN,3=>QuadN,15=>PoiN)
@@ -20,8 +38,7 @@ end
 
 function (op::Operator{:msh})(filename::String)
     fid = open(filename,"r")
-    topic = readline(fid)
-    push!(op,:topic => topic)
+    readline(fid)
     line = readline(fid)
     v_,f_,d_ = split(line," ")
     version = parse(Float64,v_)
@@ -109,8 +126,8 @@ function import_msh_2(fid::IO,op::Operator{:msh})
             if op.meshfree
                 nₘ = 0
                 if op.spatialpartition == :RegularGrid
-                    rg = RegularGrid(op.nodes,nᵣ,γᵣ)
-                    for c in rg.cells
+                    sp = RegularGrid(op.nodes,n=op.nᵣ,γ=op.γᵣ)
+                    for c in sp.cells
                         nₘ = max(length(c),nₘ)
                     end
                 end
@@ -118,7 +135,7 @@ function import_msh_2(fid::IO,op::Operator{:msh})
                 push!(op,:temp𝗠=>Dict{Symbol,SymMat}(),:temp𝝭=>Dict{Symbol,Vector{Float64}}())
                 for s in op.stype
                     push!(op.data[:temp𝗠],s=>SymMat(n))
-                    push!(op.data[:temp𝝭],s=>Vector(nₘ))
+                    push!(op.data[:temp𝝭],s=>zeros(nₘ))
                 end
                 𝗠 = op.temp𝗠
                 𝝭 = op.temp𝝭

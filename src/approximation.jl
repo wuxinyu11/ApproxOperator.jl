@@ -79,5 +79,23 @@ function SegN(𝓒::Vector{Node},𝓖::Vector{T},𝗠::Dict{Symbol,SymMat},𝝭:
     y₂ = 𝓒[2].y
     L = ((x₂-x₁)^2+(y₂-y₁)^2)^0.5
 
-    return SegN(𝓒,𝓖,𝗠,𝝭,(Val(𝒑),Val(𝑠),Val(𝜙)))
+    return SegN(𝓒,𝓖,𝗠,𝝭,(Val(𝒑),Val(𝑠),Val(𝜙)),L)
+end
+
+##
+struct PoiN{T,𝒑,𝑠,𝜙}<:AbstractPoi where T<:AbstractNode
+    𝓒::Vector{Node}
+    𝓖::Vector{T}
+    𝗠::Dict{Symbol,SymMat}
+    𝝭::Dict{Symbol,Vector{Float64}}
+    type::Tuple{Val{𝒑},Val{𝑠},Val{𝜙}}
+end
+
+PoiN(𝓒::Vector{Node},𝓖::Vector{T},𝗠::Dict{Symbol,SymMat},𝝭::Dict{Symbol,Vector{Float64}},𝒑::Symbol,𝑠::Symbol,𝜙::Symbol) where T<:AbstractNode = PoiN(𝓒,𝓖,𝗠,𝝭,(Val(𝒑),Val(𝑠),Val(𝜙)))
+struct TriN
+    fields
+end
+
+struct QuadN
+    fields
 end
