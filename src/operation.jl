@@ -4,10 +4,12 @@ struct Operator{T,D}
     data::Dict{Symbol,D}
 end
 Operator(type::Symbol,data::Dict{Symbol,D}) where D = Operator(Val(type),data)
-Operator(type::Symbol) = Operator(Val(type),Dict{Symbol,Float64}())
+Operator(type::Symbol) = Operator(Val(type))
+Operator(type::Symbol,data::DataType) = Operator(Val(type),Dict{Symbol,data}())
 
 ## General Functions
-push!(op::Operator{T,D},d::Pair{Symbol,D}...) where {T,D} = push!(op.data,d...)
+push!(op::Operator,d::Pair{Symbol,D}...) where D<:Any = push!(op.data,d...)
+
 @inline getproperty(op::Operator,f::Symbol) = hasfield(Operator,f) ? getfield(op,f) : getfield(op,:data)[f]
 @inline function (op::Operator)(aps::Vector{T},k::AbstractMatrix{Float64},f::Vector{Float64}) where T<:Approximator
     for ap in aps
@@ -26,14 +28,22 @@ end
     end
 end
 
-function prescribe(ap::Approximator,s::Symbol,f::Function)
+function prescribe!(ap::T,s::Symbol,f::Function) where T<:Approximator
     𝓖 = ap.𝓖
     data = 𝓖[1].data
-    ~haskey(data,s) ? push!(data,s=>similar(data[:w])) :
+    if ~haskey(data,s)
+        push!(data,s=>similar(data[:w]))
+    end
     for ξ in 𝓖
         x = getx(ap,ξ)
         v = f(x...)
         setproperty!(ξ,s,v)
+    end
+end
+
+function prescribe!(aps::Vector{T},s::Symbol,f::Function) where T<:Approximator
+    for ap in aps
+        prescribe!(ap,s,f)
     end
 end
 

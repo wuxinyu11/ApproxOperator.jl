@@ -3,8 +3,8 @@
 @inline getx(ap::AbstractPoi,::Node) = (ap.𝓒[1].x,ap.𝓒[1].y,ap.𝓒[1].z)
 @inline getw(ap::AbstractPoi,::Node) = 1.0
 # -------------- Poi1 --------------
-struct Poi1{T}<:AbstractPoi where T<:AbstractNode
-    𝓒::Vector{T}
+struct Poi1<:AbstractPoi
+    𝓒::Vector{Node}
     𝓖::Vector{Node}
 end
 get𝝭(::Poi1,::Node) = 1.0
@@ -63,10 +63,21 @@ struct Quad
 end
 
 ## SegN
-struct SegN{T}<:AbstractSeg where T<:AbstractNode
+struct SegN{T,𝒑,𝑠,𝜙}<:AbstractSeg where T<:AbstractNode
     𝓒::Vector{Node}
     𝓖::Vector{T}
     𝗠::Dict{Symbol,SymMat}
     𝝭::Dict{Symbol,Vector{Float64}}
+    type::Tuple{Val{𝒑},Val{𝑠},Val{𝜙}}
     L::Float64
+end
+
+function SegN(𝓒::Vector{Node},𝓖::Vector{T},𝗠::Dict{Symbol,SymMat},𝝭::Dict{Symbol,Vector{Float64}},𝒑::Symbol,𝑠::Symbol,𝜙::Symbol) where T<:AbstractNode
+    x₁ = 𝓒[1].x
+    y₁ = 𝓒[1].y
+    x₂ = 𝓒[2].x
+    y₂ = 𝓒[2].y
+    L = ((x₂-x₁)^2+(y₂-y₁)^2)^0.5
+
+    return SegN(𝓒,𝓖,𝗠,𝝭,(Val(𝒑),Val(𝑠),Val(𝜙)))
 end

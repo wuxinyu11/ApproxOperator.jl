@@ -1,8 +1,27 @@
-const etype = Dict{Int,Any}(1=>Seg2, 2=>Tri3, 3=>Quad, 15=>Poi1)
+function Operator(::Val{:msh};meshfree::Bool=false)
+    data = Dict{Symbol,Any}()
+    ntype = Dict(1=>Node,2=>Node,3=>Node,15=>Node)
+    if meshfree
+        etype = Dict(1=>SegN,2=>TriN,3=>QuadN,15=>PoiN)
+        qtype = Dict(1=>:SegGI5,2=>:TriGI13,3=>:QuadGI5,15=>:PoiGI1)
+        push!(data,:basisfunction=>:Linear1D,:kerneltype=>:□,:kernelfunction=>:CubicSpline)
+        push!(data,:stype=>[:𝝭])
+        push!(data,:spatialpartition=>:RegularGrid,:nᵣ=>1,:γᵣ=>1)
+    else
+        etype = Dict(1=>Seg2,2=>Tri3,3=>Quad,15=>Poi1)
+        qtype = Dict(1=>:SegGI2,2=>:TriGI3,3=>:QuadGI2,15=>:PoiGI1)
+    end
+    push!(data,:meshfree=>meshfree)
+    push!(data,:etype=>etype)
+    push!(data,:ntype=>ntype)
+    push!(data,:qtype=>qtype)
+    return Operator(Val(:msh),data)
+end
 
 function (op::Operator{:msh})(filename::String)
     fid = open(filename,"r")
-    readline(fid)
+    topic = readline(fid)
+    push!(op,:topic => topic)
     line = readline(fid)
     v_,f_,d_ = split(line," ")
     version = parse(Float64,v_)
@@ -10,13 +29,13 @@ function (op::Operator{:msh})(filename::String)
     datasize = parse(Int,d_)
     readline(fid)
     if version == 4.1
-        aps,datas = import_msh_4(fid,op)
+        import_msh_4(fid,op)
     elseif version == 2.2
-        aps,datas = import_msh_2(fid,op)
+        import_msh_2(fid,op)
     else
         println("Version does not match!")
     end
-    return aps,datas
+    return op.elements
 end
 
 function import_msh_4(fid::IO,op::Operator{:msh})
@@ -25,6 +44,7 @@ function import_msh_4(fid::IO,op::Operator{:msh})
     for line in eachline(fid)
         if line == "\$PhysicalNames"
             numPhysicalNames = parse(Int,readline(fid))
+            push!(op.data,)
             for i in 1:numPhysicalNames
                 line = readline(fid)
                 d_,p_,name = split(line," ")
@@ -53,13 +73,11 @@ function import_msh_4(fid::IO,op::Operator{:msh})
 end
 
 function import_msh_2(fid::IO,op::Operator{:msh})
-    phy = Dict{Int,String}()
-    aps = Dict{String,Vector{Approximator}}()
-    datas = Dict{String,Any}()
-    push!(datas,"Nodes"=>Dict(:x=>Float64[],:y=>Float64[],:z=>Float64[]))
     for line in eachline(fid)
         if line == "\$PhysicalNames"
             numPhysicalNames = parse(Int,readline(fid))
+            push!(op,:physicaldata=>Dict{Int,Any}())
+            push!(op,:elements=>Dict{String,Any}())
             for i in 1:numPhysicalNames
                 line = readline(fid)
                 d_,p_,n_ = split(line," ")
@@ -67,61 +85,114 @@ function import_msh_2(fid::IO,op::Operator{:msh})
                 physicalTag = parse(Int,p_)
                 name = strip(n_,'\"')
 
-                phy[physicalTag] = name
-                aps[name] = Approximator[]
-                push!(datas,name=>Dict{Symbol,Vector{Float64}}())
+                op.physicaldata[physicalTag] = Dict(:name=>name,:nₑ=>0,:nᵢ=>0,:data=>Dict{Symbol,Vector{Float64}}())
             end
             readline(fid)
         elseif line == "\$Nodes"
             line = readline(fid)
             nₚ = parse(Int,line)
-            push!(datas,"nₚ"=>nₚ)
+            push!(op,:nodes=>Dict(:x=>zeros(nₚ),:y=>zeros(nₚ),:z=>zeros(nₚ)))
+            push!(op,:nₚ=>nₚ)
             for i in 1:nₚ
                 line = readline(fid)
                 t_,x_,y_,z_ = split(line," ")
                 tag = parse(Int,t_)
-                x = parse(Float64,x_)
-                y = parse(Float64,y_)
-                z = parse(Float64,z_)
-                push!(datas["Nodes"][:x],x)
-                push!(datas["Nodes"][:y],y)
-                push!(datas["Nodes"][:z],z)
+                op.nodes[:x][i] = parse(Float64,x_)
+                op.nodes[:y][i] = parse(Float64,y_)
+                op.nodes[:z][i] = parse(Float64,z_)
             end
             readline(fid)
         elseif line == "\$Elements"
             line = readline(fid)
             nₑ = parse(Int,line)
-            push!(datas,"nₑ"=>nₑ)
-            for i in 1:nₑ
-                line = readline(fid)
-                elmN_,elmT_,numT_,phyT_,elmE_,l_... = split(line," ")
-                elmNumber = parse(Int,elmN_)
-                elmType = parse(Int,elmT_)
-                numTag = parse(Int,numT_)
-                phyTag = parse(Int,phyT_)
-                elmEntary = parse(Int,elmE_)
-                nodeList = parse.(Int,l_)
-                name = phy[phyTag]
-                𝓒 = [eval(op.nodetype)(i,datas["Nodes"]) for i in nodeList]
-                𝓖 = Node[]
-                quadraturepoints = QuadratureRule[op.pointtype[name]]
-                for ξ in quadraturepoints
-                    haskey(datas[name],:w) ? push!(datas[name][:w],ξ[1]) : push!(datas[name],:w=>[ξ[1]])
-                    haskey(datas[name],:ξ) ? push!(datas[name][:ξ],ξ[2]) : push!(datas[name],:ξ=>[ξ[2]])
-                    if length(ξ)≥3
-                        haskey(datas[name],:η) ? push!(datas[name][:η],ξ[3]) : push!(datas[name],:η=>[ξ[3]])
+            push!(op,:nₑ=>nₑ)
+            if op.meshfree
+                nₘ = 0
+                if op.spatialpartition == :RegularGrid
+                    rg = RegularGrid(op.nodes,nᵣ,γᵣ)
+                    for c in rg.cells
+                        nₘ = max(length(c),nₘ)
                     end
-                    if length(ξ)≥4
-                        haskey(datas[name],:γ) ? push!(datas[name][:γ],ξ[4]) : push!(datas[name],:γ=>[ξ[4]])
-                    end
-                    n = length(datas[name][:w])
-                    push!(𝓖,Node(n,datas[name]))
                 end
-                push!(aps[name],etype[elmType](𝓒,𝓖))
+                n = length(get𝒑(Val(op.basisfunction),(0.0,0.0,0.0)))
+                push!(op,:temp𝗠=>Dict{Symbol,SymMat}(),:temp𝝭=>Dict{Symbol,Vector{Float64}}())
+                for s in op.stype
+                    push!(op.data[:temp𝗠],s=>SymMat(n))
+                    push!(op.data[:temp𝝭],s=>Vector(nₘ))
+                end
+                𝗠 = op.temp𝗠
+                𝝭 = op.temp𝝭
+                𝒑 = op.basisfunction
+                𝑠 = op.kerneltype
+                𝜙 = op.kernelfunction
+                for i in 1:nₑ
+                    line = readline(fid)
+                    elmN_,elmT_,numT_,phyT_,elmE_,l_... = split(line," ")
+                    elmNumber = parse(Int,elmN_)
+                    elmType = parse(Int,elmT_)
+                    numTag = parse(Int,numT_)
+                    phyTag = parse(Int,phyT_)
+                    elmEntary = parse(Int,elmE_)
+                    nodeList = parse.(Int,l_)
+                    name = op.physicaldata[phyTag][:name]
+                    op.physicaldata[phyTag][:nₑ] += 1
+                    for i in nodeList
+                        x = (op.nodes[:x][i],op.nodes[:y][i],op.nodes[:z][i])
+                        union!(nodeList,sp(x))
+                    end
+                    𝓒 = [Node(i,op.nodes) for i in nodeList]
+                    quadraturepoints = QuadratureRule[op.qtype[elmType]]
+                    data = op.physicaldata[phyTag][:data]
+                    𝓖 = op.ntype[elmType][]
+                    for ξ in quadraturepoints
+                        op.physicaldata[phyTag][:nᵢ] += 1
+                        haskey(data,:w) ? push!(data[:w],ξ[1]) : push!(data,:w=>[ξ[1]])
+                        haskey(data,:ξ) ? push!(data[:ξ],ξ[2]) : push!(data,:ξ=>[ξ[2]])
+                        if length(ξ)≥3
+                            haskey(data,:η) ? push!(data[:η],ξ[3]) : push!(data,:η=>[ξ[3]])
+                        end
+                        if length(ξ)≥4
+                            haskey(data,:γ) ? push!(data[:γ],ξ[4]) : push!(data,:γ=>[ξ[4]])
+                        end
+                        n = length(data[:w])
+                        push!(𝓖,op.ntype[elmType](n,data))
+                    end
+                    haskey(op.elements,name) ? push!(op.elements[name],op.etype[elmType](𝓒,𝓖,𝗠,𝝭,𝒑,𝑠,𝜙)) : push!(op.elements,name=>op.etype[elmType][op.etype[elmType](𝓒,𝓖,𝗠,𝝭,𝒑,𝑠,𝜙)])
+                end
+            else
+                for i in 1:nₑ
+                    line = readline(fid)
+                    elmN_,elmT_,numT_,phyT_,elmE_,l_... = split(line," ")
+                    elmNumber = parse(Int,elmN_)
+                    elmType = parse(Int,elmT_)
+                    numTag = parse(Int,numT_)
+                    phyTag = parse(Int,phyT_)
+                    elmEntary = parse(Int,elmE_)
+                    nodeList = parse.(Int,l_)
+                    name = op.physicaldata[phyTag][:name]
+                    op.physicaldata[phyTag][:nₑ] += 1
+                    𝓒 = [Node(i,op.nodes) for i in nodeList]
+                    quadraturepoints = QuadratureRule[op.qtype[elmType]]
+                    data = op.physicaldata[phyTag][:data]
+                    𝓖 = op.ntype[elmType][]
+                    for ξ in quadraturepoints
+                        op.physicaldata[phyTag][:nᵢ] += 1
+                        haskey(data,:w) ? push!(data[:w],ξ[1]) : push!(data,:w=>[ξ[1]])
+                        haskey(data,:ξ) ? push!(data[:ξ],ξ[2]) : push!(data,:ξ=>[ξ[2]])
+                        if length(ξ)≥3
+                            haskey(data,:η) ? push!(data[:η],ξ[3]) : push!(data,:η=>[ξ[3]])
+                        end
+                        if length(ξ)≥4
+                            haskey(data,:γ) ? push!(data[:γ],ξ[4]) : push!(data,:γ=>[ξ[4]])
+                        end
+                        n = length(data[:w])
+                        push!(𝓖,op.ntype[elmType](n,data))
+                    end
+                    haskey(op.elements,name) ? push!(op.elements[name],op.etype[elmType](𝓒,𝓖)) : push!(op.elements,name=>op.etype[elmType][op.etype[elmType](𝓒,𝓖)])
+                end
             end
         end
     end
-    return aps,datas
 end
 
 ## Quadrature Points

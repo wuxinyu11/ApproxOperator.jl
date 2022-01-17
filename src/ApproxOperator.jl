@@ -10,9 +10,11 @@ abstract type AbstractSeg <: Approximator end
 abstract type AbstractTri <: Approximator end
 abstract type AbstractQuad <: Approximator end
 abstract type AbstractTet <: Approximator end
+abstract type SpatialPartition end
 
 include("node.jl")
 export Node
+include("meshfree.jl")
 include("approximation.jl")
 export Poi1,Seg2
 include("operation.jl")
@@ -23,6 +25,6 @@ include("import.jl")
 # include("efficiency.jl")
 # export efficiency
 # export efficiency, f
-export Operator, prescribe
+export Operator, prescribe!
 
 end
