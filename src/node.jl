@@ -18,8 +18,9 @@ end
 
 ## Meshfree module
 # ----------------- MFNode ------------------
-struct MFNode{𝒑,𝑠,𝜙}<:AbstractNode
+struct SNode<:AbstractNode
     id::Int
     data::Dict{Symbol,Vector{Float64}}
-    type::Tuple{Val{𝒑},Val{𝑠},Val{𝜙}}
+    index::Vector{Int}
+    shape::Dict{Symbol,Vector{Float64}}
 end
