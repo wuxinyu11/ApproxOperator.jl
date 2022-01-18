@@ -6,11 +6,16 @@ end
 Operator(type::Symbol,data::Dict{Symbol,D}) where D = Operator(Val(type),data)
 Operator(type::Symbol) = Operator(Val(type))
 Operator(type::Symbol,data::DataType) = Operator(Val(type),Dict{Symbol,data}())
+Operator(type::Symbol,pair::Pair{Symbol,D}) where D = Operator(Val(type),Dict(pair))
 
 ## General Functions
 push!(op::Operator,d::Pair{Symbol,D}...) where D<:Any = push!(op.data,d...)
 
 @inline getproperty(op::Operator,f::Symbol) = hasfield(Operator,f) ? getfield(op,f) : getfield(op,:data)[f]
+@inline function setproperty!(op::Operator,f::Symbol,x)
+    getfield(op,:data)[f] = x
+end
+
 @inline function (op::Operator)(aps::Vector{T},k::AbstractMatrix{Float64},f::Vector{Float64}) where T<:Approximator
     for ap in aps
         op(ap,k,f)
@@ -71,7 +76,23 @@ function (op::Operator{:∫vtdΓ})(ap::Approximator,f::AbstractVector{Float64})
         N = get𝝭(ap,ξ)
         for i in 1:length(𝓒)
             I = 𝓒[i].id
-            f[I] = f[I] + N[i]*ξ.t*w
+            f[I] += N[i]*ξ.t*w
+        end
+    end
+end
+
+function (op::Operator{:∫vgdΓ})(ap::Approximator,k::AbstractMatrix{Float64},f::AbstractVector{Float64})
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    for ξ in 𝓖
+        w = getw(ap,ξ)
+        N = get𝝭(ap,ξ)
+        for i in 1:length(𝓒)
+            I = 𝓒[i].id
+            for j in 1:length(𝓒)
+                J = 𝓒[j].id
+                k[I,J] += op.α*N[i]*N[j]*w
+            end
+            f[I] += op.α*N[i]*ξ.g*w
         end
     end
 end
