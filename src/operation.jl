@@ -32,6 +32,11 @@ end
         op(ap,s)
     end
 end
+@inline function (op::Operator)(aps::Vector{T}) where T<:Approximator
+    for ap in aps
+        op(ap)
+    end
+end
 
 function prescribe!(ap::T,s::Symbol,f::Function) where T<:Approximator
     𝓖 = ap.𝓖
@@ -53,7 +58,7 @@ function prescribe!(aps::Vector{T},s::Symbol,f::Function) where T<:Approximator
 end
 
 ## Potential Problem
-function (op::Operator{:∫∇v∇udΩ})(ap::Approximator,k::AbstractMatrix{Float64},f::AbstractVector{Float64})
+function (op::Operator{:∫∇v∇uvbdΩ})(ap::Approximator,k::AbstractMatrix{Float64},f::AbstractVector{Float64})
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
         N,B₁,B₂,B₃ = get∇𝝭(ap,ξ)
@@ -64,6 +69,33 @@ function (op::Operator{:∫∇v∇udΩ})(ap::Approximator,k::AbstractMatrix{Floa
                 J = 𝓒[j].id
                 k[I,J] += op.k*(B₁[i]*B₁[j] + B₂[i]*B₂[j] + B₃[i]*B₃[j])*w
             end
+            f[I] += N[i]*ξ.b*w
+        end
+    end
+end
+
+function (op::Operator{:∫∇v∇udΩ})(ap::Approximator,k::AbstractMatrix{Float64},f::AbstractVector{Float64})
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    for ξ in 𝓖
+        ~,B₁,B₂,B₃ = get∇𝝭(ap,ξ)
+        w = getw(ap,ξ)
+        for i in 1:length(𝓒)
+            I = 𝓒[i].id
+            for j in 1:length(𝓒)
+                J = 𝓒[j].id
+                k[I,J] += op.k*(B₁[i]*B₁[j] + B₂[i]*B₂[j] + B₃[i]*B₃[j])*w
+            end
+        end
+    end
+end
+
+function (op::Operator{:∫vbdΩ})(ap::Approximator,k::AbstractMatrix{Float64},f::AbstractVector{Float64})
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    for ξ in 𝓖
+        N = get𝝭(ap,ξ)
+        w = getw(ap,ξ)
+        for i in 1:length(𝓒)
+            I = 𝓒[i].id
             f[I] += N[i]*ξ.b*w
         end
     end
@@ -108,4 +140,55 @@ function (op::Operator{:g})(ap::Poi1,k::AbstractMatrix{Float64},f::AbstractVecto
     k[:,j] .= 0.
     k[j,j] = 1.
     f[j] = g
+end
+
+## Meshfree
+function (op::Operator{:𝝭})(ap::ReproducingKernel{SNode})
+    𝓒 = ap.𝓒
+    𝓖 = ap.𝓖
+    for ξ in 𝓖
+        i = ξ.id
+        push!(ξ.index,ξ.index[i]+length(𝓒))
+        ξ̂ = Node(ξ)
+        𝝭 = get𝝭(ap,ξ̂)
+        push!(ξ.𝝭[:∂1],(𝝭[i] for i in 1:length(𝓒))...)
+    end
+end
+function (op::Operator{:∇𝝭})(ap::ReproducingKernel{SNode})
+    𝓒 = ap.𝓒
+    𝓖 = ap.𝓖
+    for ξ in 𝓖
+        i = ξ.id
+        push!(ξ.index,ξ.index[i]+length(𝓒))
+        ξ̂ = Node(ξ)
+        𝝭,∂𝝭∂x,∂𝝭∂y,∂𝝭∂z = get∇𝝭(ap,ξ̂)
+        push!(ξ.𝝭[:∂1],(𝝭[i] for i in 1:length(𝓒))...)
+        push!(ξ.𝝭[:∂x],(∂𝝭∂x[i] for i in 1:length(𝓒))...)
+        push!(ξ.𝝭[:∂y],(∂𝝭∂y[i] for i in 1:length(𝓒))...)
+        push!(ξ.𝝭[:∂z],(∂𝝭∂z[i] for i in 1:length(𝓒))...)
+    end
+end
+
+function (op::Operator{:𝝭checkrepeat})(ap::ReproducingKernel{SNode})
+    𝓒 = ap.𝓒
+    𝓖 = ap.𝓖
+    for ξ in 𝓖
+        x = getx(ap,ξ)
+        i = ξ.id
+        if haskey(op.id,x)
+            i = op.id[x]
+            ids = op.ids[op.index[i]+1:op.index[i+1]]
+            index = (findfirst(x->x==ξ_.id,ids) for ξ_ in 𝓒)
+            push!(op.index,last(op.index))
+        else
+            push!(op.id,x=>i)
+            push!(op.ids,(ξ_.id for ξ_ in 𝓒)...)
+            push!(op.index,last(op.index)+length(𝓒))
+            index = 1:length(𝓒)
+        end
+        push!(ξ.index,last(ξ.index)+length(𝓒))
+        ξ̂ = Node(ξ)
+        𝝭 = get𝝭(ap,ξ̂)
+        push!(ξ.𝝭[:∂1],(i≠nothing ? 𝝭[i] : 0.0 for i in index)...)
+    end
 end

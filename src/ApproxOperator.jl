@@ -14,10 +14,10 @@ abstract type ReproducingKernel{T,𝒑,𝑠,𝜙} <: Approximator  where T<:Abst
 abstract type SpatialPartition end
 
 include("node.jl")
-export Node
+export Node, SNode
 include("meshfree.jl")
 include("approximation.jl")
-export Poi1,Seg2
+export Poi1,Seg2,SegN
 include("operation.jl")
 include("import.jl")
 # export import_msh
@@ -27,5 +27,5 @@ include("import.jl")
 # export efficiency
 # export efficiency, f
 export Operator, prescribe!
-export get𝒑
+export get𝒑, SymMat
 end
