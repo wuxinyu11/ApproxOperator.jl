@@ -16,6 +16,9 @@ end
     A.m[Int(i+j*(j-1)/2)] = val
 end
 @inline *(A::SymMat,v::NTuple{N,Float64}) where N = sum(A[1,i]*v[i] for i in 1:N)
+@inline function *(v::NTuple{N,Float64},A::SymMat) where N
+    return Tuple(sum(v[i]*A[i,j] for i in 1:N) for j in 1:N)
+end
 
 @inline function -(A::SymMat)
     A.m .= .-A.m
@@ -325,11 +328,11 @@ function cal𝗠!(ap::T,x::NTuple{3,Float64}) where T<:ReproducingKernel
     fill!(𝗠,0.)
     for xᵢ in 𝓒
         Δx = x - xᵢ
-        p = get𝒑(ap,Δx)
-        w = get𝜙(ap,xᵢ,Δx)
+        𝒑 = get𝒑(ap,Δx)
+        𝜙 = get𝜙(ap,xᵢ,Δx)
         for I in 1:n
             for J in I:n
-                𝗠[I,J] += w*p[I]*p[J]
+                𝗠[I,J] += 𝜙*𝒑[I]*𝒑[J]
             end
         end
     end
@@ -348,12 +351,12 @@ function cal∂𝗠∂x!(ap::ReproducingKernel,x::NTuple{3,Float64})
     fill!(∂𝗠∂x,0.)
     for xᵢ in 𝓒
         Δx = x - xᵢ
-        p, ∂p∂x = get∂𝒑∂x(ap,Δx)
-        w, ∂w∂x = get∂𝜙∂x(ap,xᵢ,Δx)
+        𝒑, ∂𝒑∂x = get∂𝒑∂x(ap,Δx)
+        𝜙, ∂𝜙∂x = get∂𝜙∂x(ap,xᵢ,Δx)
         for I in 1:n
             for J in I:n
-                𝗠[I,J] += w*p[I]*p[J]
-                ∂𝗠∂x[I,J] += ∂w∂x*p[I]*p[J] + w*∂p∂x[I]*p[J] + w*p[I]*∂p∂x[J]
+                𝗠[I,J] += w*𝒑[I]*𝒑[J]
+                ∂𝗠∂x[I,J] += ∂𝜙∂x*𝒑[I]*𝒑[J] + 𝜙*∂𝒑∂x[I]*𝒑[J] + 𝜙*𝒑[I]*∂𝒑∂x[J]
             end
         end
     end
@@ -377,14 +380,14 @@ function cal∇𝗠!(ap::ReproducingKernel,x::NTuple{3,Float64})
     fill!(∂𝗠∂z,0.)
     for xᵢ in 𝓒
         Δx = x - xᵢ
-        p, ∂p∂x, ∂p∂y, ∂p∂z = get∇𝒑(ap,Δx)
-        w, ∂w∂x, ∂w∂y, ∂w∂z = get∇𝜙(ap,xᵢ,Δx)
+        𝒑, ∂𝒑∂x, ∂𝒑∂y, ∂𝒑∂z = get∇𝒑(ap,Δx)
+        𝜙, ∂𝜙∂x, ∂𝜙∂y, ∂𝜙∂z = get∇𝜙(ap,xᵢ,Δx)
         for I in 1:n
             for J in I:n
-                𝗠[I,J] += w*p[I]*p[J]
-                ∂𝗠∂x[I,J] += ∂w∂x*p[I]*p[J] + w*∂p∂x[I]*p[J] + w*p[I]*∂p∂x[J]
-                ∂𝗠∂y[I,J] += ∂w∂y*p[I]*p[J] + w*∂p∂y[I]*p[J] + w*p[I]*∂p∂y[J]
-                ∂𝗠∂z[I,J] += ∂w∂z*p[I]*p[J] + w*∂p∂z[I]*p[J] + w*p[I]*∂p∂z[J]
+                𝗠[I,J] += 𝜙*𝒑[I]*𝒑[J]
+                ∂𝗠∂x[I,J] += ∂𝜙∂x*𝒑[I]*𝒑[J] + 𝜙*∂𝒑∂x[I]*𝒑[J] + 𝜙*𝒑[I]*∂𝒑∂x[J]
+                ∂𝗠∂y[I,J] += ∂𝜙∂y*𝒑[I]*𝒑[J] + 𝜙*∂𝒑∂y[I]*𝒑[J] + 𝜙*𝒑[I]*∂𝒑∂y[J]
+                ∂𝗠∂z[I,J] += ∂𝜙∂z*𝒑[I]*𝒑[J] + 𝜙*∂𝒑∂z[I]*𝒑[J] + 𝜙*𝒑[I]*∂𝒑∂z[J]
             end
         end
     end
@@ -395,4 +398,24 @@ function cal∇𝗠!(ap::ReproducingKernel,x::NTuple{3,Float64})
     ∂𝗠⁻¹∂z = - UUᵀAUUᵀ!(∂𝗠∂z,U⁻¹)
     𝗠⁻¹ = UUᵀ!(U⁻¹)
     return 𝗠⁻¹, ∂𝗠⁻¹∂x, ∂𝗠⁻¹∂y, ∂𝗠⁻¹∂z
+end
+
+function cal𝗚!(dp::A) where A<:ReproducingKernel
+    𝓖 = dp.𝓖
+    𝗚 = ap.𝗚[:∂1]
+    n = length(get𝒑(dp.type),(0.0,0.0,0.0))
+    fill!(𝗚,0.0)
+    for ξ in 𝓖
+        w = ξ.w
+        𝒑 = get𝒑(dp,ξ)
+        for I in 1:n
+            for J in 1:n
+                𝗚[I,J] += w*𝒑[I]*𝒑[J]
+            end
+        end
+    end
+    cholesky!(𝗚)
+    U⁻¹ = inverse!(𝗚)
+    𝗚⁻¹ = UUᵀ!(U⁻¹)
+    return 𝗚⁻¹
 end

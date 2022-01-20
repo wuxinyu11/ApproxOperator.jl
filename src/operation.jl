@@ -1,12 +1,9 @@
 ## Counstruction
-struct Operator{T,D}
+struct Operator{T}
     type::Val{T}
-    data::Dict{Symbol,D}
+    data::Dict{Symbol,Float64}
 end
-Operator(type::Symbol,data::Dict{Symbol,D}) where D = Operator(Val(type),data)
-Operator(type::Symbol) = Operator(Val(type))
-Operator(type::Symbol,data::DataType) = Operator(Val(type),Dict{Symbol,data}())
-Operator(type::Symbol,pair::Pair{Symbol,D}) where D = Operator(Val(type),Dict(pair))
+Operator(type::Symbol) = Operator(Val(type),Dict{Symbol,Float64}())
 
 ## General Functions
 push!(op::Operator,d::Pair{Symbol,D}...) where D<:Any = push!(op.data,d...)
@@ -154,6 +151,7 @@ function (op::Operator{:𝝭})(ap::ReproducingKernel{SNode})
         push!(ξ.𝝭[:∂1],(𝝭[i] for i in 1:length(𝓒))...)
     end
 end
+
 function (op::Operator{:∇𝝭})(ap::ReproducingKernel{SNode})
     𝓒 = ap.𝓒
     𝓖 = ap.𝓖

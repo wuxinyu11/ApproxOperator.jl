@@ -1,16 +1,21 @@
 
 ## AbstractPoi
-@inline getx(ap::AbstractPoi,::Node) = (ap.𝓒[1].x,ap.𝓒[1].y,ap.𝓒[1].z)
-@inline getw(ap::AbstractPoi,::Node) = 1.0
+@inline getx(ap::AbstractPoi,::AbstractNode) = (ap.𝓒[1].x,ap.𝓒[1].y,ap.𝓒[1].z)
+@inline getw(ap::AbstractPoi,::AbstractNode) = 1.0
 # -------------- Poi1 --------------
-struct Poi1<:AbstractPoi
+struct Poi1{T}<:AbstractPoi where T<:AbstractNode
     𝓒::Vector{Node}
-    𝓖::Vector{Node}
+    𝓖::Vector{T}
+end
+function Poi1(ntype::Symbol,data::Dict{Symbol,Vector{Float64}},i::Int)
+    𝓒 = [Node(i,data)]
+    𝓖 = eval(ntype)[]
+    return Poi1(𝓒,𝓖)
 end
 get𝝭(::Poi1,::Node) = 1.0
 
 ## AbstractSeg
-@inline getx(ap::A,ξ::Node) where A<:AbstractSeg = getx(ap,ξ.ξ)
+@inline getx(ap::A,ξ::T) where {A<:AbstractSeg,T<:AbstractNode} = getx(ap,ξ.ξ)
 @inline function getx(ap::A,ξ::Float64) where A<:AbstractSeg
     x₁ = ap.𝓒[1].x
     y₁ = ap.𝓒[1].y
@@ -23,23 +28,65 @@ get𝝭(::Poi1,::Node) = 1.0
     return (x₁*N₁+x₂*N₂,y₁*N₁+y₂*N₂,z₁*N₁+z₂*N₂)
 end
 
-@inline getw(ap::A,ξ::Node) where A<:AbstractSeg = 0.5*ap.L*ξ.w
+@inline getw(ap::A,ξ::T) where {A<:AbstractSeg,T<:AbstractNode} = 0.5*ap.L*ξ.w
 
+get𝒏(ap::A,ξ::T) where {A<:AbstractSeg,T<:AbstractNode} = ξ.ξ == 0.0 ? 1.0 : 0.0
+function get𝒏(ap::A) where A<:AbstractSeg
+    𝓖 = ap.𝓖
+    for ξ in 𝓖
+        ξ.n₁ = get𝒏(ap,ξ)
+    end
+end
 # ---------------- Seg2 -------------------
-struct Seg2<:AbstractSeg
+struct Seg2{T}<:AbstractSeg where T<:AbstractNode
     𝓒::Vector{Node}
-    𝓖::Vector{Node}
+    𝓖::Vector{T}
     L::Float64
+end
+function Seg2(ntype::Symbol,data::Dict{Symbol,Vector{Float64}},i::Int,j::Int)
+    𝓒 = [Node(i,data),Node(j,data)]
+    𝓖 = eval(ntype)[]
+    return Seg2(𝓒,𝓖)
 end
 
 # constructions of Seg2
-function Seg2(𝓒::Vector{Node},𝓖::Vector{Node})
+function Seg2(𝓒::Vector{Node},𝓖::Vector{T}) where T<:AbstractNode
     x₁ = 𝓒[1].x
     y₁ = 𝓒[1].y
     x₂ = 𝓒[2].x
     y₂ = 𝓒[2].y
     L = ((x₂-x₁)^2+(y₂-y₁)^2)^0.5
     return Seg2(𝓒,𝓖,L)
+end
+
+function Seg2(dp::Dict{Symbol,Any},ap::Seg2{SNode})
+    L = ap.L
+    𝗚⁻¹ = cal𝗚!(dp)
+    𝓒 = ap.𝒞
+    𝓖 = SNode(dp)
+    for ξ̂ in 𝓖
+        ξ̂.index[ξ̂.id+1] = ξ̂.index[ξ̂.id]+length(𝓒)
+        𝒑̂ = get𝒑(dp,ξ̂)
+        𝒑̂ᵀ𝗚⁻¹ = 𝒑̂*𝗚⁻¹
+        ∂𝝭∂x = dp.𝝭[:∂x]
+        fill!(∂𝝭∂x,0.0)
+        for ξ in ap.𝓖
+            w = ξ.w
+            wᵇ = ξ.wᵇ
+            n₁ = ξ.n₁
+            𝝭 = get𝝭(ap,ξ)
+            𝒑, ∂𝒑∂ξ = get∇𝒑(dp,ξ)
+            𝒑̂ᵀ𝗚⁻¹𝒑 = 𝒑̂ᵀ𝗚⁻¹*𝒑
+            𝒑̂ᵀ𝗚⁻¹∂𝒑∂ξ = 𝒑̂ᵀ𝗚⁻¹*∂𝒑∂ξ
+            for i in 1:length(𝓒)
+                ∂𝝭∂x[i] += 𝝭[i]*𝒑̂ᵀ𝗚⁻¹𝒑*n₁*wᵇ + 𝝭[i]*𝒑̂ᵀ𝗚⁻¹∂𝒑∂ξ/L*w
+            end
+        end
+        for i in 1:length(𝓒)
+            ξ̂.𝝭[:∂x][ξ̂.index[ξ̂.id]+i] = ∂𝝭∂x[i]
+        end
+    end
+    return Seg2(𝓒,𝓖)
 end
 
 # actions for Seg2
@@ -63,30 +110,30 @@ struct Quad
 end
 
 ## PoiN
-struct PoiN{T,𝒑,𝑠,𝜙}<:ReproducingKernel{T,𝒑,𝑠,𝜙}
+struct PoiN{𝒑,𝑠,𝜙}<:ReproducingKernel{𝒑,𝑠,𝜙}
     𝓒::Vector{Node}
-    𝓖::Vector{T}
+    𝓖::Vector{Node}
     𝗠::Dict{Symbol,SymMat}
     𝝭::Dict{Symbol,Vector{Float64}}
     type::Tuple{Val{𝒑},Val{𝑠},Val{𝜙}}
 end
 
-PoiN(𝓒::Vector{Node},𝓖::Vector{T},𝗠::Dict{Symbol,SymMat},𝝭::Dict{Symbol,Vector{Float64}},𝒑::Symbol,𝑠::Symbol,𝜙::Symbol) where T<:AbstractNode = PoiN(𝓒,𝓖,𝗠,𝝭,(Val(𝒑),Val(𝑠),Val(𝜙)))
+PoiN(𝓒::Vector{Node},𝓖::Vector{Node},𝗠::Dict{Symbol,SymMat},𝝭::Dict{Symbol,Vector{Float64}},𝒑::Symbol,𝑠::Symbol,𝜙::Symbol) = PoiN(𝓒,𝓖,𝗠,𝝭,(Val(𝒑),Val(𝑠),Val(𝜙)))
 
-@inline getx(ap::PoiN,::AbstractNode) = (ap.𝓒[1].x,ap.𝓒[1].y,ap.𝓒[1].z)
+@inline getx(ap::PoiN,::Node) = (ap.𝓒[1].x,ap.𝓒[1].y,ap.𝓒[1].z)
 @inline getw(ap::PoiN,::Node) = 1.0
 
 ## SegN
-struct SegN{T,𝒑,𝑠,𝜙}<:ReproducingKernel{T,𝒑,𝑠,𝜙}
+struct SegN{𝒑,𝑠,𝜙}<:ReproducingKernel{𝒑,𝑠,𝜙}
     𝓒::Vector{Node}
-    𝓖::Vector{T}
+    𝓖::Vector{Node}
     𝗠::Dict{Symbol,SymMat}
     𝝭::Dict{Symbol,Vector{Float64}}
     type::Tuple{Val{𝒑},Val{𝑠},Val{𝜙}}
     L::Float64
 end
 
-function SegN(𝓒::Vector{Node},𝓖::Vector{T},𝗠::Dict{Symbol,SymMat},𝝭::Dict{Symbol,Vector{Float64}},𝒑::Symbol,𝑠::Symbol,𝜙::Symbol) where T<:AbstractNode
+function SegN(𝓒::Vector{Node},𝓖::Vector{Node},𝗠::Dict{Symbol,SymMat},𝝭::Dict{Symbol,Vector{Float64}},𝒑::Symbol,𝑠::Symbol,𝜙::Symbol)
     x₁ = 𝓒[1].x
     y₁ = 𝓒[1].y
     x₂ = 𝓒[2].x
@@ -96,7 +143,7 @@ function SegN(𝓒::Vector{Node},𝓖::Vector{T},𝗠::Dict{Symbol,SymMat},𝝭:
     return SegN(𝓒,𝓖,𝗠,𝝭,(Val(𝒑),Val(𝑠),Val(𝜙)),L)
 end
 
-@inline getx(ap::SegN,ξ::T) where T<:AbstractNode = getx(ap,ξ.ξ)
+@inline getx(ap::SegN,ξ::Node) = getx(ap,ξ.ξ)
 @inline function getx(ap::SegN,ξ::Float64)
     x₁ = ap.𝓒[1].x
     y₁ = ap.𝓒[1].y
@@ -109,7 +156,7 @@ end
     return (x₁*N₁+x₂*N₂,y₁*N₁+y₂*N₂,z₁*N₁+z₂*N₂)
 end
 
-@inline getw(ap::SegN,ξ::T) where T<:AbstractNode = 0.5*ap.L*ξ.w
+@inline getw(ap::SegN,ξ::Node) = 0.5*ap.L*ξ.w
 
 ##
 struct TriN
@@ -140,7 +187,7 @@ function get∂𝝭∂x(ap::T,ξ::Node) where T<:ReproducingKernel
     𝝭 = ap.𝝭[:∂1]
     ∂𝝭∂x = ap.𝝭[:∂x]
     x = getx(ap,ξ)
-    p₀ᵀ𝗠⁻¹, p₀ᵀ∂𝗠⁻¹∂x = cal∂𝗠∂x!(ap,x)
+    𝒑₀ᵀ𝗠⁻¹, 𝒑₀ᵀ∂𝗠⁻¹∂x = cal∂𝗠∂x!(ap,x)
     for i in 1:length(𝓒)
         xᵢ = 𝓒[i]
         Δx = x - xᵢ

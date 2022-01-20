@@ -5,6 +5,7 @@ import InteractiveUtils: subtypes
 
 abstract type AbstractNode end
 abstract type Approximator end
+abstract type DataPool end
 abstract type AbstractPoi <: Approximator end
 abstract type AbstractSeg <: Approximator end
 abstract type AbstractTri <: Approximator end

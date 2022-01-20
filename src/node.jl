@@ -24,7 +24,7 @@ struct SNode<:AbstractNode
     index::Vector{Int}
     𝝭::Dict{Symbol,Vector{Float64}}
 end
-
+function SNode(dp::Dict{Symbol,Any})
 Node(ξ::SNode) = Node(ξ.id,ξ.data)
 
 function get𝝭(ap::ReproducingKernel,ξ::SNode)
