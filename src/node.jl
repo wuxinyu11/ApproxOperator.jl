@@ -24,22 +24,25 @@ struct SNode<:AbstractNode
     index::Vector{Int}
     𝝭::Dict{Symbol,Vector{Float64}}
 end
-function SNode(dp::Dict{Symbol,Any})
 Node(ξ::SNode) = Node(ξ.id,ξ.data)
 
-function get𝝭(ap::ReproducingKernel,ξ::SNode)
+function get𝝭(ap::ReproducingKernel{SNode},ξ::SNode)
     𝝭 = ap.𝝭[:∂1]
     i = ξ.id
     index = ξ.index
-    𝝭 .= ξ.𝝭[:∂1][index[i]+1:index[i+1]]
+    for j in 1:length(ap.𝓒)
+        𝝭[j] = ξ.𝝭[:∂1][index[i]+j]
+    end
     return 𝝭
 end
 
-function get∂𝝭∂x(ap::ReproducingKernel,ξ::SNode)
+function get∂𝝭∂x(ap::ReproducingKernel{SNode},ξ::SNode)
     ∂𝝭∂x = ap.𝝭[:∂x]
     i = ξ.id
     index = ξ.index
-    ∂𝝭∂x .= ξ.𝝭[:∂x][index[i]+1:index[i+1]]
+    for j in 1:length(ap.𝓒)
+        ∂𝝭∂x[j] = ξ.𝝭[:∂x][index[i]+j]
+    end
     return ∂𝝭∂x
 end
 
@@ -49,18 +52,118 @@ function get∇𝝭(ap::ReproducingKernel,ξ::SNode)
     ∂𝝭∂y = ap.𝝭[:∂y]
     ∂𝝭∂z = ap.𝝭[:∂z]
     i = ξ.id
-    indices = ξ.index[i]+1:ξ.index[i+1]
-    for j in 1:length(indices)
-        𝝭[j] = ξ.𝝭[:∂1][indices[j]]
-        ∂𝝭∂x[j] = ξ.𝝭[:∂x][indices[j]]
-        ∂𝝭∂y[j] = ξ.𝝭[:∂y][indices[j]]
-        ∂𝝭∂z[j] = ξ.𝝭[:∂z][indices[j]]
+    index = ξ.index
+    for j in 1:length(ap.𝓒)
+        𝝭[j] = ξ.𝝭[:∂1][index[i]+j]
+        ∂𝝭∂x[j] = ξ.𝝭[:∂x][index[i]+j]
+        ∂𝝭∂y[j] = ξ.𝝭[:∂y][index[i]+j]
+        ∂𝝭∂z[j] = ξ.𝝭[:∂z][index[i]+j]
     end
     return 𝝭, ∂𝝭∂x, ∂𝝭∂y, ∂𝝭∂z
 end
 
-
 ## Quadrature Points
+function Operator(t::Val{:𝓖})
+    return Operator(t,Dict{Symbol,Any}(:nᵢ=>0,:dims=>0,:ntype=>:Node,:parametricdatas=>Dict{Symbol,Vector{Float64}}()))
+end
+
+function (op::Operator{:𝓖})(aps::Vector{T},s::Symbol) where T<:Approximator
+    qw = QuadratureRule[s]
+    return op(aps,qw)
+end
+
+function (op::Operator{:𝓖})(aps::Vector{T},𝓖::NTuple{N,NTuple{D,Float64}}) where {T<:Approximator,N,D}
+    nₑ = length(aps)
+    nᵢ = nₑ*N
+    op.parametricdatas[:w] = zeros(nᵢ)
+    op.parametricdatas[:ξ] = zeros(nᵢ)
+    if D == 3
+        op.dims+1≠3 ? op.parametricdatas[:η] = zeros(nᵢ) : op.parametricdatas[:wᵇ] = zeros(nᵢ)
+    elseif D == 4
+        op.parametricdatas[:η] = zeros(nᵢ)
+        op.dims+1≠4 ? op.parametricdatas[:γ] = zeros(nᵢ) : op.parametricdatas[:wᵇ] = zeros(nᵢ)
+    elseif D == 5
+        op.parametricdatas[:η] = zeros(nᵢ)
+        op.parametricdatas[:γ] = zeros(nᵢ)
+        op.parametricdatas[:wᵇ] = zeros(nᵢ)
+    end
+    if haskey(op.data,:𝝭)
+        n = 0
+        nₘ = 0
+        nₕ = length(get𝒑(aps[1],(0.0,0.0,0.0)))
+        push!(op,:nₜ=>0)
+        push!(op,:index=>zeros(Int,nᵢ))
+        𝝭 = Dict{Symbol,Vector{Float64}}()
+        for ap in aps
+            n += length(ap.𝓒)*N
+            nₘ = max(nₘ,length(ap.𝓒))
+        end
+        for s in op.𝝭
+            push!(𝝭,s=>zeros(n))
+            if ~haskey(aps[1].𝗠,s)
+                aps[1].𝗠[s]=SymMat(nₕ)
+            end
+            if haskey(aps[1].𝝭,s)
+                if nₘ > length(aps[1].𝝭[s])
+                    aps[1].𝝭[s]=zeros(nₘ)
+                end
+            else
+                aps[1].𝝭[s]=zeros(nₘ)
+            end
+        end
+        op.𝝭 = 𝝭
+        op.ntype = :SNode
+    end
+    ntype = Val(op.ntype)
+    for ap in aps
+        op(ap,𝓖,ntype)
+    end
+    return op.parametricdatas
+end
+
+function (op::Operator{:𝓖})(ap::Approximator,𝓖::NTuple{N,Tuple},::Val{:Node}) where N
+    for ξ in 𝓖
+        op.nᵢ += 1
+        nᵢ = op.nᵢ
+        data = op.parametricdatas
+        push!(ap.𝓖,Node(nᵢ,data))
+        op(nᵢ,ξ)
+    end
+end
+function (op::Operator{:𝓖})(ap::Approximator,𝓖::NTuple{N,Tuple},::Val{:SNode}) where N
+    for ξ in 𝓖
+        op.nᵢ += 1
+        nᵢ = op.nᵢ
+        op.index[nᵢ] = op.nₜ
+        op.nₜ += length(ap.𝓒)
+        data = op.parametricdatas
+        push!(ap.𝓖,SNode(nᵢ,data,op.index,op.𝝭))
+        op(nᵢ,ξ)
+    end
+end
+function (op::Operator{:𝓖})(i::Int,ξ::NTuple{2,Float64})
+    op.parametricdatas[:w][i] = ξ[1]
+    op.parametricdatas[:ξ][i] = ξ[2]
+end
+function (op::Operator{:𝓖})(i::Int,ξ::NTuple{3,Float64})
+    op.parametricdatas[:w][i] = ξ[1]
+    op.parametricdatas[:ξ][i] = ξ[2]
+    op.dims+1≠3 ? op.parametricdatas[:η][i] = ξ[3] : op.parametricdatas[:wᵇ][i] = ξ[3]
+end
+function (op::Operator{:𝓖})(i::Int,ξ::NTuple{4,Float64})
+    op.parametricdatas[:w][i] = ξ[1]
+    op.parametricdatas[:ξ][i] = ξ[2]
+    op.parametricdatas[:η][i] = ξ[3]
+    op.dims+1≠4 ? op.parametricdatas[:γ][i] = ξ[4] : op.parametricdatas[:wᵇ][i] = ξ[4]
+end
+function (op::Operator{:𝓖})(i::Int,ξ::NTuple{5,Float64})
+    op.parametricdatas[:w][i] = ξ[1]
+    op.parametricdatas[:ξ][i] = ξ[2]
+    op.parametricdatas[:η][i] = ξ[3]
+    op.parametricdatas[:γ][i] = ξ[4]
+    op.parametricdatas[:wᵇ][i] = ξ[5]
+end
+
 const QuadratureRule = Dict(
 :PoiGI1 => ((1.0,-1.0),),
 :SegGI1 => ((2.0,0.0),),

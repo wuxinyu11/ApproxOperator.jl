@@ -1,9 +1,16 @@
 ## Counstruction
-struct Operator{T}
+struct Operator{T,D}
     type::Val{T}
-    data::Dict{Symbol,Float64}
+    data::Dict{Symbol,D}
 end
-Operator(type::Symbol) = Operator(Val(type),Dict{Symbol,Float64}())
+Operator(t::Symbol) = t∈(:msh,:vtk,:𝓖,:𝝭ʳ,:∇̃𝝭) ? Operator(Val(t)) : Operator(Val(t),Dict{Symbol,Float64}())
+function Operator(t::Symbol,d::Pair{Symbol,D}...) where D<:Any
+    op = t∈(:msh,:vtk,:𝓖,:𝝭ʳ) ? Operator(Val(t)) : Operator(Val(t),Dict{Symbol,Float64}())
+    push!(op,d...)
+    return op
+end
+Operator(t::Symbol,s::Symbol) = Operator(Val(t),s)
+
 
 ## General Functions
 push!(op::Operator,d::Pair{Symbol,D}...) where D<:Any = push!(op.data,d...)
@@ -37,10 +44,6 @@ end
 
 function prescribe!(ap::T,s::Symbol,f::Function) where T<:Approximator
     𝓖 = ap.𝓖
-    data = 𝓖[1].data
-    if ~haskey(data,s)
-        push!(data,s=>similar(data[:w]))
-    end
     for ξ in 𝓖
         x = getx(ap,ξ)
         v = f(x...)
@@ -49,6 +52,11 @@ function prescribe!(ap::T,s::Symbol,f::Function) where T<:Approximator
 end
 
 function prescribe!(aps::Vector{T},s::Symbol,f::Function) where T<:Approximator
+    𝓖 = aps[1].𝓖
+    data = 𝓖[1].data
+    if ~haskey(data,s)
+        push!(data,s=>similar(data[:w]))
+    end
     for ap in aps
         prescribe!(ap,s,f)
     end
@@ -126,7 +134,7 @@ function (op::Operator{:∫vgdΓ})(ap::Approximator,k::AbstractMatrix{Float64},f
     end
 end
 
-function (op::Operator{:g})(ap::Poi1,k::AbstractMatrix{Float64},f::AbstractVector{Float64};dof::Symbol=:d)
+function (op::Operator{:g})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64};dof::Symbol=:d) where T<:AbstractPoi
     x = ap.𝓒[1]
     j = x.id
     g = getproperty(x,dof)
@@ -137,56 +145,4 @@ function (op::Operator{:g})(ap::Poi1,k::AbstractMatrix{Float64},f::AbstractVecto
     k[:,j] .= 0.
     k[j,j] = 1.
     f[j] = g
-end
-
-## Meshfree
-function (op::Operator{:𝝭})(ap::ReproducingKernel{SNode})
-    𝓒 = ap.𝓒
-    𝓖 = ap.𝓖
-    for ξ in 𝓖
-        i = ξ.id
-        push!(ξ.index,ξ.index[i]+length(𝓒))
-        ξ̂ = Node(ξ)
-        𝝭 = get𝝭(ap,ξ̂)
-        push!(ξ.𝝭[:∂1],(𝝭[i] for i in 1:length(𝓒))...)
-    end
-end
-
-function (op::Operator{:∇𝝭})(ap::ReproducingKernel{SNode})
-    𝓒 = ap.𝓒
-    𝓖 = ap.𝓖
-    for ξ in 𝓖
-        i = ξ.id
-        push!(ξ.index,ξ.index[i]+length(𝓒))
-        ξ̂ = Node(ξ)
-        𝝭,∂𝝭∂x,∂𝝭∂y,∂𝝭∂z = get∇𝝭(ap,ξ̂)
-        push!(ξ.𝝭[:∂1],(𝝭[i] for i in 1:length(𝓒))...)
-        push!(ξ.𝝭[:∂x],(∂𝝭∂x[i] for i in 1:length(𝓒))...)
-        push!(ξ.𝝭[:∂y],(∂𝝭∂y[i] for i in 1:length(𝓒))...)
-        push!(ξ.𝝭[:∂z],(∂𝝭∂z[i] for i in 1:length(𝓒))...)
-    end
-end
-
-function (op::Operator{:𝝭checkrepeat})(ap::ReproducingKernel{SNode})
-    𝓒 = ap.𝓒
-    𝓖 = ap.𝓖
-    for ξ in 𝓖
-        x = getx(ap,ξ)
-        i = ξ.id
-        if haskey(op.id,x)
-            i = op.id[x]
-            ids = op.ids[op.index[i]+1:op.index[i+1]]
-            index = (findfirst(x->x==ξ_.id,ids) for ξ_ in 𝓒)
-            push!(op.index,last(op.index))
-        else
-            push!(op.id,x=>i)
-            push!(op.ids,(ξ_.id for ξ_ in 𝓒)...)
-            push!(op.index,last(op.index)+length(𝓒))
-            index = 1:length(𝓒)
-        end
-        push!(ξ.index,last(ξ.index)+length(𝓒))
-        ξ̂ = Node(ξ)
-        𝝭 = get𝝭(ap,ξ̂)
-        push!(ξ.𝝭[:∂1],(i≠nothing ? 𝝭[i] : 0.0 for i in index)...)
-    end
 end

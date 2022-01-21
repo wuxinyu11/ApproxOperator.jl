@@ -6,12 +6,10 @@ struct SymMat
 end
 SymMat(n::Int) = SymMat(n,zeros(Int(n*(n+1)/2)))
 
-# function getindex(A::SymMat,i::Int,j::Int)
 @inline function getindex(A::SymMat,i::Int,j::Int)
     i > j ? A.m[Int(j+i*(i-1)/2)] : A.m[Int(i+j*(j-1)/2)]
 end
 
-# function setindex!(A::SymMat,val::Float64,i::Int,j::Int)
 @inline function setindex!(A::SymMat,val::Float64,i::Int,j::Int)
     A.m[Int(i+j*(j-1)/2)] = val
 end
@@ -25,7 +23,6 @@ end
     return A
 end
 
-# fill!(A::SymMat,val::Float64) = fill!(A.m,val)
 @inline fill!(A::SymMat,val::Float64) = fill!(A.m,val)
 function inverse!(A::SymMat)
     n = A.n
@@ -179,10 +176,11 @@ for t in subtypes(SpatialPartition)
     (sp::t)(xs::T) where T<:AbstractVector = sp(xs...)
     function (sp::t)(ap::T) where T<:Approximator
         𝓒 = ap.𝓒
+        indices = Set{Int}()
         for 𝒙 in 𝓒
-            id = sp(𝒙.x,𝒙.y,𝒙.z)
-            union!(𝓒,[Node(i,𝒙.data) for i in id])
+            union!(indices,sp(𝒙.x,𝒙.y,𝒙.z))
         end
+        union!(𝓒,(Node(i,𝓒[1].data) for i in indices))
     end
     function (sp::t)(aps::Vector{T}) where T<:Approximator
         for ap in aps
@@ -418,4 +416,111 @@ function cal𝗚!(dp::A) where A<:ReproducingKernel
     U⁻¹ = inverse!(𝗚)
     𝗚⁻¹ = UUᵀ!(U⁻¹)
     return 𝗚⁻¹
+end
+
+## Shape functions
+function (op::Operator{:𝝭})(ap::ReproducingKernel{SNode})
+    𝓒 = ap.𝓒
+    𝓖 = ap.𝓖
+    for ξ in 𝓖
+        i = ξ.id
+        I = ξ.index[i]
+        ξ̂ = Node(ξ)
+        𝝭 = get𝝭(ap,ξ̂)
+        for j in 1:length(𝓒)
+            ξ.𝝭[:∂1][I+j] = 𝝭[j]
+        end
+    end
+end
+
+function (op::Operator{:∇𝝭})(ap::ReproducingKernel{SNode})
+    𝓒 = ap.𝓒
+    𝓖 = ap.𝓖
+    for ξ in 𝓖
+        i = ξ.id
+        I = ξ.index[i]
+        ξ̂ = Node(ξ)
+        𝝭,∂𝝭∂x,∂𝝭∂y,∂𝝭∂z = get∇𝝭(ap,ξ̂)
+        for j in 1:length(𝓒)
+            ξ.𝝭[:∂1][I+j] = 𝝭[j]
+            ξ.𝝭[:∂x][I+j] = ∂𝝭∂x[j]
+            ξ.𝝭[:∂y][I+j] = ∂𝝭∂y[j]
+            ξ.𝝭[:∂z][I+j] = ∂𝝭∂z[j]
+        end
+    end
+end
+
+function Operator(t::Val{:𝝭ʳ})
+    id = Dict{NTuple{3,Float64},Tuple{Int,Int}}()
+    ids = Int[]
+    index = Int[0]
+    return Operator(t,Dict(:n=>0,:id=>id,:ids=>ids,:index=>index))
+end
+
+function (op::Operator{:𝝭ʳ})(ap::ReproducingKernel{SNode})
+    𝓒 = ap.𝓒
+    𝓖 = ap.𝓖
+    for ξ in 𝓖
+        x = getx(ap,ξ)
+        if haskey(op.id,x)
+            i,n = op.id[x]
+            index = op.index[n]+1:op.index[n+1]
+            ids = @views op.ids[index]
+            for j in 1:length(𝓒)
+                id = findfirst(x->x==𝓒[j].id,ids)
+                if id ≠ nothing
+                    ξ.𝝭[:∂1][ξ.index[ξ.id]+j] = ξ.𝝭[:∂1][ξ.index[i]+id]
+                end
+            end
+        else
+            i = ξ.id
+            I = ξ.index[i]
+            ξ̂ = Node(ξ)
+            𝝭 = get𝝭(ap,ξ̂)
+            for j in 1:length(𝓒)
+                ξ.𝝭[:∂1][I+j] = 𝝭[j]
+            end
+            op.n += 1
+            push!(op.id,x=>(i,op.n))
+            push!(op.ids,(ξ_.id for ξ_ in 𝓒)...)
+            push!(op.index,last(op.index)+length(𝓒))
+        end
+    end
+end
+
+## RK gradient smoothing
+function Operator(t::Val{:∇̃𝝭},𝒑::Val)
+    n = length(get𝒑(𝒑,(0.0,0.0,0.0)))
+    𝗚 = Dict(:∂x=>SymMat(n),:∂y=>SymMat(n),:∂z=>SymMat(n))
+    return Operator(t,Dict(:n=>0,:id=>id,:ids=>ids,:index=>index))
+end
+
+function (op::Operator{:∇̃𝝭})(ap::SegN{SNode})
+    L = ap.L
+    𝗚⁻¹ = cal𝗚!(dp)
+    𝓒 = ap.𝒞
+    𝓖 = SNode(dp)
+    for ξ̂ in 𝓖
+        ξ̂.index[ξ̂.id+1] = ξ̂.index[ξ̂.id]+length(𝓒)
+        𝒑̂ = get𝒑(dp,ξ̂)
+        𝒑̂ᵀ𝗚⁻¹ = 𝒑̂*𝗚⁻¹
+        ∂𝝭∂x = dp.𝝭[:∂x]
+        fill!(∂𝝭∂x,0.0)
+        for ξ in ap.𝓖
+            w = ξ.w
+            wᵇ = ξ.wᵇ
+            n₁ = ξ.n₁
+            𝝭 = get𝝭(ap,ξ)
+            𝒑, ∂𝒑∂ξ = get∇𝒑(dp,ξ)
+            𝒑̂ᵀ𝗚⁻¹𝒑 = 𝒑̂ᵀ𝗚⁻¹*𝒑
+            𝒑̂ᵀ𝗚⁻¹∂𝒑∂ξ = 𝒑̂ᵀ𝗚⁻¹*∂𝒑∂ξ
+            for i in 1:length(𝓒)
+                ∂𝝭∂x[i] += 𝝭[i]*𝒑̂ᵀ𝗚⁻¹𝒑*n₁*wᵇ + 𝝭[i]*𝒑̂ᵀ𝗚⁻¹∂𝒑∂ξ/L*w
+            end
+        end
+        for i in 1:length(𝓒)
+            ξ̂.𝝭[:∂x][ξ̂.index[ξ̂.id]+i] = ∂𝝭∂x[i]
+        end
+    end
+    return Seg2(𝓒,𝓖)
 end
