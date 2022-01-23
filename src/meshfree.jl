@@ -419,7 +419,7 @@ function cal𝗚!(dp::A) where A<:ReproducingKernel
 end
 
 ## Shape functions
-function (op::Operator{:𝝭})(ap::ReproducingKernel{SNode})
+function set𝝭(ap::ReproducingKernel{SNode})
     𝓒 = ap.𝓒
     𝓖 = ap.𝓖
     for ξ in 𝓖
@@ -433,7 +433,7 @@ function (op::Operator{:𝝭})(ap::ReproducingKernel{SNode})
     end
 end
 
-function (op::Operator{:∇𝝭})(ap::ReproducingKernel{SNode})
+function set∇𝝭(ap::ReproducingKernel{SNode})
     𝓒 = ap.𝓒
     𝓖 = ap.𝓖
     for ξ in 𝓖
@@ -450,68 +450,34 @@ function (op::Operator{:∇𝝭})(ap::ReproducingKernel{SNode})
     end
 end
 
-function Operator(t::Val{:𝝭ʳ})
-    id = Dict{NTuple{3,Float64},Tuple{Int,Int}}()
-    ids = Int[]
-    index = Int[0]
-    return Operator(t,Dict(:n=>0,:id=>id,:ids=>ids,:index=>index))
-end
-
-function (op::Operator{:𝝭ʳ})(ap::ReproducingKernel{SNode})
-    𝓒 = ap.𝓒
-    𝓖 = ap.𝓖
-    for ξ in 𝓖
-        x = getx(ap,ξ)
-        if haskey(op.id,x)
-            i,n = op.id[x]
-            index = op.index[n]+1:op.index[n+1]
-            ids = @views op.ids[index]
-            for j in 1:length(𝓒)
-                id = findfirst(x->x==𝓒[j].id,ids)
-                if id ≠ nothing
-                    ξ.𝝭[:∂1][ξ.index[ξ.id]+j] = ξ.𝝭[:∂1][ξ.index[i]+id]
-                end
-            end
-        else
-            i = ξ.id
-            I = ξ.index[i]
-            ξ̂ = Node(ξ)
-            𝝭 = get𝝭(ap,ξ̂)
-            for j in 1:length(𝓒)
-                ξ.𝝭[:∂1][I+j] = 𝝭[j]
-            end
-            op.n += 1
-            push!(op.id,x=>(i,op.n))
-            push!(op.ids,(ξ_.id for ξ_ in 𝓒)...)
-            push!(op.index,last(op.index)+length(𝓒))
-        end
-    end
-end
-
 ## RK gradient smoothing
-function Operator(t::Val{:∇̃𝝭},𝒑::Val)
-    n = length(get𝒑(𝒑,(0.0,0.0,0.0)))
-    𝗚 = Dict(:∂x=>SymMat(n),:∂y=>SymMat(n),:∂z=>SymMat(n))
-    return Operator(t,Dict(:n=>0,:id=>id,:ids=>ids,:index=>index))
+function similar(ap::SegN{T,P,S,K};𝒑::Symbol=P) where {T<:AbstractNode,P,S,K}
+    𝓒 = ap.𝓒
+    𝓖 = T[]
+    n = length(get𝒑(Val(𝒑),(0.0,0.0,0.0)))
+    𝗠 = ap.𝗠
+    𝗠[:∇̃] = SymMat(n)
+    𝝭 = ap.𝝭
+    L = ap.L
+    return SegN(𝓒,𝓖,𝗠,𝝭,L)
 end
 
-function (op::Operator{:∇̃𝝭})(ap::SegN{SNode})
-    L = ap.L
-    𝗚⁻¹ = cal𝗚!(dp)
-    𝓒 = ap.𝒞
-    𝓖 = SNode(dp)
+function set∇̃𝝭(gp::SegN{SNode},ap::SegN{SNode})
+    L = gp.L
+    𝗚⁻¹ = cal𝗚!(gp)
+    𝓒 = gp.𝒞
+    𝓖 = gp.𝓖
     for ξ̂ in 𝓖
-        ξ̂.index[ξ̂.id+1] = ξ̂.index[ξ̂.id]+length(𝓒)
-        𝒑̂ = get𝒑(dp,ξ̂)
+        𝒑̂ = get𝒑(gp,ξ̂)
         𝒑̂ᵀ𝗚⁻¹ = 𝒑̂*𝗚⁻¹
-        ∂𝝭∂x = dp.𝝭[:∂x]
+        ∂𝝭∂x = gp.𝝭[:∂x]
         fill!(∂𝝭∂x,0.0)
         for ξ in ap.𝓖
             w = ξ.w
             wᵇ = ξ.wᵇ
             n₁ = ξ.n₁
             𝝭 = get𝝭(ap,ξ)
-            𝒑, ∂𝒑∂ξ = get∇𝒑(dp,ξ)
+            𝒑, ∂𝒑∂ξ = get∇𝒑(gp,ξ)
             𝒑̂ᵀ𝗚⁻¹𝒑 = 𝒑̂ᵀ𝗚⁻¹*𝒑
             𝒑̂ᵀ𝗚⁻¹∂𝒑∂ξ = 𝒑̂ᵀ𝗚⁻¹*∂𝒑∂ξ
             for i in 1:length(𝓒)
@@ -522,5 +488,4 @@ function (op::Operator{:∇̃𝝭})(ap::SegN{SNode})
             ξ̂.𝝭[:∂x][ξ̂.index[ξ̂.id]+i] = ∂𝝭∂x[i]
         end
     end
-    return Seg2(𝓒,𝓖)
 end

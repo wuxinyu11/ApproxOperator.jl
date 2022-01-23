@@ -63,8 +63,15 @@ function get∇𝝭(ap::ReproducingKernel,ξ::SNode)
 end
 
 ## Quadrature Points
+function set𝓖(aps::Vector{T},rule;node::Symbol=:Node) where T<:Approximator
+    op = Operator(:𝓖)
+    for ap in aps
+        op(ap,rule)
+    end
+end
+function set𝓖(ap::Vector{T},rule::Symbol)
 function Operator(t::Val{:𝓖})
-    return Operator(t,Dict{Symbol,Any}(:nᵢ=>0,:dims=>0,:ntype=>:Node,:parametricdatas=>Dict{Symbol,Vector{Float64}}()))
+    return Operator(t,Dict{Symbol,Vector{Float64}}())
 end
 
 function (op::Operator{:𝓖})(aps::Vector{T},s::Symbol) where T<:Approximator
