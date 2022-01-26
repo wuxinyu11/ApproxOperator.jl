@@ -1,4 +1,5 @@
 
+@inline *(x::NTuple{N,Float64},y::NTuple{N,Float64}) where N = sum(x[i]*y[i] for i in 1:N)
 ## Symmetric matrix with packed storge
 struct SymMat
     n::Int
@@ -190,45 +191,53 @@ for t in subtypes(SpatialPartition)
 end
 
 ## Basis Function
-@inline get𝒑(ap::Approximator,x::NTuple{3,Float64}) = get𝒑(ap.type[1],x)
-@inline get∂𝒑∂x(ap::Approximator,x::NTuple{3,Float64}) = get∂𝒑∂x(ap.type[1],x)
-@inline get∂𝒑∂y(ap::Approximator,x::NTuple{3,Float64}) = get∂𝒑∂y(ap.type[1],x)
-@inline get∂𝒑∂z(ap::Approximator,x::NTuple{3,Float64}) = get∂𝒑∂z(ap.type[1],x)
-@inline get∂²𝒑∂x²(ap::Approximator,x::NTuple{3,Float64}) = get∂²𝒑∂x²(ap.type[1],x)
-@inline get∂²𝒑∂y²(ap::Approximator,x::NTuple{3,Float64}) = get∂²𝒑∂y²(ap.type[1],x)
-@inline get∇𝒑(ap::Approximator,x::NTuple{3,Float64}) = get𝒑(ap.type[1],x), get∂𝒑∂x(ap.type[1],x), get∂𝒑∂y(ap.type[1],x), get∂𝒑∂z(ap.type[1],x)
+@inline get𝒑(ap::Approximator,x) = get𝒑(ap.type[1],x)
+@inline get∂𝒑∂x(ap::Approximator,x) = get∂𝒑∂x(ap.type[1],x)
+@inline get∂𝒑∂y(ap::Approximator,x) = get∂𝒑∂y(ap.type[1],x)
+@inline get∂𝒑∂z(ap::Approximator,x) = get∂𝒑∂z(ap.type[1],x)
+@inline get∂²𝒑∂x²(ap::Approximator,x) = get∂²𝒑∂x²(ap.type[1],x)
+@inline get∂²𝒑∂y²(ap::Approximator,x) = get∂²𝒑∂y²(ap.type[1],x)
+@inline get∇𝒑(ap::Approximator,x) = get𝒑(ap.type[1],x), get∂𝒑∂x(ap.type[1],x), get∂𝒑∂y(ap.type[1],x), get∂𝒑∂z(ap.type[1],x)
 
 # ------------ Linear1D ---------------
 @inline get𝒑(::Val{:Linear1D},x::NTuple{3,Float64}) = (1.,x[1])
 @inline get∂𝒑∂x(::Val{:Linear1D}, ::NTuple{3,Float64}) = (0.,1.)
-@inline get∂𝒑∂y(::Val{:Linear1D}, ::NTuple{3,Float64}) = (0.,0.)
-@inline get∂𝒑∂z(::Val{:Linear1D}, ::NTuple{3,Float64}) = (0.,0.)
+@inline get∂𝒑∂y(::Val{:Linear1D}, ::Any) = (0.,0.)
+@inline get∂𝒑∂z(::Val{:Linear1D}, ::Any) = (0.,0.)
+@inline get𝒑(::Val{:Linear1D},x::T) where T<:AbstractNode = (1.0,0.5*(1.0-x.ξ))
+@inline get∂𝒑∂x(::Val{:Linear1D}, ::T) where T<:AbstractNode = (0.0,1.0)
 
 # ------------ Quadaratic1D ---------------
 @inline get𝒑(::Val{:Quadratic1D},x::NTuple{3,Float64}) = (1.,x[1],x[1]^2)
 @inline get∂𝒑∂x(::Val{:Quadratic1D},x::NTuple{3,Float64}) = (0.,1.,2*x[1])
-@inline get∂𝒑∂y(::Val{:Quadratic1D}, ::NTuple{3,Float64}) = (0.,0.,0.)
-@inline get∂𝒑∂z(::Val{:Quadratic1D}, ::NTuple{3,Float64}) = (0.,0.,0.)
-@inline get∂²𝒑∂x²(::Val{:Quadratic1D}, ::NTuple{3,Float64}) =(0.,0.,2.)
+@inline get∂𝒑∂y(::Val{:Quadratic1D}, ::Any) = (0.,0.,0.)
+@inline get∂𝒑∂z(::Val{:Quadratic1D}, ::Any) = (0.,0.,0.)
+@inline get∂²𝒑∂x²(::Val{:Quadratic1D}, ::Any) =(0.,0.,2.)
+@inline get𝒑(::Val{:Quadratic1D},x::T) where T<:AbstractNode = (1.,x.ξ,x.ξ^2)
+@inline get∂𝒑∂x(::Val{:Quadratic1D},x::T) where T<:AbstractNode = (0.,-0.5,-x.ξ)
 
 # ------------ Cubic1D ---------------
 @inline get𝒑(::Val{:Cubic1D},x::NTuple{3,Float64}) = (1.,x[1],x[1]^2,x[1]^3)
 @inline get∂𝒑∂x(::Val{:Cubic1D},x::NTuple{3,Float64}) = (0.,1.,2*x[1],3*x[1]^2)
-@inline get∂𝒑∂y(::Val{:Cubic1D}, ::NTuple{3,Float64}) = (0.,0.,0.,0.)
-@inline get∂𝒑∂z(::Val{:Cubic1D}, ::NTuple{3,Float64}) = (0.,0.,0.,0.)
+@inline get∂𝒑∂y(::Val{:Cubic1D}, ::Any) = (0.,0.,0.,0.)
+@inline get∂𝒑∂z(::Val{:Cubic1D}, ::Any) = (0.,0.,0.,0.)
 @inline get∂²𝒑∂x²(::Val{:Cubic1D},x::NTuple{3,Float64}) = (0.,0.,2.,6*x[1])
 
 # ------------ Linear2D ---------------
 @inline get𝒑(::Val{:Linear2D},x::NTuple{3,Float64}) = (1.,x[1],x[2])
-@inline get∂𝒑∂x(::Val{:Linear2D}, ::NTuple{3,Float64}) = (0.,1.,0.)
-@inline get∂𝒑∂y(::Val{:Linear2D}, ::NTuple{3,Float64}) = (0.,0.,1.)
-@inline get∂𝒑∂z(::Val{:Linear2D}, ::NTuple{3,Float64}) = (0.,0.,0.)
+@inline get∂𝒑∂x(::Val{:Linear2D}, ::Any) = (0.,1.,0.)
+@inline get∂𝒑∂y(::Val{:Linear2D}, ::Any) = (0.,0.,1.)
+@inline get∂𝒑∂z(::Val{:Linear2D}, ::Any) = (0.,0.,0.)
+@inline get𝒑(::Val{:Linear2D},x::T) where T<:AbstractNode = (1.,x.ξ,x.η)
 
 # ------------ Quadratic2D ---------------
 @inline get𝒑(::Val{:Quadratic2D},x::NTuple{3,Float64}) = (1.,x[1],x[2],x[1]^2,x[1]*x[2],x[2]^2)
 @inline get∂𝒑∂x(::Val{:Quadratic2D},x::NTuple{3,Float64}) = (0.,1.,0.,2*x[1],x[2],0.)
 @inline get∂𝒑∂y(::Val{:Quadratic2D},x::NTuple{3,Float64}) = (0.,0.,1.,0.,x[1],2*x[2])
-@inline get∂𝒑∂z(::Val{:Quadratic2D}, ::NTuple{3,Float64}) = (0.,0.,0.,0.,0.,0.)
+@inline get∂𝒑∂z(::Val{:Quadratic2D}, ::Any) = (0.,0.,0.,0.,0.,0.)
+@inline get𝒑(::Val{:Quadratic2D},x::T) where T<:AbstractNode = (1.,x.ξ,x.η,x.ξ^2,x.ξ*x.η,x.η^2)
+@inline get∂𝒑∂x(::Val{:Quadratic2D},x::T) where T<:AbstractNode = (0.,1.,0.,2*x.ξ,x.η,0.)
+@inline get∂𝒑∂y(::Val{:Quadratic2D},x::T) where T<:AbstractNode = (0.,0.,1.,0.,x.ξ,2*x.η)
 
 # ------------ Cubic2D ---------------
 @inline get𝒑(::Val{:Cubic2D},x::NTuple{3,Float64}) =
@@ -398,16 +407,16 @@ function cal∇𝗠!(ap::ReproducingKernel,x::NTuple{3,Float64})
     return 𝗠⁻¹, ∂𝗠⁻¹∂x, ∂𝗠⁻¹∂y, ∂𝗠⁻¹∂z
 end
 
-function cal𝗚!(dp::A) where A<:ReproducingKernel
-    𝓖 = dp.𝓖
-    𝗚 = ap.𝗚[:∂1]
-    n = length(get𝒑(dp.type),(0.0,0.0,0.0))
+function cal𝗚!(ap::A) where A<:ReproducingKernel
+    𝓖 = ap.𝓖
+    𝗚 = ap.𝗠[:∂x]
+    n = length(get𝒑(ap,(0.0,0.0,0.0)))
     fill!(𝗚,0.0)
     for ξ in 𝓖
-        w = ξ.w
-        𝒑 = get𝒑(dp,ξ)
+        w = getw(ap,ξ)
+        𝒑 = get𝒑(ap,ξ)
         for I in 1:n
-            for J in 1:n
+            for J in I:n
                 𝗚[I,J] += w*𝒑[I]*𝒑[J]
             end
         end
@@ -416,76 +425,4 @@ function cal𝗚!(dp::A) where A<:ReproducingKernel
     U⁻¹ = inverse!(𝗚)
     𝗚⁻¹ = UUᵀ!(U⁻¹)
     return 𝗚⁻¹
-end
-
-## Shape functions
-function set𝝭(ap::ReproducingKernel{SNode})
-    𝓒 = ap.𝓒
-    𝓖 = ap.𝓖
-    for ξ in 𝓖
-        i = ξ.id
-        I = ξ.index[i]
-        ξ̂ = Node(ξ)
-        𝝭 = get𝝭(ap,ξ̂)
-        for j in 1:length(𝓒)
-            ξ.𝝭[:∂1][I+j] = 𝝭[j]
-        end
-    end
-end
-
-function set∇𝝭(ap::ReproducingKernel{SNode})
-    𝓒 = ap.𝓒
-    𝓖 = ap.𝓖
-    for ξ in 𝓖
-        i = ξ.id
-        I = ξ.index[i]
-        ξ̂ = Node(ξ)
-        𝝭,∂𝝭∂x,∂𝝭∂y,∂𝝭∂z = get∇𝝭(ap,ξ̂)
-        for j in 1:length(𝓒)
-            ξ.𝝭[:∂1][I+j] = 𝝭[j]
-            ξ.𝝭[:∂x][I+j] = ∂𝝭∂x[j]
-            ξ.𝝭[:∂y][I+j] = ∂𝝭∂y[j]
-            ξ.𝝭[:∂z][I+j] = ∂𝝭∂z[j]
-        end
-    end
-end
-
-## RK gradient smoothing
-function similar(ap::SegN{T,P,S,K};𝒑::Symbol=P) where {T<:AbstractNode,P,S,K}
-    𝓒 = ap.𝓒
-    𝓖 = T[]
-    n = length(get𝒑(Val(𝒑),(0.0,0.0,0.0)))
-    𝗠 = ap.𝗠
-    𝗠[:∇̃] = SymMat(n)
-    𝝭 = ap.𝝭
-    L = ap.L
-    return SegN(𝓒,𝓖,𝗠,𝝭,L)
-end
-
-function set∇̃𝝭(gp::SegN{SNode},ap::SegN{SNode})
-    L = gp.L
-    𝗚⁻¹ = cal𝗚!(gp)
-    𝓒 = gp.𝒞
-    𝓖 = gp.𝓖
-    for ξ̂ in 𝓖
-        𝒑̂ = get𝒑(gp,ξ̂)
-        𝒑̂ᵀ𝗚⁻¹ = 𝒑̂*𝗚⁻¹
-        ∂𝝭∂x = gp.𝝭[:∂x]
-        fill!(∂𝝭∂x,0.0)
-        for ξ in ap.𝓖
-            w = ξ.w
-            wᵇ = ξ.wᵇ
-            n₁ = ξ.n₁
-            𝝭 = get𝝭(ap,ξ)
-            𝒑, ∂𝒑∂ξ = get∇𝒑(gp,ξ)
-            𝒑̂ᵀ𝗚⁻¹𝒑 = 𝒑̂ᵀ𝗚⁻¹*𝒑
-            𝒑̂ᵀ𝗚⁻¹∂𝒑∂ξ = 𝒑̂ᵀ𝗚⁻¹*∂𝒑∂ξ
-            for i in 1:length(𝓒)
-                ∂𝝭∂x[i] += 𝝭[i]*𝒑̂ᵀ𝗚⁻¹𝒑*n₁*wᵇ + 𝝭[i]*𝒑̂ᵀ𝗚⁻¹∂𝒑∂ξ/L*w
-            end
-        end
-        for i in 1:length(𝓒)
-            ξ̂.𝝭[:∂x][ξ̂.index[ξ̂.id]+i] = ∂𝝭∂x[i]
-        end
-    end
 end

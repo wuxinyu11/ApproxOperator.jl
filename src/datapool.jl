@@ -1,2 +1,0 @@
-
-DATAPOOL = Operator[]

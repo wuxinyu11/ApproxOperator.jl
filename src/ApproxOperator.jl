@@ -1,6 +1,6 @@
 module ApproxOperator
 
-import Base: +, -, *, getindex, setindex!, getproperty, setproperty!, length, push!, fill!
+import Base: +, -, *, getindex, setindex!, getproperty, setproperty!, length, push!, fill!, similar
 import InteractiveUtils: subtypes
 
 abstract type AbstractNode end
@@ -15,18 +15,15 @@ abstract type SpatialPartition end
 
 include("operation.jl")
 include("node.jl")
-export Node, SNode
 include("meshfree.jl")
-export RegularGrid
 include("approximation.jl")
 include("import.jl")
-# export import_msh
-# include("export.jl")
-# # export export_shape_functions, VTKExport
-# include("efficiency.jl")
-# export efficiency
-# export efficiency, f
-export Operator, prescribe!
-export get𝒑, SymMat,get𝒏
+export Node, SNode
+export Poi1, Seg2, Tri3, Quad, PoiN, SegN
+export importdata
+export RegularGrid
+export Operator, prescribe!, similar
+export set𝓖
+export set𝝭, set∇𝝭, set∇̃𝝭, set𝒏
 
 end
