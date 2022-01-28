@@ -63,16 +63,16 @@ function get∇𝝭(ap::ReproducingKernel,ξ::SNode)
 end
 
 ## Quadrature Points
-function set𝓖(aps::Vector{T},s::Symbol) where T<:Approximator
+function set𝓖!(aps::Vector{T},s::Symbol) where T<:Approximator
     rule = QuadratureRule[s]
-    return set𝓖(aps,rule)
+    return set𝓖!(aps,rule)
 end
-function set𝓖(aps::Vector{T},s::Symbol,stype::Symbol...;isrk::Bool=false) where T<:ReproducingKernel
+function set𝓖!(aps::Vector{T},s::Symbol,stype::Symbol...;isrk::Bool=false) where T<:ReproducingKernel
     rule = QuadratureRule[s]
-    return set𝓖(aps,rule,stype...;isrk=isrk)
+    return set𝓖!(aps,rule,stype...;isrk=isrk)
 end
 
-function set𝓖(aps::Vector{T},𝓖::NTuple{N,NTuple{D,Float64}}) where {T<:Approximator,N,D}
+function set𝓖!(aps::Vector{T},𝓖::NTuple{N,NTuple{D,Float64}}) where {T<:Approximator,N,D}
     nₑ = length(aps)
     nᵢ = nₑ*N
     data = Dict(:w=>zeros(nᵢ))
@@ -85,12 +85,12 @@ function set𝓖(aps::Vector{T},𝓖::NTuple{N,NTuple{D,Float64}}) where {T<:App
         for ξ in 𝓖
             n += 1
             push!(ap.𝓖,Node(n,data))
-            set𝓖_(n,data,ξ)
+            set𝓖(n,data,ξ)
         end
     end
 end
 
-function set𝓖(aps::Vector{ReproducingKernel{Node}},𝓖::NTuple{N,NTuple{D,Float64}},stype::Symbol...;isrk::Bool=false) where {N,D}
+function set𝓖!(aps::Vector{ReproducingKernel{Node}},𝓖::NTuple{N,NTuple{D,Float64}},stype::Symbol...;isrk::Bool=false) where {N,D}
     nₑ = length(aps)
     nᵢ = nₑ*N
     data = Dict(:w=>zeros(nᵢ))
@@ -118,12 +118,12 @@ function set𝓖(aps::Vector{ReproducingKernel{Node}},𝓖::NTuple{N,NTuple{D,Fl
         for ξ in 𝓖
             n += 1
             push!(ap.𝓖,Node(n,data))
-            set𝓖_(n,data,ξ)
+            set𝓖(n,data,ξ)
         end
     end
 end
 
-function set𝓖(aps::Vector{ReproducingKernel{SNode}},𝓖::NTuple{N,NTuple{D,Float64}},stype::Symbol...;isrk::Bool=false) where {N,D}
+function set𝓖!(aps::Vector{ReproducingKernel{SNode}},𝓖::NTuple{N,NTuple{D,Float64}},stype::Symbol...;isrk::Bool=false) where {N,D}
     nₑ = length(aps)
     nᵢ = nₑ*N
     data = Dict(:w=>zeros(nᵢ))
@@ -159,40 +159,27 @@ function set𝓖(aps::Vector{ReproducingKernel{SNode}},𝓖::NTuple{N,NTuple{D,F
             index[n] = nₜ
             nₜ += length(ap.𝓒)
             push!(ap.𝓖,SNode(n,data,index,𝝭))
-            set𝓖_(n,data,ξ,isrk)
+            set𝓖(n,data,ξ,isrk)
         end
     end
 end
 
-function set𝓖(ap::ReproducingKernel{T},data::Dict{Symbol,Vector{Float64}},𝓖::NTuple{N,Tuple},::Val{:SNode}) where N
-    empty!(ap.𝓖)
-    for ξ in 𝓖
-        dp.nᵢ += 1
-        nᵢ = dp.nᵢ
-        dp.index[nᵢ] = dp.nₜ
-        dp.nₜ += length(ap.𝓒)
-        data = dp.parametricdatas
-        push!(ap.𝓖,SNode(nᵢ,data,dp.index,dp.𝝭))
-        dp(nᵢ,ξ,Val(dp.isrk))
-    end
-end
-
-function set𝓖_(i::Int,data::Dict{Symbol,Vector{Float64}},ξ::NTuple{2,Float64},isrk::Bool=false)
+function set𝓖(i::Int,data::Dict{Symbol,Vector{Float64}},ξ::NTuple{2,Float64},isrk::Bool=false)
     data[:w][i] = ξ[1]
     data[:ξ][i] = ξ[2]
 end
-function set𝓖_(i::Int,data::Dict{Symbol,Vector{Float64}},ξ::NTuple{3,Float64},isrk::Bool=false)
+function set𝓖(i::Int,data::Dict{Symbol,Vector{Float64}},ξ::NTuple{3,Float64},isrk::Bool=false)
     data[:w][i] = ξ[1]
     data[:ξ][i] = ξ[2]
     isrk ? data[:wᵇ][i] = ξ[3] : data[:η][i] = ξ[3]
 end
-function set𝓖_(i::Int,data::Dict{Symbol,Vector{Float64}},ξ::NTuple{4,Float64},isrk::Bool=false)
+function set𝓖(i::Int,data::Dict{Symbol,Vector{Float64}},ξ::NTuple{4,Float64},isrk::Bool=false)
     data[:w][i] = ξ[1]
     data[:ξ][i] = ξ[2]
     data[:η][i] = ξ[3]
     isrk ? data[:wᵇ][i] = ξ[4] : data[:γ][i] = ξ[4]
 end
-function set𝓖_(i::Int,data::Dict{Symbol,Vector{Float64}},ξ::NTuple{5,Float64},isrk::Bool=false)
+function set𝓖(i::Int,data::Dict{Symbol,Vector{Float64}},ξ::NTuple{5,Float64},isrk::Bool=false)
     data[:w][i] = ξ[1]
     data[:ξ][i] = ξ[2]
     data[:η][i] = ξ[3]
@@ -202,6 +189,7 @@ end
 
 const QuadratureRule = Dict(
 :PoiGI1 => ((1.0,-1.0),),
+:Seg100 => ((1.0,-1.0+0.02*i) for i in 0:100),
 :SegGI1 => ((2.0,0.0),),
 :SegGI2 =>
 (

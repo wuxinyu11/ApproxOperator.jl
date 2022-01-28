@@ -384,10 +384,9 @@ function set∇̃𝝭(gp::SegN{SNode},ap::SegN{SNode})
             n₁ = ξ.n₁
             𝝭 = get𝝭(ap,ξ)
             𝒑, ∂𝒑∂ξ = get∇𝒑(gp,ξ)
-            𝒑̂ᵀ𝗚⁻¹𝒑 = 𝒑̂ᵀ𝗚⁻¹*𝒑
-            𝒑̂ᵀ𝗚⁻¹∂𝒑∂ξ = 𝒑̂ᵀ𝗚⁻¹*∂𝒑∂ξ
+            W₁ = 𝒑̂ᵀ𝗚⁻¹*𝒑*n₁*wᵇ + 𝒑̂ᵀ𝗚⁻¹*∂𝒑∂ξ*n₁*w
             for i in 1:length(𝓒)
-                ∂𝝭∂x[i] += 𝝭[i]*𝒑̂ᵀ𝗚⁻¹𝒑*n₁*wᵇ + 𝝭[i]*𝒑̂ᵀ𝗚⁻¹∂𝒑∂ξ*n₁*w
+                ∂𝝭∂x[i] += 𝝭[i]*W₁
             end
         end
         for i in 1:length(𝓒)
@@ -414,11 +413,12 @@ function set∇̃𝝭(gp::TriN{SNode},ap::TriN{SNode})
             n₂ = ξ.n₂
             𝝭 = get𝝭(ap,ξ)
             𝒑, ∂𝒑∂ξ, ∂𝒑∂η = get∇𝒑(gp,ξ)
-            𝒑̂ᵀ𝗚⁻¹𝒑 = 𝒑̂ᵀ𝗚⁻¹*𝒑
             b = 𝒑̂ᵀ𝗚⁻¹*∂𝒑∂ξ*n₁ + 𝒑̂ᵀ𝗚⁻¹*∂𝒑∂η*n₂
+            W₁ = 𝒑̂ᵀ𝗚⁻¹*𝒑*n₁*wᵇ + b*w/2
+            W₂ = 𝒑̂ᵀ𝗚⁻¹*𝒑*n₂*wᵇ + b*w/2
             for i in 1:length(𝓒)
-                ∂𝝭∂x[i] += 𝝭[i]*𝒑̂ᵀ𝗚⁻¹𝒑*n₁*wᵇ + 𝝭[i]*b*w
-                ∂𝝭∂y[i] += 𝝭[i]*𝒑̂ᵀ𝗚⁻¹𝒑*n₂*wᵇ + 𝝭[i]*b*w
+                ∂𝝭∂x[i] += 𝝭[i]*W₁
+                ∂𝝭∂y[i] += 𝝭[i]*W₂
             end
         end
         for i in 1:length(𝓒)
@@ -449,12 +449,14 @@ function set∇̃𝝭(gp::TetN{SNode},ap::TetN{SNode})
             n₃ = ξ.n₃
             𝝭 = get𝝭(ap,ξ)
             𝒑, ∂𝒑∂ξ, ∂𝒑∂η, ∂𝒑∂γ = get∇𝒑(gp,ξ)
-            𝒑̂ᵀ𝗚⁻¹𝒑 = 𝒑̂ᵀ𝗚⁻¹*𝒑
             b = 𝒑̂ᵀ𝗚⁻¹*∂𝒑∂ξ*n₁ + 𝒑̂ᵀ𝗚⁻¹*∂𝒑∂η*n₂ + 𝒑̂ᵀ𝗚⁻¹*∂𝒑∂γ*n₃
+            W₁ = 𝒑̂ᵀ𝗚⁻¹*𝒑*n₁*wᵇ + b*w/3
+            W₂ = 𝒑̂ᵀ𝗚⁻¹*𝒑*n₂*wᵇ + b*w/3
+            W₃ = 𝒑̂ᵀ𝗚⁻¹*𝒑*n₃*wᵇ + b*w/3
             for i in 1:length(𝓒)
-                ∂𝝭∂x[i] += 𝝭[i]*𝒑̂ᵀ𝗚⁻¹𝒑*n₁*wᵇ + 𝝭[i]*b*w
-                ∂𝝭∂y[i] += 𝝭[i]*𝒑̂ᵀ𝗚⁻¹𝒑*n₂*wᵇ + 𝝭[i]*b*w
-                ∂𝝭∂y[i] += 𝝭[i]*𝒑̂ᵀ𝗚⁻¹𝒑*n₃*wᵇ + 𝝭[i]*b*w
+                ∂𝝭∂x[i] += 𝝭[i]*W₁
+                ∂𝝭∂y[i] += 𝝭[i]*W₂
+                ∂𝝭∂z[i] += 𝝭[i]*W₃
             end
         end
         for i in 1:length(𝓒)

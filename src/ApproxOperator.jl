@@ -23,7 +23,7 @@ export Poi1, Seg2, Tri3, Quad, PoiN, SegN
 export importdata
 export RegularGrid
 export Operator, prescribe!, similar
-export set𝓖
-export set𝝭, set∇𝝭, set∇̃𝝭, set𝒏
+export set𝓖!
+export set𝝭!, set∇𝝭!, set∇̃𝝭!, set𝒏!
 
 end
