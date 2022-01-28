@@ -128,11 +128,136 @@ struct Tri3<:AbstractTri
     A::Float64
 end
 
-
-##
-struct Quad
-    fields
+function Tri3(i::Int,j::Int,k::Int,data::Dict{Symbol,Vector{Float64}})
+    𝓒 = [Node(i,data),Node(j,data),Node(k,data)]
+    𝓖 = Node[]
+    return Tri3(𝓒,𝓖)
 end
+
+# constructions of Tri3
+function Tri3(𝓒::Vector{Node},𝓖::Vector{Node})
+    x₁ = 𝓒[1].x
+    y₁ = 𝓒[1].y
+    z₁ = 𝓒[1].z
+    x₂ = 𝓒[2].x
+    y₂ = 𝓒[2].y
+    z₂ = 𝓒[2].z
+    x₃ = 𝓒[3].x
+    y₃ = 𝓒[3].y
+    z₃ = 𝓒[3].z
+    A₁ = 0.5*(y₁*z₂+y₂*z₃+y₃*z₁-y₂*z₁-y₃*z₂-y₁*z₃)
+    A₂ = 0.5*(z₁*x₂+z₂*x₃+z₃*x₁-z₂*x₁-z₃*x₂-z₁*x₃)
+    A₃ = 0.5*(x₁*y₂+x₂*y₃+x₃*y₁-x₂*y₁-x₃*y₂-x₁*y₃)
+    A = (A₁^2 + A₂^2 + A₃^2)^0.5
+    return Tri3(𝓒,𝓖,A)
+end
+
+## AbstractQuad
+function getw(ap::AbstractQuad,ξ::AbstractNode)
+    J₁₁,J₂₁,J₁₂,J₂₂ = getJ(ap,ξ)
+    return (J₁₁*J₂₂-J₂₁*J₁₂)*ξ.w
+end
+function getJ(ap::AbstractQuad,ξ::AbstractNode)
+    x₁ = ap.𝓒[1].x
+    x₂ = ap.𝓒[2].x
+    x₃ = ap.𝓒[3].x
+    x₄ = ap.𝓒[4].x
+    y₁ = ap.𝓒[1].y
+    y₂ = ap.𝓒[2].y
+    y₃ = ap.𝓒[3].y
+    y₄ = ap.𝓒[4].y
+    ∂N₁∂ξ,∂N₂∂ξ,∂N₃∂ξ,∂N₄∂ξ = get∂𝝭∂ξ(ap,ξ)
+    ∂N₁∂η,∂N₂∂η,∂N₃∂η,∂N₄∂η = get∂𝝭∂η(ap,ξ)
+    J₁₁ = ∂N₁∂ξ*x₁ + ∂N₂∂ξ*x₂ + ∂N₃∂ξ*x₃ + ∂N₄∂ξ*x₄
+    J₁₂ = ∂N₁∂η*x₁ + ∂N₂∂η*x₂ + ∂N₃∂η*x₃ + ∂N₄∂η*x₄
+    J₂₁ = ∂N₁∂ξ*y₁ + ∂N₂∂ξ*y₂ + ∂N₃∂ξ*y₃ + ∂N₄∂ξ*y₄
+    J₂₂ = ∂N₁∂η*y₁ + ∂N₂∂η*y₂ + ∂N₃∂η*y₃ + ∂N₄∂η*y₄
+    return J₁₁,J₂₁,J₁₂,J₂₂
+end
+function getx(ap::AbstractQuad,ξ::AbstractNode)
+    N₁,N₂,N₃,N₄ = get𝝭(ap,ξ)
+    x₁ = ap.𝓒[1].x
+    x₂ = ap.𝓒[2].x
+    x₃ = ap.𝓒[3].x
+    x₄ = ap.𝓒[4].x
+    y₁ = ap.𝓒[1].y
+    y₂ = ap.𝓒[2].y
+    y₃ = ap.𝓒[3].y
+    y₄ = ap.𝓒[4].y
+    z₁ = ap.𝓒[1].z
+    z₂ = ap.𝓒[2].z
+    z₃ = ap.𝓒[3].z
+    z₄ = ap.𝓒[4].z
+    return (N₁*x₁+N₂*x₂+N₃*x₃+N₄*x₄, N₁*y₁+N₂*y₂+N₃*y₃+N₄*y₄, N₁*z₁+N₂*z₂+N₃*z₃+N₄*z₄)
+end
+
+struct Quad
+    𝓒::Vector{Node}
+    𝓖::Vector{Node}
+end
+
+function Quad(i::Int,j::Int,k::Int,l::Int,data::Dict{Symbol,Vector{Float64}})
+    𝓒 = [Node(i,data),Node(j,data),Node(k,data),Node(l,data)]
+    𝓖 = Node[]
+    return Quad(𝓒,𝓖)
+end
+
+get𝝭(ap::Quad,ξ::AbstractNode) = get𝝭(ap,ξ.ξ,ξ.η)
+get∂𝝭∂ξ(ap::Quad,ξ::AbstractNode) = get∂𝝭∂ξ(ap,ξ.η)
+get∂𝝭∂η(ap::Quad,ξ::AbstractNode) = get∂𝝭∂η(ap,ξ.ξ)
+
+function get𝝭(ap::Quad,ξ::Float64,η::Float64)
+    N₁ = 0.25*(1.0-ξ)*(1.0-η)
+    N₂ = 0.25*(1.0+ξ)*(1.0-η)
+    N₃ = 0.25*(1.0+ξ)*(1.0+η)
+    N₄ = 0.25*(1.0-ξ)*(1.0+η)
+    return (N₁,N₂,N₃,N₄)
+end
+function get∂𝝭∂ξ(ap::Quad,η::Float64)
+    ∂N₁∂ξ = - 0.25*(1-η)
+    ∂N₂∂ξ =   0.25*(1-η)
+    ∂N₃∂ξ =   0.25*(1+η)
+    ∂N₄∂ξ = - 0.25*(1+η)
+    return (∂N₁∂ξ,∂N₂∂ξ,∂N₃∂ξ,∂N₄∂ξ)
+end
+function get∂𝝭∂η(ap::Quad,ξ::Float64)
+    ∂N₁∂η = - 0.25*(1-ξ)
+    ∂N₂∂η = - 0.25*(1+ξ)
+    ∂N₃∂η =   0.25*(1+ξ)
+    ∂N₄∂η =   0.25*(1-ξ)
+    return (∂N₁∂η,∂N₂∂η,∂N₃∂η,∂N₄∂η)
+end
+function get∂𝝭∂x∂𝝭∂y(ap::Quad,ξ::AbstractNode)
+    x₁ = ap.𝓒[1].x
+    x₂ = ap.𝓒[2].x
+    x₃ = ap.𝓒[3].x
+    x₄ = ap.𝓒[4].x
+    y₁ = ap.𝓒[1].y
+    y₂ = ap.𝓒[2].y
+    y₃ = ap.𝓒[3].y
+    y₄ = ap.𝓒[4].y
+    ∂N₁∂ξ,∂N₂∂ξ,∂N₃∂ξ,∂N₄∂ξ = get∂𝝭∂ξ(ap,ξ)
+    ∂N₁∂η,∂N₂∂η,∂N₃∂η,∂N₄∂η = get∂𝝭∂η(ap,ξ)
+    ∂x∂ξ = ∂N₁∂ξ*x₁ + ∂N₂∂ξ*x₂ + ∂N₃∂ξ*x₃ + ∂N₄∂ξ*x₄
+    ∂x∂η = ∂N₁∂η*x₁ + ∂N₂∂η*x₂ + ∂N₃∂η*x₃ + ∂N₄∂η*x₄
+    ∂y∂ξ = ∂N₁∂ξ*y₁ + ∂N₂∂ξ*y₂ + ∂N₃∂ξ*y₃ + ∂N₄∂ξ*y₄
+    ∂y∂η = ∂N₁∂η*y₁ + ∂N₂∂η*y₂ + ∂N₃∂η*y₃ + ∂N₄∂η*y₄
+    detJ = ∂x∂ξ*∂y∂η - ∂x∂η*∂y∂ξ
+    ∂ξ∂x =   ∂y∂η/detJ
+    ∂η∂x = - ∂y∂ξ/detJ
+    ∂ξ∂y = - ∂x∂η/detJ
+    ∂η∂y =   ∂x∂ξ/detJ
+    ∂N₁∂x = ∂N₁∂ξ*∂ξ∂x + ∂N₁∂η*∂η∂x
+    ∂N₂∂x = ∂N₂∂ξ*∂ξ∂x + ∂N₂∂η*∂η∂x
+    ∂N₃∂x = ∂N₃∂ξ*∂ξ∂x + ∂N₃∂η*∂η∂x
+    ∂N₄∂x = ∂N₄∂ξ*∂ξ∂x + ∂N₄∂η*∂η∂x
+    ∂N₁∂y = ∂N₁∂ξ*∂ξ∂y + ∂N₁∂η*∂η∂y
+    ∂N₂∂y = ∂N₂∂ξ*∂ξ∂y + ∂N₂∂η*∂η∂y
+    ∂N₃∂y = ∂N₃∂ξ*∂ξ∂y + ∂N₃∂η*∂η∂y
+    ∂N₄∂y = ∂N₄∂ξ*∂ξ∂y + ∂N₄∂η*∂η∂y
+    return (∂N₁∂x,∂N₂∂x,∂N₃∂x,∂N₄∂x),(∂N₁∂y,∂N₂∂y,∂N₃∂y,∂N₄∂y)
+end
+get∇𝝭(ap::Quad,ξ::AbstractNode) = get𝝭(ap,ξ),get∂𝝭∂x∂𝝭∂y(ap,ξ)...,(0.0,0.0,0.0,0.0)
 
 ## PoiN
 struct PoiN{T,𝒑,𝑠,𝜙}<:ReproducingKernel{T,𝒑,𝑠,𝜙}
@@ -143,7 +268,7 @@ struct PoiN{T,𝒑,𝑠,𝜙}<:ReproducingKernel{T,𝒑,𝑠,𝜙}
     type::Tuple{Val{𝒑},Val{𝑠},Val{𝜙}}
 end
 
-function PoiN{T,𝒑,𝑠,𝜙}(𝓒::Vector{Node},𝗠::Dict{Symbol,SymMat},𝝭::Dict{Symbol,Vector{Float64}}) where {T<:AbstractNode,𝒑,𝑠,𝜙})
+function PoiN{T,𝒑,𝑠,𝜙}(𝓒::Vector{Node},𝗠::Dict{Symbol,SymMat},𝝭::Dict{Symbol,Vector{Float64}}) where {T<:AbstractNode,𝒑,𝑠,𝜙}
     𝓖 = T[]
     return PoiN{T,𝒑,𝑠,𝜙}(𝓒,𝓖,𝗠,𝝭,(Val(𝒑),Val(𝑠),Val(𝜙)))
 end
@@ -202,12 +327,22 @@ function get𝒏(ap::SegN,ξ::T) where T<:AbstractNode
 end
 
 ##
-struct TriN
-    fields
+struct TriN{T,𝒑,𝑠,𝜙}<:ReproducingKernel{T,𝒑,𝑠,𝜙}
+    𝓒::Vector{Node}
+    𝓖::Vector{T}
+    𝗠::Dict{Symbol,SymMat}
+    𝝭::Dict{Symbol,Vector{Float64}}
+    type::Tuple{Val{𝒑},Val{𝑠},Val{𝜙}}
+    A::Float64
 end
 
-struct QuadN
-    fields
+struct TetN{T,𝒑,𝑠,𝜙}<:ReproducingKernel{T,𝒑,𝑠,𝜙}
+    𝓒::Vector{Node}
+    𝓖::Vector{T}
+    𝗠::Dict{Symbol,SymMat}
+    𝝭::Dict{Symbol,Vector{Float64}}
+    type::Tuple{Val{𝒑},Val{𝑠},Val{𝜙}}
+    V::Float64
 end
 
 ## get shape functions

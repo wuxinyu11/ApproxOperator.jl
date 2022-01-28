@@ -142,6 +142,38 @@ function (op::Operator{:∫vgdΓ})(ap::Approximator,k::AbstractMatrix{Float64},f
     end
 end
 
+function (op::Operator{:∫λgdΓ})(ap1::Approximator,ap2::Approximator,g::AbstractMatrix{Float64},q::AbstractVector{Float64})
+    for ξ in ap1.𝓖
+        w = getw(ap1,ξ)
+        N = get𝝭(ap1,ξ)
+        N̄ = get𝝭(ap2,ξ)
+        for k in 1:length(ap2.𝓒)
+            K = ap2.𝓒[k].id
+            for i in 1:length(ap1.𝓒)
+                I = ap1.𝓒[i].id
+                g[I,K] -= N[i]*N̄[k]*w
+            end
+            q[K] -= N̄[k]*ξ.g*w
+        end
+    end
+end
+
+function (op::Operator{:∫∇vngdΓ})(ap1::Approximator,ap2::Approximator,k::AbstractMatrix{Float64},f::AbstractVector{Float64})
+    n₁,n₂,n₃ = get𝒏(ap1,ap2)
+    for ξ in ap1.𝓖
+        w = getw(ap1,ξ)
+        N = get∇𝝭(ap1,ξ)
+        N̄ = get𝝭(ap2,ξ)
+        for k in 1:length(ap2.𝓒)
+            K = ap2.𝓒[k].id
+            for i in 1:length(ap1.𝓒)
+                I = ap1.𝓒[i].id
+                g[I,K] -= N[i]*N̄[k]*w
+            end
+            f[K] -= N̄[k]*ξ.g*w
+        end
+    end
+end
 function (op::Operator{:g})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64};dof::Symbol=:d) where T<:AbstractPoi
     x = ap.𝓒[1]
     j = x.id
@@ -153,23 +185,6 @@ function (op::Operator{:g})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{F
     k[:,j] .= 0.
     k[j,j] = 1.
     f[j] = g
-end
-
-function (op::Operator{:∫λudΓ})(ap1::Approximator,ap2::Approximator,g::AbstractMatrix{Float64},q::AbstractVector{Float64})
-    for ξ in ap1.𝓖
-        w = getw(ap1,ξ)
-        N = get𝝭(ap1,ξ)
-        N̄ = get𝝭(ap2,ξ)
-        x = getx(ap1,ξ)
-        for k in 1:length(ap2.𝓒)
-            K = ap2.𝓒[k].id
-            q[K] -= N̄[k]*ξ.g*w
-            for i in 1:length(ap1.𝓒)
-                I = ap1.𝓒[i].id
-                g[I,K] -= N[i]*N̄[k]*w
-            end
-        end
-    end
 end
 
 ## error estimates

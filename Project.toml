@@ -3,6 +3,9 @@ uuid = "6dcad7c1-d118-4fbd-9616-5407c5210a62"
 authors = ["jcwu <jcwu@hqu.edu.cn> and contributors"]
 version = "0.1.0"
 
+[deps]
+InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
+
 [compat]
 julia = "1"
 
