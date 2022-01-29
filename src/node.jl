@@ -1,6 +1,14 @@
 
 ##
-@inline getproperty(p::T,f::Symbol) where T<:AbstractNode = hasfield(T,f) ? getfield(p,f) : getfield(p,:data)[f][getfield(p,:id)]
+@inline function getproperty(p::T,f::Symbol) where T<:AbstractNode
+    if ~hasfield(T,f)
+        data = getfield(p,:data)
+        haskey(data,f) ? data[f][getfield(p,:id)] : 0.0
+    else
+        getfield(p,f)
+    end
+end
+
 @inline function setproperty!(p::T,f::Symbol,x::Float64) where T<:AbstractNode
     getfield(p,:data)[f][getfield(p,:id)] = x
 end
@@ -77,8 +85,8 @@ function set𝓖!(aps::Vector{T},𝓖::NTuple{N,NTuple{D,Float64}}) where {T<:Ap
     nᵢ = nₑ*N
     data = Dict(:w=>zeros(nᵢ))
     data[:ξ] = zeros(nᵢ)
-    N ≥ 3 ? data[:η] = zeros(nᵢ) : nothing
-    N ≥ 4 ? data[:γ] = zeros(nᵢ) : nothing
+    N > 2 ? data[:η] = zeros(nᵢ) : nothing
+    N > 3 ? data[:γ] = zeros(nᵢ) : nothing
 
     for ap in aps
         n = 0
@@ -95,8 +103,8 @@ function set𝓖!(aps::Vector{ReproducingKernel{Node}},𝓖::NTuple{N,NTuple{D,F
     nᵢ = nₑ*N
     data = Dict(:w=>zeros(nᵢ))
     data[:ξ] = zeros(nᵢ)
-    N ≥ 3 ? data[:η] = zeros(nᵢ) : nothing
-    N ≥ 4 ? data[:γ] = zeros(nᵢ) : nothing
+    N > 2 ? data[:η] = zeros(nᵢ) : nothing
+    N > 3 ? data[:γ] = zeros(nᵢ) : nothing
 
     nₘ = 0
     nₕ = length(get𝒑(aps[1],(0.0,0.0,0.0)))
@@ -128,8 +136,14 @@ function set𝓖!(aps::Vector{ReproducingKernel{SNode}},𝓖::NTuple{N,NTuple{D,
     nᵢ = nₑ*N
     data = Dict(:w=>zeros(nᵢ))
     data[:ξ] = zeros(nᵢ)
-    N ≥ 3 ? data[:η] = zeros(nᵢ) : nothing
-    N ≥ 4 ? data[:γ] = zeros(nᵢ) : nothing
+    if isrk
+        data[:wᵇ] = zeros(nᵢ)
+        N > 3 ? data[:η] = zeros(nᵢ) : nothing
+        N > 4 ? data[:γ] = zeros(nᵢ) : nothing
+    else
+        N > 2 ? data[:η] = zeros(nᵢ) : nothing
+        N > 3 ? data[:γ] = zeros(nᵢ) : nothing
+    end
 
     n = 0
     nₘ = 0

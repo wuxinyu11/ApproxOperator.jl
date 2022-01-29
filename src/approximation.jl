@@ -28,7 +28,18 @@ function Poi1(i::Int,data::Dict{Symbol,Vector{Float64}}) where T<:AbstractNode
     𝓖 = Node[]
     return Poi1(𝓒,𝓖)
 end
-get𝝭(::Poi1,::Node) = 1.0
+get𝝭(::Poi1,::Node) = (1.0,0.0,0.0,0.0)
+function get∂𝝭∂𝑛(ap::Poi1,::Node)
+    x₁ = ap.𝓒[1].x
+    y₁ = ap.𝓒[1].y
+    z₁ = ap.𝓒[1].z
+    x₂ = ap.𝓒[2].x
+    y₂ = ap.𝓒[2].y
+    z₂ = ap.𝓒[2].z
+    L = ((x₂-x₁)^2+(y₂-y₁)^2+(z₂-z₁)^2)^0.5
+    return (1.0/L,-1.0/L)
+end
+
 
 ## AbstractSeg
 @inline getx(ap::A,ξ::T) where {A<:AbstractSeg,T<:AbstractNode} = getx(ap,ξ.ξ)
@@ -51,6 +62,7 @@ function get𝒏(ap::A,ξ::Float64) where A<:AbstractSeg
     n₁ += ξ == -1.0 ?  1.0 : 0.0
     n₁ += ξ ==  1.0 ? -1.0 : 0.0
 end
+@inline get𝒏(ap::A) where A<:AbstractSeg = sign(ap.𝒞[1].x-ap.𝓒[2].x)
 
 # ---------------- Seg2 -------------------
 struct Seg2<:AbstractSeg
@@ -120,6 +132,16 @@ function get𝒏(ap::A,ξ::Float64,η::Float64) where A<:AbstractTri
     n₂ += η == 0.0 ? x₃-x₁ : 0.0
     n₂ += γ == 0.0 ? x₁-x₂ : 0.0
     return n₁,n₂
+end
+function get𝒏(ap::A) where A<:AbstractTri
+    x₁ = ap.𝓒[1].x
+    y₁ = ap.𝓒[1].y
+    x₂ = ap.𝓒[2].x
+    y₂ = ap.𝓒[2].y
+    L = ((x₂-x₁)^2+(y₂-y₁)^2)^0.5
+    n₁ = (y₂-y₁)/L
+    n₂ = (x₁-x₂)/L
+    return n₁, n₂, 0.0
 end
 
 struct Tri3<:AbstractTri
@@ -290,14 +312,17 @@ struct SegN{T,𝒑,𝑠,𝜙}<:ReproducingKernel{T,𝒑,𝑠,𝜙}
     L::Float64
 end
 
-function SegN{T,𝒑,𝑠,𝜙}(𝓒::Vector{Node},𝗠::Dict{Symbol,SymMat},𝝭::Dict{Symbol,Vector{Float64}}) where {T<:AbstractNode,𝒑,𝑠,𝜙}
+function SegN{T,𝒑,𝑠,𝜙}(𝓒::Vector{Node},𝓖::Vector{T},𝗠::Dict{Symbol,SymMat},𝝭::Dict{Symbol,Vector{Float64}}) where {T<:AbstractNode,𝒑,𝑠,𝜙}
     x₁ = 𝓒[1].x
     y₁ = 𝓒[1].y
     x₂ = 𝓒[2].x
     y₂ = 𝓒[2].y
     L = ((x₂-x₁)^2+(y₂-y₁)^2)^0.5
-    𝓖 = T[]
+    return SegN(𝓒,𝓖,𝗠,𝝭,(Val(𝒑),Val(𝑠),Val(𝜙)),L)
+end
 
+function SegN{T,𝒑,𝑠,𝜙}(𝓒::Vector{Node},𝗠::Dict{Symbol,SymMat},𝝭::Dict{Symbol,Vector{Float64}}) where {T<:AbstractNode,𝒑,𝑠,𝜙}
+    𝓖 = T[]
     return SegN(𝓒,𝓖,𝗠,𝝭,(Val(𝒑),Val(𝑠),Val(𝜙)),L)
 end
 
@@ -443,6 +468,10 @@ function set∇𝝭(ap::ReproducingKernel{SNode})
 end
 
 ## convert
+function union!(a::T,b::S) where {T<:Approximator,S<:Approximator}
+    union!(a.𝓒,b.𝓒)
+end
+
 function Poi1(aps::Vector{T};renumbering::Bool=false) where T<:Approximator
     aps_ = Poi1[]
     𝓖 = Node[]
@@ -461,6 +490,24 @@ function Poi1(aps::Vector{T};renumbering::Bool=false) where T<:Approximator
     end
     return aps_
 end
+
+# function PoiN{T,𝒑,𝑠,𝜙}(gps::Vector{Poi1},aps::Vector{A}) where {A<:Approximator,T<:AbstractNode,𝒑,𝑠,𝜙}
+#     aps_ = PoiN[]
+#     𝗠 = Dict{Symbol,SymMat}()
+#     𝝭 = Dict{Symbol,Vector{Float64}}()
+#     for gp in gps
+#         i = gp.𝓒[1].id
+#         for ap in aps
+#             j = findfirst(x->x==i,(x.id for x in ap.𝓒))
+#             if j ≤ 2
+#                 union!(gp.𝓒,ap.𝓒)
+#                 push!(aps_,PoiN{T,𝒑,𝑠,𝜙}(gp.𝓒,gp.𝓒,𝗠,𝝭))
+#                 break
+#             end
+#         end
+#     end
+# end
+
 function Seg2(aps::Vector{T};renumbering::Bool=false) where T<:Approximator
     aps_ = Seg2[]
     𝓖 = Node[]
@@ -504,6 +551,7 @@ function set∇̃𝝭(gps::Vector{T},aps::Vector{S}) where{T<:ReproducingKernel,
         end
     end
 end
+set∇̃𝝭(ap::T) where T<:ReproducingKernel{SNode} = set∇̃𝝭(ap,ap)
 function set∇̃𝝭(gp::SegN{SNode},ap::SegN{SNode})
     𝗚⁻¹ = cal𝗚!(gp)
     𝓒 = gp.𝓒

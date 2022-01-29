@@ -24,6 +24,7 @@ function import_msh_2(fid::IO)
     etype = Dict(1=>Seg2,2=>Tri3,3=>Quad,15=>Poi1)
     nodes = Dict{Symbol,Vector{Float64}}()
     elements = Dict{String,Any}()
+    physicalnames = Dict{Int,String}()
     for line in eachline(fid)
         if line == "\$PhysicalNames"
             numPhysicalNames = parse(Int,readline(fid))

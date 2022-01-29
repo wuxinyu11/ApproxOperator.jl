@@ -1,6 +1,6 @@
 module ApproxOperator
 
-import Base: +, -, *, getindex, setindex!, getproperty, setproperty!, length, push!, fill!, similar
+import Base: +, -, *, getindex, setindex!, getproperty, setproperty!, length, push!, fill!, similar, union!
 import InteractiveUtils: subtypes
 
 abstract type AbstractNode end
@@ -20,7 +20,7 @@ include("approximation.jl")
 include("import.jl")
 export Node, SNode
 export Poi1, Seg2, Tri3, Quad, PoiN, SegN
-export importdata
+export importmsh
 export RegularGrid
 export Operator, prescribe!, similar
 export set𝓖!
