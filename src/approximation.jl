@@ -39,6 +39,7 @@ function get∂𝝭∂𝑛(ap::Poi1,::Node)
     L = ((x₂-x₁)^2+(y₂-y₁)^2+(z₂-z₁)^2)^0.5
     return (1.0/L,-1.0/L)
 end
+get∇𝑛𝝭(ap::Poi1,ξ::Node) = (get𝝭(ap,ξ),get∂𝝭∂𝑛(ap,ξ))
 
 
 ## AbstractSeg
@@ -490,23 +491,6 @@ function Poi1(aps::Vector{T};renumbering::Bool=false) where T<:Approximator
     end
     return aps_
 end
-
-# function PoiN{T,𝒑,𝑠,𝜙}(gps::Vector{Poi1},aps::Vector{A}) where {A<:Approximator,T<:AbstractNode,𝒑,𝑠,𝜙}
-#     aps_ = PoiN[]
-#     𝗠 = Dict{Symbol,SymMat}()
-#     𝝭 = Dict{Symbol,Vector{Float64}}()
-#     for gp in gps
-#         i = gp.𝓒[1].id
-#         for ap in aps
-#             j = findfirst(x->x==i,(x.id for x in ap.𝓒))
-#             if j ≤ 2
-#                 union!(gp.𝓒,ap.𝓒)
-#                 push!(aps_,PoiN{T,𝒑,𝑠,𝜙}(gp.𝓒,gp.𝓒,𝗠,𝝭))
-#                 break
-#             end
-#         end
-#     end
-# end
 
 function Seg2(aps::Vector{T};renumbering::Bool=false) where T<:Approximator
     aps_ = Seg2[]

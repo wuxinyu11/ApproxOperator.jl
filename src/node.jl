@@ -88,8 +88,8 @@ function set𝓖!(aps::Vector{T},𝓖::NTuple{N,NTuple{D,Float64}}) where {T<:Ap
     N > 2 ? data[:η] = zeros(nᵢ) : nothing
     N > 3 ? data[:γ] = zeros(nᵢ) : nothing
 
+    n = 0
     for ap in aps
-        n = 0
         for ξ in 𝓖
             n += 1
             push!(ap.𝓖,Node(n,data))
@@ -121,8 +121,8 @@ function set𝓖!(aps::Vector{ReproducingKernel{Node}},𝓖::NTuple{N,NTuple{D,F
             aps[1].𝝭[s]=zeros(nₘ)
         end
     end
+    n = 0
     for ap in aps
-        n = 0
         for ξ in 𝓖
             n += 1
             push!(ap.𝓖,Node(n,data))
@@ -166,8 +166,8 @@ function set𝓖!(aps::Vector{ReproducingKernel{SNode}},𝓖::NTuple{N,NTuple{D,
         end
     end
     nₜ = 0
+    n = 0
     for ap in aps
-        n = 0
         for ξ in 𝓖
             n += 1
             index[n] = nₜ
