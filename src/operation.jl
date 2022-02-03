@@ -75,14 +75,14 @@ function (op::Operator{:∫∇v∇uvbdΩ})(ap::Approximator,k::AbstractMatrix{Fl
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
         N,B₁,B₂,B₃ = get∇𝝭(ap,ξ)
-        w = getw(ap,ξ)
+        𝑤 = get𝑤(ap,ξ)
         for i in 1:length(𝓒)
             I = 𝓒[i].id
             for j in 1:length(𝓒)
                 J = 𝓒[j].id
-                k[I,J] += op.k*(B₁[i]*B₁[j] + B₂[i]*B₂[j] + B₃[i]*B₃[j])*w
+                k[I,J] += op.k*(B₁[i]*B₁[j] + B₂[i]*B₂[j] + B₃[i]*B₃[j])*𝑤
             end
-            f[I] += N[i]*ξ.b*w
+            f[I] += N[i]*ξ.b*𝑤
         end
     end
 end
@@ -91,12 +91,12 @@ function (op::Operator{:∫∇v∇udΩ})(ap::Approximator,k::AbstractMatrix{Floa
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
         ~,B₁,B₂,B₃ = get∇𝝭(ap,ξ)
-        w = getw(ap,ξ)
+        𝑤 = get𝑤(ap,ξ)
         for i in 1:length(𝓒)
             I = 𝓒[i].id
             for j in 1:length(𝓒)
                 J = 𝓒[j].id
-                k[I,J] += op.k*(B₁[i]*B₁[j] + B₂[i]*B₂[j] + B₃[i]*B₃[j])*w
+                k[I,J] += op.k*(B₁[i]*B₁[j] + B₂[i]*B₂[j] + B₃[i]*B₃[j])*𝑤
             end
         end
     end
@@ -106,10 +106,10 @@ function (op::Operator{:∫vbdΩ})(ap::Approximator,f::AbstractVector{Float64})
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
         N = get𝝭(ap,ξ)
-        w = getw(ap,ξ)
+        𝑤 = get𝑤(ap,ξ)
         for i in 1:length(𝓒)
             I = 𝓒[i].id
-            f[I] += N[i]*ξ.b*w
+            f[I] += N[i]*ξ.b*𝑤
         end
     end
 end
@@ -117,11 +117,11 @@ end
 function (op::Operator{:∫vtdΓ})(ap::Approximator,f::AbstractVector{Float64})
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
-        w = getw(ap,ξ)
+        𝑤 = get𝑤(ap,ξ)
         N = get𝝭(ap,ξ)
         for i in 1:length(𝓒)
             I = 𝓒[i].id
-            f[I] += N[i]*ξ.t*w
+            f[I] += N[i]*ξ.t*𝑤
         end
     end
 end
@@ -129,47 +129,46 @@ end
 function (op::Operator{:∫vgdΓ})(ap::Approximator,k::AbstractMatrix{Float64},f::AbstractVector{Float64})
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
-        w = getw(ap,ξ)
+        𝑤 = get𝑤(ap,ξ)
         N = get𝝭(ap,ξ)
         for i in 1:length(𝓒)
             I = 𝓒[i].id
             for j in 1:length(𝓒)
                 J = 𝓒[j].id
-                k[I,J] += op.α*N[i]*N[j]*w
+                k[I,J] += op.α*N[i]*N[j]*𝑤
             end
-            f[I] += op.α*N[i]*ξ.g*w
+            f[I] += op.α*N[i]*ξ.g*𝑤
         end
     end
 end
 
 function (op::Operator{:∫λgdΓ})(ap1::Approximator,ap2::Approximator,g::AbstractMatrix{Float64},q::AbstractVector{Float64})
     for ξ in ap1.𝓖
-        w = getw(ap1,ξ)
+        𝑤 = get𝑤(ap1,ξ)
         N = get𝝭(ap1,ξ)
         N̄ = get𝝭(ap2,ξ)
         for k in 1:length(ap2.𝓒)
             K = ap2.𝓒[k].id
             for i in 1:length(ap1.𝓒)
                 I = ap1.𝓒[i].id
-                g[I,K] -= N[i]*N̄[k]*w
+                g[I,K] -= N[i]*N̄[k]*𝑤
             end
-            q[K] -= N̄[k]*ξ.g*w
+            q[K] -= N̄[k]*ξ.g*𝑤
         end
     end
 end
 
-function (op::Operator{:∫∇vngdΓ})(ap::Approximator,k::AbstractMatrix{Float64},f::AbstractVector{Float64})
-    n₁,n₂,n₃ = get𝒏(ap)
+function (op::Operator{:∫∇𝑛vgdΓ})(ap::Approximator,k::AbstractMatrix{Float64},f::AbstractVector{Float64})
     for ξ in ap.𝓖
-        w = getw(ap,ξ)
-        N,B₁,B₂,B₃ = get∇𝝭(ap,ξ)
+        𝑤 = get𝑤(ap,ξ)
+        N,B = get∇𝑛𝝭(ap,ξ)
         for i in 1:length(ap.𝓒)
             I = ap.𝓒[i].id
             for j in 1:length(ap.𝓒)
                 J = ap.𝓒[j].id
-                k[I,J] += (-(B₁[i]*n₁+B₂[i]*n₂+B₃[i]*n₃)*N[j] - N[i]*(B₁[j]*n₁+B₂[j]*n₂+B₃[j]*n₃) + op.α*N[i]*N[j])*w
+                k[I,J] += (-B[i]*N[j] - N[i]*B[j] + op.α*N[i]*N[j])*𝑤
             end
-            f[I] += (op.α*N[i]*ξ.g̃ - (B₁[i]*n₁+B₂[i]*n₂+B₃[i]*n₃)*ξ.g)*w
+            f[I] += (op.α*N[i]*ξ.g̃ - B[i]*ξ.g)*𝑤
         end
     end
 end

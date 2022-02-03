@@ -190,38 +190,6 @@ for t in subtypes(SpatialPartition)
     end
 end
 
-#
-function Seg2(gps::Vector{Poi1},aps::Vector{Seg2})
-    aps_ = Seg2[]
-    for gp in gps
-        i = gp.𝓒[1].id
-        for ap in aps
-            if i∈(x.id for x in ap.𝓒)
-                union!(gp.𝓒,ap.𝓒)
-                push!(aps_,Seg2(gp.𝓒,gp.𝓖))
-                break
-            end
-        end
-    end
-end
-
-function SegN{T,𝒑,𝑠,𝜙}(gps::Vector{Poi1},aps::Vector{SegN{T,𝒑,𝑠,𝜙}}) where {T<:AbstractNode,𝒑,𝑠,𝜙}
-    aps_ = SegN[]
-    𝗠 = Dict{Symbol,SymMat}()
-    𝝭 = Dict{Symbol,Vector{Float64}}()
-    for gp in gps
-        i = gp.𝓒[1].id
-        for ap in aps
-            j = findfirst(x->x==i,(x.id for x in ap.𝓒))
-            if j ≤ 2
-                union!(gp.𝓒,ap.𝓒)
-                push!(aps_,SegN{T,𝒑,𝑠,𝜙}(gp.𝓒,gp.𝓒,𝗠,𝝭))
-                break
-            end
-        end
-    end
-end
-
 ## Basis Function
 @inline get𝒑(ap::Approximator,x) = get𝒑(ap.type[1],x)
 @inline get∂𝒑∂x(ap::Approximator,x) = get∂𝒑∂x(ap.type[1],x)

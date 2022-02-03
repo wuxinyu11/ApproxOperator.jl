@@ -10,6 +10,10 @@
 end
 
 @inline function setproperty!(p::T,f::Symbol,x::Float64) where T<:AbstractNode
+    if ~haskey(getfield(p,:data),f) && x ≈ 0.0
+        n = length(getfield(p,:data)[:w])
+        getfield(p,:data)[f] = zeros(n)
+    end
     getfield(p,:data)[f][getfield(p,:id)] = x
 end
 
@@ -90,6 +94,7 @@ function set𝓖!(aps::Vector{T},𝓖::NTuple{N,NTuple{D,Float64}}) where {T<:Ap
 
     for ap in aps
         n = 0
+        empty(ap.𝓖)
         for ξ in 𝓖
             n += 1
             push!(ap.𝓖,Node(n,data))
@@ -123,6 +128,7 @@ function set𝓖!(aps::Vector{ReproducingKernel{Node}},𝓖::NTuple{N,NTuple{D,F
     end
     for ap in aps
         n = 0
+        empty(ap.𝓖)
         for ξ in 𝓖
             n += 1
             push!(ap.𝓖,Node(n,data))
@@ -168,6 +174,7 @@ function set𝓖!(aps::Vector{ReproducingKernel{SNode}},𝓖::NTuple{N,NTuple{D,
     nₜ = 0
     for ap in aps
         n = 0
+        empty(ap.𝓖)
         for ξ in 𝓖
             n += 1
             index[n] = nₜ
@@ -202,7 +209,7 @@ function set𝓖(i::Int,data::Dict{Symbol,Vector{Float64}},ξ::NTuple{5,Float64}
 end
 
 const QuadratureRule = Dict(
-:PoiGI1 => ((1.0,-1.0),),
+:PoiGI1 => ((1.0,1.0),),
 :Seg100 => ((1.0,-1.0+0.02*i) for i in 0:100),
 :SegGI1 => ((2.0,0.0),),
 :SegGI2 =>
