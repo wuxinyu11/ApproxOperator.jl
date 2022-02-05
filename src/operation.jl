@@ -33,7 +33,7 @@ end
         op(ap,k)
     end
 end
-@inline function (op::Operator)(aps::Vector{T},f::Vector{Float64}) where T<:Approximator
+@inline function (op::Operator)(aps::Vector{T},f::AbstractVector{Float64}) where T<:Approximator
     for ap in aps
         op(ap,f)
     end
@@ -53,8 +53,8 @@ end
 function prescribe!(ap::T,s::Symbol,f::Function) where T<:Approximator
     𝓖 = ap.𝓖
     for ξ in 𝓖
-        x = getx(ap,ξ)
-        v = f(x...)
+        𝒙 = get𝒙(ap,ξ)
+        v = f(𝒙...)
         setproperty!(ξ,s,v)
     end
 end
@@ -71,7 +71,7 @@ function prescribe!(aps::Vector{T},s::Symbol,f::Function) where T<:Approximator
 end
 
 ## Potential Problem
-function (op::Operator{:∫∇v∇uvbdΩ})(ap::Approximator,k::AbstractMatrix{Float64},f::AbstractVector{Float64})
+function (op::Operator{:∫∇v∇uvbdΩ})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:Approximator
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
         N,B₁,B₂,B₃ = get∇𝝭(ap,ξ)
@@ -87,7 +87,7 @@ function (op::Operator{:∫∇v∇uvbdΩ})(ap::Approximator,k::AbstractMatrix{Fl
     end
 end
 
-function (op::Operator{:∫∇v∇udΩ})(ap::Approximator,k::AbstractMatrix{Float64})
+function (op::Operator{:∫∇v∇udΩ})(ap::T,k::AbstractMatrix{Float64}) where T<:Approximator
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
         ~,B₁,B₂,B₃ = get∇𝝭(ap,ξ)
@@ -102,7 +102,7 @@ function (op::Operator{:∫∇v∇udΩ})(ap::Approximator,k::AbstractMatrix{Floa
     end
 end
 
-function (op::Operator{:∫vbdΩ})(ap::Approximator,f::AbstractVector{Float64})
+function (op::Operator{:∫vbdΩ})(ap::T,f::AbstractVector{Float64}) where T<:Approximator
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
         N = get𝝭(ap,ξ)
@@ -114,7 +114,7 @@ function (op::Operator{:∫vbdΩ})(ap::Approximator,f::AbstractVector{Float64})
     end
 end
 
-function (op::Operator{:∫vtdΓ})(ap::Approximator,f::AbstractVector{Float64})
+function (op::Operator{:∫vtdΓ})(ap::T,f::AbstractVector{Float64}) where T<:Approximator
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
         𝑤 = get𝑤(ap,ξ)
@@ -126,7 +126,7 @@ function (op::Operator{:∫vtdΓ})(ap::Approximator,f::AbstractVector{Float64})
     end
 end
 
-function (op::Operator{:∫vgdΓ})(ap::Approximator,k::AbstractMatrix{Float64},f::AbstractVector{Float64})
+function (op::Operator{:∫vgdΓ})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:Approximator
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
         𝑤 = get𝑤(ap,ξ)
@@ -142,7 +142,7 @@ function (op::Operator{:∫vgdΓ})(ap::Approximator,k::AbstractMatrix{Float64},f
     end
 end
 
-function (op::Operator{:∫λgdΓ})(ap1::Approximator,ap2::Approximator,g::AbstractMatrix{Float64},q::AbstractVector{Float64})
+function (op::Operator{:∫λgdΓ})(ap1::T,ap2::S,g::AbstractMatrix{Float64},q::AbstractVector{Float64}) where {T<:Approximator,S<:Approximator}
     for ξ in ap1.𝓖
         𝑤 = get𝑤(ap1,ξ)
         N = get𝝭(ap1,ξ)
@@ -158,22 +158,21 @@ function (op::Operator{:∫λgdΓ})(ap1::Approximator,ap2::Approximator,g::Abstr
     end
 end
 
-function (op::Operator{:∫∇𝑛vgdΓ})(ap::Approximator,k::AbstractMatrix{Float64},f::AbstractVector{Float64})
+function (op::Operator{:∫∇𝑛vgdΓ})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:Approximator
     for ξ in ap.𝓖
-        𝑤 = get𝑤(ap,ξ)
         N,B = get∇𝑛𝝭(ap,ξ)
         for i in 1:length(ap.𝓒)
             I = ap.𝓒[i].id
             for j in 1:length(ap.𝓒)
                 J = ap.𝓒[j].id
-                k[I,J] += (-B[i]*N[j] - N[i]*B[j] + op.α*N[i]*N[j])*𝑤
+                k[I,J] -= (B[i]*N[j] + N[i]*B[j])*ξ.w
             end
-            f[I] += (op.α*N[i]*ξ.g̃ - B[i]*ξ.g)*𝑤
+            f[I] -= B[i]*ξ.g*ξ.w
         end
     end
 end
 
-function (op::Operator{:g})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64};dof::Symbol=:d) where T<:AbstractPoi
+function (op::Operator{:g})(ap::Poi1,k::AbstractMatrix{Float64},f::AbstractVector{Float64};dof::Symbol=:d)
     x = ap.𝓒[1]
     j = x.id
     g = getproperty(x,dof)
@@ -191,9 +190,8 @@ function (op::Operator{:L₂})(ap::T) where T<:Approximator
     Δu²= 0
     ū² = 0
     for ξ in ap.𝓖
-        w = getw(ap,ξ)
+        𝑤 = get𝑤(ap,ξ)
         N = get𝝭(ap,ξ)
-        x = getx(ap,ξ)
         ūᵢ = ξ.u
         uᵢ = 0
         for i in 1:length(ap.𝓒)
@@ -201,8 +199,8 @@ function (op::Operator{:L₂})(ap::T) where T<:Approximator
             I = xᵢ.id
             uᵢ += N[i]*xᵢ.d
         end
-        Δu² += (uᵢ - ūᵢ)^2*w
-        ū²  += ūᵢ^2*w
+        Δu² += (uᵢ - ūᵢ)^2*𝑤
+        ū²  += ūᵢ^2*𝑤
     end
     return Δu², ū²
 end
@@ -224,9 +222,8 @@ function (op::Operator{:H₁})(ap::T) where T<:Approximator
     Δu²= 0
     ū² = 0
     for ξ in ap.𝓖
-        w = getw(ap,ξ)
+        𝑤 = get𝑤(ap,ξ)
         N,B₁,B₂,B₃ = get∇𝝭(ap,ξ)
-        x = getx(ap,ξ)
         ūᵢ = ξ.u
         ∂ūᵢ∂x = ξ.∂u∂x
         ∂ūᵢ∂y = ξ.∂u∂y
@@ -243,10 +240,10 @@ function (op::Operator{:H₁})(ap::T) where T<:Approximator
             ∂uᵢ∂y += B₂[i]*xᵢ.d
             ∂uᵢ∂z += B₃[i]*xᵢ.d
         end
-        Δ∇u² += ((∂uᵢ∂x - ∂ūᵢ∂x)^2 + (∂uᵢ∂y - ∂ūᵢ∂y)^2 + (∂uᵢ∂z - ∂ūᵢ∂z)^2)*w
-        ∇ū² += (∂ūᵢ∂x^2 + ∂ūᵢ∂y^2 + ∂ūᵢ∂z^2)*w
-        Δu² += (uᵢ - ūᵢ)^2*w
-        ū² += ūᵢ^2*w
+        Δ∇u² += ((∂uᵢ∂x - ∂ūᵢ∂x)^2 + (∂uᵢ∂y - ∂ūᵢ∂y)^2 + (∂uᵢ∂z - ∂ūᵢ∂z)^2)*𝑤
+        ∇ū² += (∂ūᵢ∂x^2 + ∂ūᵢ∂y^2 + ∂ūᵢ∂z^2)*𝑤
+        Δu² += (uᵢ - ūᵢ)^2*𝑤
+        ū² += ūᵢ^2*𝑤
     end
     return Δ∇u², ∇ū², Δu², ū²
 end

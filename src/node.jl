@@ -10,7 +10,7 @@
 end
 
 @inline function setproperty!(p::T,f::Symbol,x::Float64) where T<:AbstractNode
-    if ~haskey(getfield(p,:data),f) && x ≈ 0.0
+    if ~haskey(getfield(p,:data),f)
         n = length(getfield(p,:data)[:w])
         getfield(p,:data)[f] = zeros(n)
     end
@@ -84,7 +84,7 @@ function set𝓖!(aps::Vector{T},s::Symbol,stype::Symbol...;isrk::Bool=false) wh
     return set𝓖!(aps,rule,stype...;isrk=isrk)
 end
 
-function set𝓖!(aps::Vector{T},𝓖::NTuple{N,NTuple{D,Float64}}) where {T<:Approximator,N,D}
+function set𝓖!(aps::Vector{T},𝓖::NTuple{N,NTuple{D,Float64}}) where {T<:FiniteElement,N,D}
     nₑ = length(aps)
     nᵢ = nₑ*N
     data = Dict(:w=>zeros(nᵢ))
@@ -92,9 +92,9 @@ function set𝓖!(aps::Vector{T},𝓖::NTuple{N,NTuple{D,Float64}}) where {T<:Ap
     N > 2 ? data[:η] = zeros(nᵢ) : nothing
     N > 3 ? data[:γ] = zeros(nᵢ) : nothing
 
+    n = 0
     for ap in aps
-        n = 0
-        empty(ap.𝓖)
+        empty!(ap.𝓖)
         for ξ in 𝓖
             n += 1
             push!(ap.𝓖,Node(n,data))
@@ -103,7 +103,7 @@ function set𝓖!(aps::Vector{T},𝓖::NTuple{N,NTuple{D,Float64}}) where {T<:Ap
     end
 end
 
-function set𝓖!(aps::Vector{ReproducingKernel{Node}},𝓖::NTuple{N,NTuple{D,Float64}},stype::Symbol...;isrk::Bool=false) where {N,D}
+function set𝓖!(aps::Vector{T},𝓖::NTuple{N,NTuple{D,Float64}},stype::Symbol...;isrk::Bool=false) where {T<:ReproducingKernel{Node},N,D}
     nₑ = length(aps)
     nᵢ = nₑ*N
     data = Dict(:w=>zeros(nᵢ))
@@ -126,9 +126,9 @@ function set𝓖!(aps::Vector{ReproducingKernel{Node}},𝓖::NTuple{N,NTuple{D,F
             aps[1].𝝭[s]=zeros(nₘ)
         end
     end
+    n = 0
     for ap in aps
-        n = 0
-        empty(ap.𝓖)
+        empty!(ap.𝓖)
         for ξ in 𝓖
             n += 1
             push!(ap.𝓖,Node(n,data))
@@ -137,7 +137,7 @@ function set𝓖!(aps::Vector{ReproducingKernel{Node}},𝓖::NTuple{N,NTuple{D,F
     end
 end
 
-function set𝓖!(aps::Vector{ReproducingKernel{SNode}},𝓖::NTuple{N,NTuple{D,Float64}},stype::Symbol...;isrk::Bool=false) where {N,D}
+function set𝓖!(aps::Vector{T},𝓖::NTuple{N,NTuple{D,Float64}},stype::Symbol...;isrk::Bool=false) where {T<:ReproducingKernel{SNode},N,D}
     nₑ = length(aps)
     nᵢ = nₑ*N
     data = Dict(:w=>zeros(nᵢ))
@@ -172,9 +172,9 @@ function set𝓖!(aps::Vector{ReproducingKernel{SNode}},𝓖::NTuple{N,NTuple{D,
         end
     end
     nₜ = 0
+    n = 0
     for ap in aps
-        n = 0
-        empty(ap.𝓖)
+        empty!(ap.𝓖)
         for ξ in 𝓖
             n += 1
             index[n] = nₜ

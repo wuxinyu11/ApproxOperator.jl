@@ -4,24 +4,9 @@ function set𝒏!(aps::Vector{A}) where A<:Approximator
         set𝒏!(ap)
     end
 end
-function set𝒏!(ap::A) where A<:AbstractSeg
-    𝓖 = ap.𝓖
-    for ξ in 𝓖
-        ξ.n₁ = get𝒏(ap,ξ)
-    end
-end
-function set𝒏!(ap::A) where A<:AbstractTri
-    𝓖 = ap.𝓖
-    for ξ in 𝓖
-        ξ.n₁, ξ.n₂ = get𝒏(ap,ξ)
-    end
-end
-## AbstractPoi
-@inline get𝒙(ap::AbstractPoi,::AbstractNode) = (ap.𝓒[1].x,ap.𝓒[1].y,ap.𝓒[1].z)
-@inline get𝑤(  ::AbstractPoi,::AbstractNode) = 1.0
-@inline get𝐽(  ::AbstractPoi,::AbstractNode) = 1.0
-# -------------- Poi1 --------------
-struct Poi1<:AbstractPoi
+
+## -------------- Poi1 --------------
+struct Poi1<:FiniteElement
     𝓒::Vector{Node}
     𝓖::Vector{Node}
 end
@@ -32,33 +17,12 @@ function Poi1(i::Int,data::Dict{Symbol,Vector{Float64}}) where T<:AbstractNode
 end
 get𝝭(::Poi1,::Node) = 1.0
 
+@inline get𝒙(ap::Poi1,::AbstractNode) = (ap.𝓒[1].x,ap.𝓒[1].y,ap.𝓒[1].z)
+@inline get𝑤(  ::Poi1,::AbstractNode) = 1.0
+@inline get𝐽(  ::Poi1,::AbstractNode) = 1.0
 
-## AbstractSeg
-@inline get𝒙(ap::A,ξ::T) where {A<:AbstractSeg,T<:AbstractNode} = get𝒙(ap,ξ.ξ)
-@inline function get𝒙(ap::A,ξ::Float64) where A<:AbstractSeg
-    x₁ = ap.𝓒[1].x
-    y₁ = ap.𝓒[1].y
-    z₁ = ap.𝓒[1].z
-    x₂ = ap.𝓒[2].x
-    y₂ = ap.𝓒[2].y
-    z₂ = ap.𝓒[2].z
-    N₁ = 0.5*(1-ξ)
-    N₂ = 0.5*(1+ξ)
-    return (x₁*N₁+x₂*N₂,y₁*N₁+y₂*N₂,z₁*N₁+z₂*N₂)
-end
-
-@inline get𝑤(ap::A,ξ::T) where {A<:AbstractSeg,T<:AbstractNode} = 0.5*ap.𝐿*ξ.w
-@inline get𝐽(ap::A,ξ::T) where {A<:AbstractSeg,T<:AbstractNode} = 0.5*ap.𝐿
-@inline get𝒏(ap::A,ξ::T) where {A<:AbstractSeg,T<:AbstractNode} = get𝒏(ap,ξ.ξ)
-function get𝒏(ap::A,ξ::Float64) where A<:AbstractSeg
-    n₁ = 0.0
-    n₁ += ξ == -1.0 ?  1.0 : 0.0
-    n₁ += ξ ==  1.0 ? -1.0 : 0.0
-end
-@inline get𝒏(ap::A) where A<:AbstractSeg = sign(ap.𝒞[1].x-ap.𝓒[2].x)
-
-# ---------------- Seg2 -------------------
-struct Seg2<:AbstractSeg
+## --------------- Seg2 ----------------
+struct Seg2<:FiniteElement
     𝓒::Vector{Node}
     𝓖::Vector{Node}
     𝐿::Float64
@@ -79,57 +43,44 @@ function Seg2(𝓒::Vector{Node},𝓖::Vector{Node})
     return Seg2(𝓒,𝓖,𝐿)
 end
 
-
 # actions for Seg2
 @inline get𝝭(ap::Seg2,ξ::Node) = get𝝭(ap,ξ.ξ)
 @inline get𝝭(ap::Seg2,ξ::Float64) = (0.5*(1-ξ),0.5*(1+ξ))
-@inline get∂𝝭∂x(ap::Seg2,::Node) = (-1.0/ap.L,1.0/ap.L)
-@inline get∂𝝭∂x(ap::Seg2,::Float64) = (-1.0/ap.L,1.0/ap.L)
+@inline get∂𝝭∂x(ap::Seg2,::Node) = (-1.0/ap.𝐿,1.0/ap.𝐿)
+@inline get∂𝝭∂x(ap::Seg2,::Float64) = (-1.0/ap.𝐿,1.0/ap.𝐿)
 @inline get∂𝝭∂y(ap::Seg2,::Node) = (0.0,0.0)
 @inline get∂𝝭∂z(ap::Seg2,::Node) = (0.0,0.0)
 @inline get∇𝝭(ap::Seg2,ξ::Node) = (get𝝭(ap,ξ),get∂𝝭∂x(ap,ξ),(0.0,0.0),(0.0,0.0))
 @inline get∂𝝭∂𝑛(ap::Seg2,ξ::Node) = (-sign(ξ.ξ)/ap.𝐿,sign(ξ.ξ)/ap.𝐿)
+@inline get∇𝑛𝝭(ap::Seg2,ξ::Node) = (get𝝭(ap,ξ),get∂𝝭∂𝑛(ap,ξ))
 
-## AbstractTri
-@inline get𝒙(ap::A,ξ::T) where {A<:AbstractTri,T<:AbstractNode} = get𝒙(ap,ξ.ξ,ξ.η)
-@inline function get𝒙(ap::A,ξ::Float64,η::Float64) where A<:AbstractTri
+@inline get𝒙(ap::Seg2,ξ::T) where T<:AbstractNode = get𝒙(ap,ξ.ξ)
+@inline function get𝒙(ap::Seg2,ξ::Float64)
     x₁ = ap.𝓒[1].x
     y₁ = ap.𝓒[1].y
     z₁ = ap.𝓒[1].z
     x₂ = ap.𝓒[2].x
     y₂ = ap.𝓒[2].y
     z₂ = ap.𝓒[2].z
-    x₃ = ap.𝓒[3].x
-    y₃ = ap.𝓒[3].y
-    z₃ = ap.𝓒[3].z
-    N₁ = ξ
-    N₂ = η
-    N₃ = 1.0-ξ-η
-    return (x₁*N₁+x₂*N₂+x₃*N₃,y₁*N₁+y₂*N₂+y₃*N₃,z₁*N₁+z₂*N₂+z₃*N₃)
+    N₁ = 0.5*(1-ξ)
+    N₂ = 0.5*(1+ξ)
+    return (x₁*N₁+x₂*N₂,y₁*N₁+y₂*N₂,z₁*N₁+z₂*N₂)
 end
-@inline get𝑤(ap::A,ξ::T) where {A<:AbstractTri,T<:AbstractNode} = haskey(ξ.data,:𝑤) ? ξ.𝑤 : ap.𝐴*ξ.w
-@inline get𝐽(ap::A,ξ::T) where {A<:AbstractTri,T<:AbstractNode} = ap.𝐴
-@inline get𝒏(ap::A,ξ::T) where {A<:AbstractTri,T<:AbstractNode} = get𝒏(ap,ξ.ξ,ξ.η)
-function get𝒏(ap::A,ξ::Float64,η::Float64) where A<:AbstractTri
-    n₁ = 0
-    n₂ = 0
-    x₁ = ap.𝓒[1].x
-    y₁ = ap.𝓒[1].y
-    x₂ = ap.𝓒[2].x
-    y₂ = ap.𝓒[2].y
-    x₃ = ap.𝓒[3].x
-    y₃ = ap.𝓒[3].y
-    γ = 1.0-ξ-η
-    n₁ += ξ == 0.0 ? y₃-y₂ : 0.0
-    n₁ += η == 0.0 ? y₁-y₃ : 0.0
-    n₁ += γ == 0.0 ? y₂-y₁ : 0.0
-    n₂ += ξ == 0.0 ? x₂-x₃ : 0.0
-    n₂ += η == 0.0 ? x₃-x₁ : 0.0
-    n₂ += γ == 0.0 ? x₁-x₂ : 0.0
-    return n₁,n₂
-end
+@inline get𝑤(ap::Seg2,ξ::T) where T<:AbstractNode = 0.5*ap.𝐿*ξ.w
+@inline get𝐽(ap::Seg2,ξ::T) where T<:AbstractNode = 0.5*ap.𝐿
+@inline get𝒏(ap::Seg2,ξ::T) where T<:AbstractNode = get𝒏(ap,ξ.ξ)
+@inline get𝒏(ap::Seg2,ξ::Float64) = ξ == -1.0 ?  -1.0 : 1.0
 
-struct Tri3<:AbstractTri
+function set𝒏!(ap::Seg2)
+    𝓖 = ap.𝓖
+    for ξ in 𝓖
+        ξ.n₁ = get𝒏(ap,ξ)
+    end
+end
+@inline get𝒏(ap::Seg2) = sign(ap.𝒞[1].x-ap.𝓒[2].x)
+
+## ---------------- Tri3 -----------------
+struct Tri3<:FiniteElement
     𝓒::Vector{Node}
     𝓖::Vector{Node}
     𝐴::Float64
@@ -159,46 +110,53 @@ function Tri3(𝓒::Vector{Node},𝓖::Vector{Node})
     return Tri3(𝓒,𝓖,𝐴)
 end
 
-## AbstractQuad
-function get𝑤(ap::AbstractQuad,ξ::AbstractNode)
-    J₁₁,J₂₁,J₁₂,J₂₂ = get𝐽(ap,ξ)
-    return (J₁₁*J₂₂-J₂₁*J₁₂)*ξ.w
-end
-function get𝐽(ap::AbstractQuad,ξ::AbstractNode)
+@inline get𝒙(ap::Tri3,ξ::T) where T<:AbstractNode = get𝒙(ap,ξ.ξ,ξ.η)
+@inline function get𝒙(ap::Tri3,ξ::Float64,η::Float64)
     x₁ = ap.𝓒[1].x
-    x₂ = ap.𝓒[2].x
-    x₃ = ap.𝓒[3].x
-    x₄ = ap.𝓒[4].x
     y₁ = ap.𝓒[1].y
-    y₂ = ap.𝓒[2].y
-    y₃ = ap.𝓒[3].y
-    y₄ = ap.𝓒[4].y
-    ∂N₁∂ξ,∂N₂∂ξ,∂N₃∂ξ,∂N₄∂ξ = get∂𝝭∂ξ(ap,ξ)
-    ∂N₁∂η,∂N₂∂η,∂N₃∂η,∂N₄∂η = get∂𝝭∂η(ap,ξ)
-    J₁₁ = ∂N₁∂ξ*x₁ + ∂N₂∂ξ*x₂ + ∂N₃∂ξ*x₃ + ∂N₄∂ξ*x₄
-    J₁₂ = ∂N₁∂η*x₁ + ∂N₂∂η*x₂ + ∂N₃∂η*x₃ + ∂N₄∂η*x₄
-    J₂₁ = ∂N₁∂ξ*y₁ + ∂N₂∂ξ*y₂ + ∂N₃∂ξ*y₃ + ∂N₄∂ξ*y₄
-    J₂₂ = ∂N₁∂η*y₁ + ∂N₂∂η*y₂ + ∂N₃∂η*y₃ + ∂N₄∂η*y₄
-    return J₁₁,J₂₁,J₁₂,J₂₂
-end
-function get𝑥(ap::AbstractQuad,ξ::AbstractNode)
-    N₁,N₂,N₃,N₄ = get𝝭(ap,ξ)
-    x₁ = ap.𝓒[1].x
-    x₂ = ap.𝓒[2].x
-    x₃ = ap.𝓒[3].x
-    x₄ = ap.𝓒[4].x
-    y₁ = ap.𝓒[1].y
-    y₂ = ap.𝓒[2].y
-    y₃ = ap.𝓒[3].y
-    y₄ = ap.𝓒[4].y
     z₁ = ap.𝓒[1].z
+    x₂ = ap.𝓒[2].x
+    y₂ = ap.𝓒[2].y
     z₂ = ap.𝓒[2].z
+    x₃ = ap.𝓒[3].x
+    y₃ = ap.𝓒[3].y
     z₃ = ap.𝓒[3].z
-    z₄ = ap.𝓒[4].z
-    return (N₁*x₁+N₂*x₂+N₃*x₃+N₄*x₄, N₁*y₁+N₂*y₂+N₃*y₃+N₄*y₄, N₁*z₁+N₂*z₂+N₃*z₃+N₄*z₄)
+    N₁ = ξ
+    N₂ = η
+    N₃ = 1.0-ξ-η
+    return (x₁*N₁+x₂*N₂+x₃*N₃,y₁*N₁+y₂*N₂+y₃*N₃,z₁*N₁+z₂*N₂+z₃*N₃)
+end
+@inline get𝑤(ap::Tri3,ξ::T) where T<:AbstractNode = ap.𝐴*ξ.w
+@inline get𝐽(ap::Tri3,ξ::T) where T<:AbstractNode = ap.𝐴
+@inline get𝒏(ap::Tri3,ξ::T) where T<:AbstractNode = get𝒏(ap,ξ.ξ,ξ.η)
+function get𝒏(ap::Tri3,ξ::Float64,η::Float64)
+    n₁ = 0
+    n₂ = 0
+    x₁ = ap.𝓒[1].x
+    y₁ = ap.𝓒[1].y
+    x₂ = ap.𝓒[2].x
+    y₂ = ap.𝓒[2].y
+    x₃ = ap.𝓒[3].x
+    y₃ = ap.𝓒[3].y
+    γ = 1.0-ξ-η
+    n₁ += ξ == 0.0 ? y₃-y₂ : 0.0
+    n₁ += η == 0.0 ? y₁-y₃ : 0.0
+    n₁ += γ == 0.0 ? y₂-y₁ : 0.0
+    n₂ += ξ == 0.0 ? x₂-x₃ : 0.0
+    n₂ += η == 0.0 ? x₃-x₁ : 0.0
+    n₂ += γ == 0.0 ? x₁-x₂ : 0.0
+    return n₁,n₂
 end
 
-struct Quad
+function set𝒏!(ap::Tri3)
+    𝓖 = ap.𝓖
+    for ξ in 𝓖
+        ξ.n₁, ξ.n₂ = get𝒏(ap,ξ)
+    end
+end
+
+## ------------------ Quad ------------------
+struct Quad<:FiniteElement
     𝓒::Vector{Node}
     𝓖::Vector{Node}
 end
@@ -266,6 +224,44 @@ function get∂𝝭∂x∂𝝭∂y(ap::Quad,ξ::AbstractNode)
 end
 get∇𝝭(ap::Quad,ξ::AbstractNode) = get𝝭(ap,ξ),get∂𝝭∂x∂𝝭∂y(ap,ξ)...,(0.0,0.0,0.0,0.0)
 
+function get𝑤(ap::Quad,ξ::AbstractNode)
+    J₁₁,J₂₁,J₁₂,J₂₂ = get𝐽(ap,ξ)
+    return (J₁₁*J₂₂-J₂₁*J₁₂)*ξ.w
+end
+function get𝐽(ap::Quad,ξ::AbstractNode)
+    x₁ = ap.𝓒[1].x
+    x₂ = ap.𝓒[2].x
+    x₃ = ap.𝓒[3].x
+    x₄ = ap.𝓒[4].x
+    y₁ = ap.𝓒[1].y
+    y₂ = ap.𝓒[2].y
+    y₃ = ap.𝓒[3].y
+    y₄ = ap.𝓒[4].y
+    ∂N₁∂ξ,∂N₂∂ξ,∂N₃∂ξ,∂N₄∂ξ = get∂𝝭∂ξ(ap,ξ)
+    ∂N₁∂η,∂N₂∂η,∂N₃∂η,∂N₄∂η = get∂𝝭∂η(ap,ξ)
+    J₁₁ = ∂N₁∂ξ*x₁ + ∂N₂∂ξ*x₂ + ∂N₃∂ξ*x₃ + ∂N₄∂ξ*x₄
+    J₁₂ = ∂N₁∂η*x₁ + ∂N₂∂η*x₂ + ∂N₃∂η*x₃ + ∂N₄∂η*x₄
+    J₂₁ = ∂N₁∂ξ*y₁ + ∂N₂∂ξ*y₂ + ∂N₃∂ξ*y₃ + ∂N₄∂ξ*y₄
+    J₂₂ = ∂N₁∂η*y₁ + ∂N₂∂η*y₂ + ∂N₃∂η*y₃ + ∂N₄∂η*y₄
+    return J₁₁,J₂₁,J₁₂,J₂₂
+end
+function get𝑥(ap::Quad,ξ::AbstractNode)
+    N₁,N₂,N₃,N₄ = get𝝭(ap,ξ)
+    x₁ = ap.𝓒[1].x
+    x₂ = ap.𝓒[2].x
+    x₃ = ap.𝓒[3].x
+    x₄ = ap.𝓒[4].x
+    y₁ = ap.𝓒[1].y
+    y₂ = ap.𝓒[2].y
+    y₃ = ap.𝓒[3].y
+    y₄ = ap.𝓒[4].y
+    z₁ = ap.𝓒[1].z
+    z₂ = ap.𝓒[2].z
+    z₃ = ap.𝓒[3].z
+    z₄ = ap.𝓒[4].z
+    return (N₁*x₁+N₂*x₂+N₃*x₃+N₄*x₄, N₁*y₁+N₂*y₂+N₃*y₃+N₄*y₄, N₁*z₁+N₂*z₂+N₃*z₃+N₄*z₄)
+end
+
 ## PoiN
 struct PoiN{T,𝒑,𝑠,𝜙}<:ReproducingKernel{T,𝒑,𝑠,𝜙}
     𝓒::Vector{Node}
@@ -284,8 +280,9 @@ function PoiN{T,𝒑,𝑠,𝜙}(i::Int,data::Dict{Symbol,Vector{Float64}},𝗠::
     return PoiN{T,𝒑,𝑠,𝜙}(𝓒,𝗠,𝝭)
 end
 
-@inline get𝑥(ap::PoiN,::Node) = (ap.𝓒[1].x,ap.𝓒[1].y,ap.𝓒[1].z)
-@inline get𝑥(ap::PoiN,ξ::SNode) = haskey(ξ.data,:x) ? (ξ.x,ξ.y,ξ.z) : (ap.𝓒[1].x,ap.𝓒[1].y,ap.𝓒[1].z)
+
+@inline get𝒙(ap::PoiN,::Node) = (ap.𝓒[1].x,ap.𝓒[1].y,ap.𝓒[1].z)
+@inline get𝒙(ap::PoiN,ξ::SNode) = haskey(ξ.data,:x) ? (ξ.x,ξ.y,ξ.z) : (ap.𝓒[1].x,ap.𝓒[1].y,ap.𝓒[1].z)
 @inline get𝑤(::PoiN,::AbstractNode) = 1.0
 @inline get𝐽(::PoiN,::AbstractNode) = 1.0
 
@@ -299,23 +296,32 @@ struct SegN{T,𝒑,𝑠,𝜙}<:ReproducingKernel{T,𝒑,𝑠,𝜙}
     𝐿::Float64
 end
 
+SegN{T,𝒑,𝑠,𝜙}(𝓒::Vector{Node},𝓖::Vector{T},𝗠::Dict{Symbol,SymMat},𝝭::Dict{Symbol,Vector{Float64}},𝐿::Float64) where {T<:AbstractNode,𝒑,𝑠,𝜙} = SegN(𝓒,𝓖,𝗠,𝝭,(Val(𝒑),Val(𝑠),Val(𝜙)),𝐿)
+
 function SegN{T,𝒑,𝑠,𝜙}(𝓒::Vector{Node},𝓖::Vector{T},𝗠::Dict{Symbol,SymMat},𝝭::Dict{Symbol,Vector{Float64}}) where {T<:AbstractNode,𝒑,𝑠,𝜙}
     x₁ = 𝓒[1].x
     y₁ = 𝓒[1].y
     x₂ = 𝓒[2].x
     y₂ = 𝓒[2].y
     𝐿 = ((x₂-x₁)^2+(y₂-y₁)^2)^0.5
-    return SegN(𝓒,𝓖,𝗠,𝝭,(Val(𝒑),Val(𝑠),Val(𝜙)),𝐿)
+    return SegN{T,𝒑,𝑠,𝜙}(𝓒,𝓖,𝗠,𝝭,𝐿)
 end
 
 function SegN{T,𝒑,𝑠,𝜙}(𝓒::Vector{Node},𝗠::Dict{Symbol,SymMat},𝝭::Dict{Symbol,Vector{Float64}}) where {T<:AbstractNode,𝒑,𝑠,𝜙}
     𝓖 = T[]
-    return SegN(𝓒,𝓖,𝗠,𝝭)
+    return SegN{T,𝒑,𝑠,𝜙}(𝓒,𝓖,𝗠,𝝭)
 end
 
 function SegN{T,𝒑,𝑠,𝜙}(i::Int,j::Int,data::Dict{Symbol,Vector{Float64}},𝗠::Dict{Symbol,SymMat},𝝭::Dict{Symbol,Vector{Float64}}) where {T<:AbstractNode,𝒑,𝑠,𝜙}
     𝓒 = [Node(i,data),Node(j,data)]
     return SegN{T,𝒑,𝑠,𝜙}(𝓒,𝗠,𝝭)
+end
+
+@inline function get∇𝑛𝝭(ap::SegN,ξ::T) where T<:AbstractNode
+    N,B = get∇𝝭(ap,ξ)
+    n₁ = ξ.ξ == -1.0 ? -1.0 : 1.0
+    B .*= n₁
+    return N,B
 end
 
 @inline get𝒙(ap::SegN,ξ::Node) = get𝒙(ap,ξ.ξ)
@@ -331,16 +337,20 @@ end
     return (x₁*N₁+x₂*N₂,y₁*N₁+y₂*N₂,z₁*N₁+z₂*N₂)
 end
 @inline get𝒙(ap::SegN,ξ::SNode) = haskey(ξ.data,:x) ? (ξ.x,ξ.y,ξ.z) : get𝒙(ap,ξ.ξ)
-
-
-@inline get𝑤(ap::SegN,ξ::T) where T<:AbstractNode = haskey(ξ.data,:𝑤) ? ξ.𝑤 : 0.5*ap.L*ξ.w
+@inline get𝑤(ap::SegN,ξ::T) where T<:AbstractNode = haskey(ξ.data,:𝑤) ? ξ.𝑤 : 0.5*ap.𝐿*ξ.w
 @inline get𝐽(ap::SegN,ξ::T) where T<:AbstractNode = 0.5*ap.L
-function get𝒏(ap::SegN,ξ::T) where T<:AbstractNode
-    n₁ = 0.0
+function set𝒏!(ap::SegN)
+    𝓖 = ap.𝓖
+    for ξ in 𝓖
+        ξ.n₁ = get𝒏(ap,ξ)
+    end
+end
+@inline function get𝒏(ap::SegN,ξ::T) where T<:AbstractNode
+    n₁ = 0
     n₁ += ξ.ξ ==  1.0 ?  1.0 : 0.0
     n₁ += ξ.ξ == -1.0 ? -1.0 : 0.0
+    return n₁
 end
-
 ##
 struct TriN{T,𝒑,𝑠,𝜙}<:ReproducingKernel{T,𝒑,𝑠,𝜙}
     𝓒::Vector{Node}
@@ -364,13 +374,13 @@ end
 function get𝝭(ap::T,ξ::Node) where T<:ReproducingKernel
     𝓒 = ap.𝓒
     𝝭 = ap.𝝭[:∂1]
-    x = getx(ap,ξ)
-    𝒑₀ᵀ𝗠⁻¹ = cal𝗠!(ap,x)
+    𝒙 = get𝒙(ap,ξ)
+    𝒑₀ᵀ𝗠⁻¹ = cal𝗠!(ap,𝒙)
     for i in 1:length(𝓒)
-        xᵢ = 𝓒[i]
-        Δx = x - xᵢ
-        𝒑 = get𝒑(ap,Δx)
-        𝜙 = get𝜙(ap,xᵢ,Δx)
+        𝒙ᵢ = 𝓒[i]
+        Δ𝒙 = 𝒙 - 𝒙ᵢ
+        𝒑 = get𝒑(ap,Δ𝒙)
+        𝜙 = get𝜙(ap,𝒙ᵢ,Δ𝒙)
         𝝭[i] = 𝒑₀ᵀ𝗠⁻¹*𝒑*𝜙
     end
     return 𝝭
@@ -380,11 +390,11 @@ function get∂𝝭∂x(ap::T,ξ::Node) where T<:ReproducingKernel
     𝓒 = ap.𝓒
     𝝭 = ap.𝝭[:∂1]
     ∂𝝭∂x = ap.𝝭[:∂x]
-    x = getx(ap,ξ)
-    𝒑₀ᵀ𝗠⁻¹, 𝒑₀ᵀ∂𝗠⁻¹∂x = cal∂𝗠∂x!(ap,x)
+    𝒙 = getx(ap,ξ)
+    𝒑₀ᵀ𝗠⁻¹, 𝒑₀ᵀ∂𝗠⁻¹∂x = cal∂𝗠∂x!(ap,𝒙)
     for i in 1:length(𝓒)
-        xᵢ = 𝓒[i]
-        Δx = x - xᵢ
+        𝒙ᵢ = 𝓒[i]
+        Δ𝒙 = 𝒙 - 𝒙ᵢ
         𝒑, ∂𝒑∂x = get∂𝒑∂x(ap,Δx)
         𝜙, ∂𝜙∂x = get∂𝜙∂x(ap,xᵢ,Δx)
         𝝭[i] = 𝒑₀ᵀ𝗠⁻¹*𝒑*𝜙
@@ -399,13 +409,13 @@ function get∇𝝭(ap::T,ξ::Node) where T<:ReproducingKernel
     ∂𝝭∂x = ap.𝝭[:∂x]
     ∂𝝭∂y = ap.𝝭[:∂y]
     ∂𝝭∂z = ap.𝝭[:∂z]
-    x = getx(ap,ξ)
-    𝒑₀ᵀ𝗠⁻¹, 𝒑₀ᵀ∂𝗠⁻¹∂x, 𝒑₀ᵀ∂𝗠⁻¹∂y, 𝒑₀ᵀ∂𝗠⁻¹∂z= cal∇𝗠!(ap,x)
+    𝒙 = get𝒙(ap,ξ)
+    𝒑₀ᵀ𝗠⁻¹, 𝒑₀ᵀ∂𝗠⁻¹∂x, 𝒑₀ᵀ∂𝗠⁻¹∂y, 𝒑₀ᵀ∂𝗠⁻¹∂z= cal∇𝗠!(ap,𝒙)
     for i in 1:length(𝓒)
-        xᵢ = 𝓒[i]
-        Δx = x - xᵢ
-        𝒑, ∂𝒑∂x, ∂𝒑∂y, ∂𝒑∂z = get∇𝒑(ap,Δx)
-        𝜙, ∂𝜙∂x, ∂𝜙∂y, ∂𝜙∂z = get∇𝜙(ap,xᵢ,Δx)
+        𝒙ᵢ = 𝓒[i]
+        Δ𝒙 = 𝒙 - 𝒙ᵢ
+        𝒑, ∂𝒑∂x, ∂𝒑∂y, ∂𝒑∂z = get∇𝒑(ap,Δ𝒙)
+        𝜙, ∂𝜙∂x, ∂𝜙∂y, ∂𝜙∂z = get∇𝜙(ap,𝒙ᵢ,Δ𝒙)
         𝝭[i] = 𝒑₀ᵀ𝗠⁻¹*𝒑*𝜙
         ∂𝝭∂x[i] = 𝒑₀ᵀ∂𝗠⁻¹∂x*𝒑*𝜙 + 𝒑₀ᵀ𝗠⁻¹*∂𝒑∂x*𝜙 + 𝒑₀ᵀ𝗠⁻¹*𝒑*∂𝜙∂x
         ∂𝝭∂y[i] = 𝒑₀ᵀ∂𝗠⁻¹∂y*𝒑*𝜙 + 𝒑₀ᵀ𝗠⁻¹*∂𝒑∂y*𝜙 + 𝒑₀ᵀ𝗠⁻¹*𝒑*∂𝜙∂y
@@ -415,18 +425,18 @@ function get∇𝝭(ap::T,ξ::Node) where T<:ReproducingKernel
 end
 
 ## set shape functions
-function set𝝭(aps::Vector{T}) where T<:ReproducingKernel{SNode}
+function set𝝭!(aps::Vector{T}) where T<:ReproducingKernel{SNode}
     for ap in aps
-        set𝝭(ap)
+        set𝝭!(ap)
     end
 end
-function set∇𝝭(aps::Vector{T}) where T<:ReproducingKernel{SNode}
+function set∇𝝭!(aps::Vector{T}) where T<:ReproducingKernel{SNode}
     for ap in aps
-        set∇𝝭(ap)
+        set∇𝝭!(ap)
     end
 end
 
-function set𝝭(ap::ReproducingKernel{SNode})
+function set𝝭!(ap::ReproducingKernel{SNode})
     𝓒 = ap.𝓒
     𝓖 = ap.𝓖
     for ξ in 𝓖
@@ -440,7 +450,7 @@ function set𝝭(ap::ReproducingKernel{SNode})
     end
 end
 
-function set∇𝝭(ap::ReproducingKernel{SNode})
+function set∇𝝭!(ap::ReproducingKernel{SNode})
     𝓒 = ap.𝓒
     𝓖 = ap.𝓖
     for ξ in 𝓖
@@ -457,63 +467,98 @@ function set∇𝝭(ap::ReproducingKernel{SNode})
     end
 end
 
-function union!(as::Vector{T},bs::Vector{S}) where {T<:Approximator,S<:Approximator}
+## convert
+function glue(as::Vector{T},bs::Vector{S}) where {T<:Approximator,S<:Approximator}
     aps_ = S[]
     for a in as
-        push!(aps_,union!(a,bs))
+        push!(aps_,link(a,bs))
     end
     return aps_
 end
-
-function union!(a::T,bs::Vector{S}) where {T<:Approximator,S<:Approximator}
+function glue(a::T,bs::Vector{S}) where {T<:Approximator,S<:Approximator}
     for b in bs
-        a.𝓒 ⊆ b.𝓒 ? return b(a) : nothing
+        ap = glue(a,b)
+        ap ≠ nothing ? (return ap) : continue
+    end
+end
+glue(a::T,b::S) where {T<:Approximator,S<:Approximator} = b(a)
+
+function (b::Seg2)(a::Poi1)
+    i = findfirst(x->x.id==a.𝓒[1].id, b.𝓒)
+    if i ≠ nothing
+        𝓒 = b.𝓒
+        𝓖 = a.𝓖
+        𝐿 = b.𝐿
+        for ξ in 𝓖
+            i == 1 ? ξ.ξ = -1.0 : ξ.ξ = 1.0
+        end
+        return Seg2(𝓒,𝓖,𝐿)
+    else
+        return nothing
     end
 end
 
-function union!(a::PoiN,bs::Vector{SegN})
-    for b in bs
-        i = findfirst(x->x.id==a.𝓒[1].id, b.𝓒)
-        i≤2 ? return b(a) : nothing
+function (b::SegN{T,𝒒,𝑠,𝜙})(a::PoiN{S,𝒑,𝑠,𝜙}) where {T<:AbstractNode,S<:AbstractNode,𝒑,𝒒,𝑠,𝜙}
+    i = findfirst(x->x.id==a.𝓒[1].id, b.𝓒)
+    if i ≠ nothing && i ≤ 2
+        𝓒 = b.𝓒
+        𝓖 = a.𝓖
+        if 𝒑 ≠ 𝒒
+            n = length(get𝒑(a,(0.0,0.0,0.0)))
+            𝗠 = Dict{Symbol,SymMat}()
+            for s in keys(a.𝗠)
+                𝗠[s] = SymMat(n)
+            end
+        else
+            𝗠 = a.𝗠
+        end
+        𝝭 = b.𝝭
+        𝐿 = b.𝐿
+        for ξ in 𝓖
+            i == 1 ? ξ.ξ = -1.0 : ξ.ξ = 1.0
+        end
+        if S == SNode
+            n = length(b.𝓒)-length(a.𝓒)
+            T ≠ SNode ? addindex(𝓖,n) : glue(a.𝓖,b.𝓖)
+        end
+        return SegN{S,𝒑,𝑠,𝜙}(𝓒,𝓖,𝗠,𝝭,𝐿)
+    else
+        return nothing
     end
 end
-
-function union!(a::SegN,bs::Vector{TriN})
-    for b in bs
-        i = findfirst(x->x.id==a.𝓒[1].id, b.𝓒)
-        j = findfirst(x->x.id==a.𝓒[2].id, b.𝓒)
-        i≤3 && j≤3 ? return b(a) : nothing
+function addindex(𝓖::Vector{SNode},n::Int)
+    nₜ = length(𝓖)*n
+    index = 𝓖[1].index
+    𝝭 = 𝓖[1].𝝭
+    for s in keys(𝝭)
+        push!(𝝭[s],0.0 for i in 1:nₜ)
     end
-end
-
-function (b::T)(a::S) where {T<:Approximator,S<:Approximator}
-    𝓒 = b.𝓒
-    𝓖 = a.𝓖
     for ξ in 𝓖
-        x = getx(a,ξ)
-        𝑤 = get𝑤(a,ξ)
-        ξ.x = x[1]
-        ξ.y = x[2]
-        ξ.z = x[3]
-        ξ.𝑤 = 𝑤
+        for i in 1:length(index)-ξ.id
+            index[ξ.id+i] += i*n
+        end
     end
-    return T(𝓒,𝓖)
 end
-
-function (b::T)(a::S) where {T<:ReproducingKernel{N₁,𝒑₁,𝑠₁,𝜙₁},S<:ReproducingKernel{N₂,𝒑₂,𝑠₂,𝜙₂},N₁,𝒑₁,𝑠₁,𝜙₁,N₂,𝒑₂,𝑠₂,𝜙₂}
-    𝓒 = b.𝓒
-    𝓖 = a.𝓖
-    𝗠 = b.𝗠
-    𝝭 = b.𝝭
-    for ξ in 𝓖
-        x = get𝒙(a,ξ)
-        𝑤 = get𝑤(a,ξ)
-        ξ.x = x[1]
-        ξ.y = x[2]
-        ξ.z = x[3]
-        ξ.𝑤 = 𝑤
+function glue(𝓖₁::Vector{SNode},𝓖₂::Vector{SNode})
+    for ξ in 𝓖₁
+        for s in keys(ξ.𝝭)
+            ξ.𝝭[s] = b.𝓖[1].𝝭[s]
+        end
+        i = findfirst(x->x.ξ==ξ.ξ,𝓖₂)
+        if i ≠ nothing
+            η = 𝓖₂[i]
+            ξ.index[ξ.id] = η.index[η.id]
+        else
+            n = η.index[η.id+1] - η.index[η.id]
+            for s in keys(ξ.𝝭)
+                push!(ξ.𝝭[s],0.0 for i in 1:n)
+            end
+        end
     end
-    return T(𝓒,𝓖,𝗠,𝝭)
+end
+function link(a::SegN,b::TriN)
+    i = findfirst(x->x.id==a.𝓒[1].id, b.𝓒)
+    j = findfirst(x->x.id==a.𝓒[2].id, b.𝓒)
 end
 
 function Poi1(aps::Vector{T};renumbering::Bool=false) where T<:Approximator
@@ -546,7 +591,6 @@ function PoiN{T,𝒑,𝑠,𝜙}(aps::Vector{A}) where {T<:AbstractNode,𝒑,𝑠
     end
     return aps_
 end
-
 
 function Seg2(aps::Vector{T};renumbering::Bool=false) where T<:Approximator
     aps_ = Seg2[]
@@ -582,17 +626,17 @@ function SegN{T,𝒑,𝑠,𝜙}(aps::Vector{A}) where {T<:AbstractNode,𝒑,𝑠
 end
 
 ## RK gradient smoothing
-function set∇̃𝝭(gps::Vector{T},aps::Vector{S}) where{T<:ReproducingKernel,S<:ReproducingKernel}
+function set∇̃𝝭!(gps::Vector{T},aps::Vector{S}) where{T<:ReproducingKernel,S<:ReproducingKernel}
     if length(gps) ≠ length(aps)
         error("Miss match element numbers")
     else
         for i in 1:length(gps)
-            set∇̃𝝭(gps[i],aps[i])
+            set∇̃𝝭!(gps[i],aps[i])
         end
     end
 end
-set∇̃𝝭(ap::T) where T<:ReproducingKernel{SNode} = set∇̃𝝭(ap,ap)
-function set∇̃𝝭(gp::SegN{SNode},ap::SegN{SNode})
+set∇̃𝝭!(ap::T) where T<:ReproducingKernel{SNode} = set∇̃𝝭!(ap,ap)
+function set∇̃𝝭!(gp::SegN{SNode},ap::SegN{SNode})
     𝗚⁻¹ = cal𝗚!(gp)
     𝓒 = gp.𝓒
     𝓖 = gp.𝓖
@@ -618,7 +662,7 @@ function set∇̃𝝭(gp::SegN{SNode},ap::SegN{SNode})
     end
 end
 
-function set∇̃𝝭(gp::TriN{SNode},ap::TriN{SNode})
+function set∇̃𝝭!(gp::TriN{SNode},ap::TriN{SNode})
     𝗚⁻¹ = cal𝗚!(gp)
     𝓒 = gp.𝓒
     𝓖 = gp.𝓖
@@ -651,7 +695,7 @@ function set∇̃𝝭(gp::TriN{SNode},ap::TriN{SNode})
     end
 end
 
-function set∇̃𝝭(gp::TetN{SNode},ap::TetN{SNode})
+function set∇̃𝝭!(gp::TetN{SNode},ap::TetN{SNode})
     𝗚⁻¹ = cal𝗚!(gp)
     𝓒 = gp.𝓒
     𝓖 = gp.𝓖

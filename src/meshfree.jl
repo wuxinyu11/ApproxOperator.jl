@@ -413,7 +413,7 @@ function cal𝗚!(ap::A) where A<:ReproducingKernel
     n = length(get𝒑(ap,(0.0,0.0,0.0)))
     fill!(𝗚,0.0)
     for ξ in 𝓖
-        w = getw(ap,ξ)
+        w = get𝑤(ap,ξ)
         𝒑 = get𝒑(ap,ξ)
         for I in 1:n
             for J in I:n
