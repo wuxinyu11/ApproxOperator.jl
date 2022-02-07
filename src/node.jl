@@ -22,23 +22,22 @@ end
 @inline +(n::T,x::NTuple{3,Float64}) where T<:AbstractNode = (n.x+x[1],n.y+x[2],n.z+x[3])
 @inline +(x::NTuple{3,Float64},n::T) where T<:AbstractNode = (x[1]+n.x,x[2]+n.y,x[3]+n.z)
 
-# ----------------- Node ------------------
+## ----------------- Node ------------------
 struct Node<:AbstractNode
     id::Int
     data::Dict{Symbol,Vector{Float64}}
 end
 
-## Meshfree module
-# ----------------- MFNode ------------------
+## ----------------- SNode ------------------
 struct SNode<:AbstractNode
     id::Int
     data::Dict{Symbol,Vector{Float64}}
     index::Vector{Int}
     𝝭::Dict{Symbol,Vector{Float64}}
 end
-Node(ξ::SNode) = Node(ξ.id,ξ.data)
 
-function get𝝭(ap::ReproducingKernel{SNode},ξ::SNode)
+## Shape functions
+function get𝝭(ap::ReproducingKernel,ξ::SNode)
     𝝭 = ap.𝝭[:∂1]
     i = ξ.id
     index = ξ.index
@@ -48,7 +47,7 @@ function get𝝭(ap::ReproducingKernel{SNode},ξ::SNode)
     return 𝝭
 end
 
-function get∂𝝭∂x(ap::ReproducingKernel{SNode},ξ::SNode)
+function get∂𝝭∂x(ap::ReproducingKernel,ξ::SNode)
     ∂𝝭∂x = ap.𝝭[:∂x]
     i = ξ.id
     index = ξ.index
@@ -60,9 +59,9 @@ end
 
 function get∇𝝭(ap::ReproducingKernel,ξ::SNode)
     𝝭 = ap.𝝭[:∂1]
-    ∂𝝭∂x = ap.𝝭[:∂x]
-    ∂𝝭∂y = ap.𝝭[:∂y]
-    ∂𝝭∂z = ap.𝝭[:∂z]
+    ∂𝝭∂x = ξ.𝝭[:∂x]
+    ∂𝝭∂y = ξ.𝝭[:∂y]
+    ∂𝝭∂z = ξ.𝝭[:∂z]
     i = ξ.id
     index = ξ.index
     for j in 1:length(ap.𝓒)
@@ -74,17 +73,22 @@ function get∇𝝭(ap::ReproducingKernel,ξ::SNode)
     return 𝝭, ∂𝝭∂x, ∂𝝭∂y, ∂𝝭∂z
 end
 
+## convert
+Node(ξ::MNode) = Node(ξ.id,ξ.data)
+Node(ξ::SNode) = Node(ξ.id,ξ.data)
+(a::SNode)(b::SNode) = SNode(b.id,b.data,a.𝗠,a.𝝭,a.index,a.𝝭ˢ)
+
 ## Quadrature Points
-function set𝓖!(aps::Vector{T},s::Symbol) where T<:Approximator
+function set𝓖!(aps::Vector{Element{Node}},s::Symbol)
     rule = QuadratureRule[s]
     return set𝓖!(aps,rule)
 end
-function set𝓖!(aps::Vector{T},s::Symbol,stype::Symbol...;isrk::Bool=false) where T<:ReproducingKernel
+function set𝓖!(aps::Vector{Element{MNode}},s::Symbol,stype::Symbol...;isrk::Bool=false)
     rule = QuadratureRule[s]
     return set𝓖!(aps,rule,stype...;isrk=isrk)
 end
 
-function set𝓖!(aps::Vector{T},𝓖::NTuple{N,NTuple{D,Float64}}) where {T<:FiniteElement,N,D}
+function set𝓖!(aps::Vector{Element{Node}},𝓖::NTuple{N,NTuple{D,Float64}}) where {N,D}
     nₑ = length(aps)
     nᵢ = nₑ*N
     data = Dict(:w=>zeros(nᵢ))

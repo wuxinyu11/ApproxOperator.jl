@@ -4,9 +4,7 @@ import Base: +, -, *, getindex, setindex!, getproperty, setproperty!, length, pu
 import InteractiveUtils: subtypes
 
 abstract type AbstractNode end
-abstract type Approximator end
-abstract type FiniteElement<:Approximator end
-abstract type ReproducingKernel{T<:AbstractNode,𝒑,𝑠,𝜙} <: Approximator end
+abstract type AbstractElement{T,N<:AbstractNode} end
 abstract type SpatialPartition end
 
 include("node.jl")
