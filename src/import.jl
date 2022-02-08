@@ -21,7 +21,7 @@ end
 function import_msh_4(fid::IO) end
 
 function import_msh_2(fid::IO)
-    etype = Dict(1=>Seg2,2=>Tri3,3=>Quad,15=>Poi1)
+    etype = Dict(1=>:Seg2,2=>:Tri3,3=>:Quad,15=>:Poi1)
     nodes = Dict{Symbol,Vector{Float64}}()
     elements = Dict{String,Any}()
     physicalnames = Dict{Int,String}()
@@ -70,7 +70,7 @@ function import_msh_2(fid::IO)
                 nodeList = parse.(Int,l_)
                 name = physicalnames[phyTag]
                 type = etype[elmType]
-                haskey(elements,name) ? push!(elements[name],type(nodeList...,nodes)) : elements[name]=type[type(nodeList...,nodes)]
+                haskey(elements,name) ? push!(elements[name],Element{type}(nodes,nodeList...)) : elements[name]=Element{type}[Element{type}(nodes,nodeList...)]
             end
             return elements, nodes
         end

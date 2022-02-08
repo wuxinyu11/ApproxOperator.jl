@@ -17,40 +17,40 @@ push!(op::Operator,d::Pair{Symbol,D}...) where D<:Any = push!(op.data,d...)
     getfield(op,:data)[f] = x
 end
 
-@inline function (op::Operator)(aps::Vector{T},gps::Vector{S},k::AbstractMatrix{Float64},f::Vector{Float64}) where {T<:Approximator,S<:Approximator}
+@inline function (op::Operator)(aps::Vector{T},gps::Vector{S},k::AbstractMatrix{Float64},f::Vector{Float64}) where {T<:AbstractElement,S<:AbstractElement}
     for i in 1:length(aps)
         op(aps[i],gps[i],k,f)
     end
 end
 
-@inline function (op::Operator)(aps::Vector{T},k::AbstractMatrix{Float64},f::Vector{Float64}) where T<:Approximator
+@inline function (op::Operator)(aps::Vector{T},k::AbstractMatrix{Float64},f::Vector{Float64}) where T<:AbstractElement
     for ap in aps
         op(ap,k,f)
     end
 end
-@inline function (op::Operator)(aps::Vector{T},k::AbstractMatrix{Float64}) where T<:Approximator
+@inline function (op::Operator)(aps::Vector{T},k::AbstractMatrix{Float64}) where T<:AbstractElement
     for ap in aps
         op(ap,k)
     end
 end
-@inline function (op::Operator)(aps::Vector{T},f::AbstractVector{Float64}) where T<:Approximator
+@inline function (op::Operator)(aps::Vector{T},f::AbstractVector{Float64}) where T<:AbstractElement
     for ap in aps
         op(ap,f)
     end
 end
 
-@inline function (op::Operator)(aps::Vector{T},s::Symbol) where T<:Approximator
+@inline function (op::Operator)(aps::Vector{T},s::Symbol) where T<:AbstractElement
     for ap in aps
         op(ap,s)
     end
 end
-@inline function (op::Operator)(aps::Vector{T}) where T<:Approximator
+@inline function (op::Operator)(aps::Vector{T}) where T<:AbstractElement
     for ap in aps
         op(ap)
     end
 end
 
-function prescribe!(ap::T,s::Symbol,f::Function) where T<:Approximator
+function prescribe!(ap::T,s::Symbol,f::Function) where T<:AbstractElement
     𝓖 = ap.𝓖
     for ξ in 𝓖
         𝒙 = get𝒙(ap,ξ)
@@ -59,7 +59,7 @@ function prescribe!(ap::T,s::Symbol,f::Function) where T<:Approximator
     end
 end
 
-function prescribe!(aps::Vector{T},s::Symbol,f::Function) where T<:Approximator
+function prescribe!(aps::Vector{T},s::Symbol,f::Function) where T<:AbstractElement
     𝓖 = aps[1].𝓖
     data = 𝓖[1].data
     if ~haskey(data,s)
@@ -71,7 +71,7 @@ function prescribe!(aps::Vector{T},s::Symbol,f::Function) where T<:Approximator
 end
 
 ## Potential Problem
-function (op::Operator{:∫∇v∇uvbdΩ})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:Approximator
+function (op::Operator{:∫∇v∇uvbdΩ})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
         N,B₁,B₂,B₃ = get∇𝝭(ap,ξ)
@@ -87,7 +87,7 @@ function (op::Operator{:∫∇v∇uvbdΩ})(ap::T,k::AbstractMatrix{Float64},f::A
     end
 end
 
-function (op::Operator{:∫∇v∇udΩ})(ap::T,k::AbstractMatrix{Float64}) where T<:Approximator
+function (op::Operator{:∫∇v∇udΩ})(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
         ~,B₁,B₂,B₃ = get∇𝝭(ap,ξ)
@@ -102,11 +102,11 @@ function (op::Operator{:∫∇v∇udΩ})(ap::T,k::AbstractMatrix{Float64}) where
     end
 end
 
-function (op::Operator{:∫vbdΩ})(ap::T,f::AbstractVector{Float64}) where T<:Approximator
+function (op::Operator{:∫vbdΩ})(ap::T,f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
-        N = get𝝭(ap,ξ)
         𝑤 = get𝑤(ap,ξ)
+        N = get𝝭(ap,ξ)
         for i in 1:length(𝓒)
             I = 𝓒[i].id
             f[I] += N[i]*ξ.b*𝑤
@@ -114,7 +114,7 @@ function (op::Operator{:∫vbdΩ})(ap::T,f::AbstractVector{Float64}) where T<:Ap
     end
 end
 
-function (op::Operator{:∫vtdΓ})(ap::T,f::AbstractVector{Float64}) where T<:Approximator
+function (op::Operator{:∫vtdΓ})(ap::T,f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
         𝑤 = get𝑤(ap,ξ)
@@ -126,7 +126,7 @@ function (op::Operator{:∫vtdΓ})(ap::T,f::AbstractVector{Float64}) where T<:Ap
     end
 end
 
-function (op::Operator{:∫vgdΓ})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:Approximator
+function (op::Operator{:∫vgdΓ})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
         𝑤 = get𝑤(ap,ξ)
@@ -142,7 +142,7 @@ function (op::Operator{:∫vgdΓ})(ap::T,k::AbstractMatrix{Float64},f::AbstractV
     end
 end
 
-function (op::Operator{:∫λgdΓ})(ap1::T,ap2::S,g::AbstractMatrix{Float64},q::AbstractVector{Float64}) where {T<:Approximator,S<:Approximator}
+function (op::Operator{:∫λgdΓ})(ap1::T,ap2::S,g::AbstractMatrix{Float64},q::AbstractVector{Float64}) where {T<:AbstractElement,S<:AbstractElement}
     for ξ in ap1.𝓖
         𝑤 = get𝑤(ap1,ξ)
         N = get𝝭(ap1,ξ)
@@ -158,7 +158,7 @@ function (op::Operator{:∫λgdΓ})(ap1::T,ap2::S,g::AbstractMatrix{Float64},q::
     end
 end
 
-function (op::Operator{:∫∇𝑛vgdΓ})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:Approximator
+function (op::Operator{:∫∇𝑛vgdΓ})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
     for ξ in ap.𝓖
         N,B = get∇𝑛𝝭(ap,ξ)
         for i in 1:length(ap.𝓒)
@@ -172,7 +172,7 @@ function (op::Operator{:∫∇𝑛vgdΓ})(ap::T,k::AbstractMatrix{Float64},f::Ab
     end
 end
 
-function (op::Operator{:g})(ap::Poi1,k::AbstractMatrix{Float64},f::AbstractVector{Float64};dof::Symbol=:d)
+function (op::Operator{:g})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64};dof::Symbol=:d) where T<:AbstractElement{:Poi1}
     x = ap.𝓒[1]
     j = x.id
     g = getproperty(x,dof)
@@ -186,7 +186,7 @@ function (op::Operator{:g})(ap::Poi1,k::AbstractMatrix{Float64},f::AbstractVecto
 end
 
 ## error estimates
-function (op::Operator{:L₂})(ap::T) where T<:Approximator
+function (op::Operator{:L₂})(ap::T) where T<:AbstractElement
     Δu²= 0
     ū² = 0
     for ξ in ap.𝓖
@@ -205,7 +205,7 @@ function (op::Operator{:L₂})(ap::T) where T<:Approximator
     return Δu², ū²
 end
 
-function (op::Operator{:L₂})(aps::Vector{T}) where T<:Approximator
+function (op::Operator{:L₂})(aps::Vector{T}) where T<:AbstractElement
     L₂Norm_Δu²= 0
     L₂Norm_ū² = 0
     for ap in aps
@@ -216,7 +216,7 @@ function (op::Operator{:L₂})(aps::Vector{T}) where T<:Approximator
     return (L₂Norm_Δu²/L₂Norm_ū²)^0.5
 end
 
-function (op::Operator{:H₁})(ap::T) where T<:Approximator
+function (op::Operator{:H₁})(ap::T) where T<:AbstractElement
     Δ∇u²= 0
     ∇ū² = 0
     Δu²= 0
@@ -248,7 +248,7 @@ function (op::Operator{:H₁})(ap::T) where T<:Approximator
     return Δ∇u², ∇ū², Δu², ū²
 end
 
-function (op::Operator{:H₁})(aps::Vector{T}) where T<:Approximator
+function (op::Operator{:H₁})(aps::Vector{T}) where T<:AbstractElement
     H₁Norm_Δu²= 0
     H₁Norm_ū² = 0
     L₂Norm_Δu²= 0

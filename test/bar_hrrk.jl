@@ -24,19 +24,17 @@ set𝓖!(elements["DomainS"],:SegGI2,:∂1,:∂x,:∂y,:∂z)
 set𝓖!(elements["NBC"],:PoiGI1,:∂1)
 set𝓖!(elements["EBC"],:PoiGI1,:∂1,:∂x,:∂y,:∂z)
 
-elements["EBC"] = ReproducingKernel{type...,:Seg2}(elements["Domain"],elements["EBC"],sharing=false)
-
-set𝒏!(elements["Domain"])
-
-set𝝭!(elements["Domain"])
-set∇̃𝝭!(elements["DomainS"],elements["Domain"])
-set∇𝝭!(elements["EBC"])
-set𝝭!(elements["NBC"])
+elements["EBC"] = ReproducingKernel{type...,:Seg2}(elements["Domain"],elements["EBC"],sharing=true)
 
 r = 3
 prescribe!(elements["Domain"],:b,(x,y,z)->-r*(r-1)*x^abs(r-2))
 prescribe!(elements["NBC"],:t,(x,y,z)->r*x^abs(r-1))
 prescribe!(elements["EBC"],:g,(x,y,z)->x^r)
+
+set𝝭!(elements["Domain"])
+set∇̃𝝭!(elements["DomainS"],elements["Domain"])
+set𝝭!(elements["NBC"])
+setg̃!(elements["DomainS"],elements["EBC"])
 
 coefficient = (:k=>1.0,:α=>1e3)
 ops = [Operator(:∫∇v∇udΩ,coefficient...),

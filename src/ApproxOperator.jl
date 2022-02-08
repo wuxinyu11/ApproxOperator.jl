@@ -4,16 +4,16 @@ import Base: +, -, *, getindex, setindex!, getproperty, setproperty!, length, pu
 import InteractiveUtils: subtypes
 
 abstract type AbstractNode end
-abstract type AbstractElement{T,N<:AbstractNode} end
+abstract type AbstractElement{T} end
 abstract type SpatialPartition end
 
 include("node.jl")
-include("meshfree.jl")
 include("approximation.jl")
+include("meshfree.jl")
+include("integration.jl")
 include("operation.jl")
 include("import.jl")
-export Node, SNode
-export Poi1, Seg2, Tri3, Quad, PoiN, SegN
+export Node, Element, SNode, ReproducingKernel
 export importmsh
 export RegularGrid
 export Operator, prescribe!, similar, glue

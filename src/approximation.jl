@@ -4,11 +4,50 @@ struct Element{T}<:AbstractElement{T}
     𝓖::Vector{Node}
 end
 Element{T}(𝓒::Vector{Node}) where T = Element{T}(𝓒,Node[])
+function Element{T}(data::Dict{Symbol,Vector{Float64}},index::Int...) where T
+    𝓒 = [Node(i,data) for i in index]
+    𝓖 = Node[]
+    return Element{T}(𝓒,𝓖)
+end
 
+## convert
+Element{T}(a::S) where {T,S<:AbstractElement} = Element{T}(a.𝓒)
+function Element{T}(as::Vector{S};renumbering::Bool=false) where {T,S<:AbstractElement}
+    aps = Element{T}[]
+    if renumbering
+        index, data = renumber(aps)
+        for a in as
+            𝓒 = [Node(index[x.id],data) for x in a.𝓒]
+            𝓖 = Node[]
+            push!(aps,Element{T}(𝓒,𝓖))
+        end
+    else
+        for a in as
+            push!(aps,Element{T}(a))
+        end
+    end
+    return aps
+end
+
+function Element{T}(a::AbstractElement,b::AbstractElement) where T
+    𝓒 = a.𝓒
+    𝓖 = get𝓖(a,b)
+    𝓖 ≠ nothing ? Element{T}(𝓒,𝓖) : nothing
+end
+function Element{T}(as::Vector{A},bs::Vector{B}) where {T,A<:AbstractElement,B<:AbstractElement}
+    aps = Element{T}[]
+    for a in as
+        for b in bs
+            ap = Element{T}(a,b)
+            ap ≠ nothing ? push!(aps,ap) : nothing
+        end
+    end
+    return aps
+end
 ## get𝒙
 @inline get𝒙(ap::T,::Any) where T<:AbstractElement{:Poi1} = (ap.𝓒[1].x,ap.𝓒[1].y,ap.𝓒[1].z)
 @inline get𝒙(ap::T,ξ::𝝃) where {T<:AbstractElement{:Seg2},𝝃<:AbstractNode} = get𝒙(ap,ξ.ξ)
-@inline get𝒙(ap::T,ξ::𝝃) where where {T<:AbstractElement{:Tri3},𝝃<:AbstractNode} = get𝒙(ap,ξ.ξ,ξ.η)
+@inline get𝒙(ap::T,ξ::𝝃) where {T<:AbstractElement{:Tri3},𝝃<:AbstractNode} = get𝒙(ap,ξ.ξ,ξ.η)
 
 function get𝒙(ap::T,ξ::Float64) where T<:AbstractElement{:Seg2}
     x₁ = ap.𝓒[1].x
@@ -71,6 +110,7 @@ function get𝐴(ap::T) where T<:AbstractElement{:Tri3}
     return (𝐴₁^2 + 𝐴₂^2 + 𝐴₃^2)^0.5
 end
 ## get𝒏
+@inline get𝒏(ap::T) where T<:AbstractElement{:Seg2} = 1.0
 @inline get𝒏(ap::T,ξ::𝝃) where {T<:AbstractElement{:Seg2},𝝃<:AbstractNode} = get𝒏(ap,ξ.ξ)
 @inline get𝒏(ap::T,ξ::𝝃) where {T<:AbstractElement{:Tri3},𝝃<:AbstractNode} = get𝒏(ap,ξ.ξ,ξ.η)
 
@@ -121,7 +161,7 @@ end
 
 ## shape functions
 # ------------- Poi1 ---------------
-get𝝭(::Poi1,::Node) = 1.0
+get𝝭(::Element{:Poi1},::Node) = 1.0
 # ------------- Seg2 ---------------
 @inline get𝝭(ap::Element{:Seg2},ξ::Node) = get𝝭(ap,ξ.ξ)
 @inline get𝝭(ap::Element{:Seg2},ξ::Float64) = (0.5*(1-ξ),0.5*(1+ξ))
@@ -197,44 +237,3 @@ function get∂𝝭∂x∂𝝭∂y(ap::Element{:Quad},ξ::Node)
     return (∂N₁∂x,∂N₂∂x,∂N₃∂x,∂N₄∂x),(∂N₁∂y,∂N₂∂y,∂N₃∂y,∂N₄∂y)
 end
 get∇𝝭(ap::Element{:Quad},ξ::Node) = get𝝭(ap,ξ),get∂𝝭∂x∂𝝭∂y(ap,ξ)...,(0.0,0.0,0.0,0.0)
-
-## convert
-Element{T}(a::Element) where T = Element{T}(a.𝓒)
-function Element{T}(as::Vector{Element{S}};renumbering::Bool=false) where {T,S}
-    aps = Element{T}[]
-    if renumbering
-        index, data = renumber(aps)
-        for a in as
-            𝓒 = [Node(index[x.id],data) for x in a.𝓒]
-            push!(aps,Element{T}(𝓒))
-        end
-    else
-        for a in as
-            push!(aps,Element{T}(a))
-        end
-    end
-    return aps
-end
-
-function Element{T}(a::Element,b::Element) where T
-    𝓒 = a.𝓒
-    𝓖 = set𝓖(a,b)
-end
-
-function (a::T)(b::S) where {T<:AbstractElement{:Seg2},S<:AbstractElement{:Poi1}}
-    i = findfirst(x->x.id==a.𝓒[1].id, b.𝓒)
-    if i ≠ nothing && i ≤ 2
-        for ξ in 𝓖
-            i == 1 ? ξ.ξ = -1.0 : ξ.ξ = 1.0
-        end
-        return T(a,b)
-    else
-        return nothing
-    end
-end
-
-function Element{T}(a::Element,b::Element) where T
-    𝓒 = a.𝓒
-    𝓖 = b.𝓖
-    return Element(𝓒,𝓖)
-end

@@ -8,8 +8,7 @@ nₑ = length(elements["Domain"])
 set𝓖!(elements["Domain"],:SegGI2)
 set𝓖!(elements["NBC"],:PoiGI1)
 set𝓖!(elements["EBC"],:PoiGI1)
-
-union!(elements["EBC"][1],elements["Domain"][1])
+elements["EBC"] = Element{:Seg2}(elements["Domain"][1],elements["EBC"][1])
 
 r = 2
 prescribe!(elements["Domain"],:u,(x,y,z)->x^r)
