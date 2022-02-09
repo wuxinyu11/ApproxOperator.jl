@@ -237,3 +237,21 @@ function get∂𝝭∂x∂𝝭∂y(ap::Element{:Quad},ξ::Node)
     return (∂N₁∂x,∂N₂∂x,∂N₃∂x,∂N₄∂x),(∂N₁∂y,∂N₂∂y,∂N₃∂y,∂N₄∂y)
 end
 get∇𝝭(ap::Element{:Quad},ξ::Node) = get𝝭(ap,ξ),get∂𝝭∂x∂𝝭∂y(ap,ξ)...,(0.0,0.0,0.0,0.0)
+
+## ⊆,∩
+function issubset(a::T,b::S) where {T<:AbstractElement{:Poi1},S<:AbstractElement{:Seg2}}
+    i = findfirst(x->x==a.𝓒[1],b.𝓒)
+    return i ≠ nothing && i ≤ 2
+end
+
+@inline intersect(a::T,b::S) where {T<:AbstractElement,S<:AbstractElement} = a.𝓒 == b.𝓒 ? a : nothing
+function intersect(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement,S<:AbstractElement}
+    aps = T[]
+    for a in as
+        for b in bs
+            ap = a∩b
+            ap ≠ nothing ? push!(aps,a) : nothing
+        end
+    end
+    return aps
+end

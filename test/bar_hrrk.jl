@@ -25,6 +25,8 @@ set𝓖!(elements["NBC"],:PoiGI1,:∂1)
 set𝓖!(elements["EBC"],:PoiGI1,:∂1,:∂x,:∂y,:∂z)
 
 elements["EBC"] = ReproducingKernel{type...,:Seg2}(elements["Domain"],elements["EBC"],sharing=true)
+elements["EBCD"] = elements["Domain"]∩elements["EBC"]
+elements["EBCS"] = elements["DomainS"]∩elements["EBC"]
 
 r = 3
 prescribe!(elements["Domain"],:b,(x,y,z)->-r*(r-1)*x^abs(r-2))
@@ -34,7 +36,8 @@ prescribe!(elements["EBC"],:g,(x,y,z)->x^r)
 set𝝭!(elements["Domain"])
 set∇̃𝝭!(elements["DomainS"],elements["Domain"])
 set𝝭!(elements["NBC"])
-setg̃!(elements["DomainS"],elements["EBC"])
+set∇̃𝝭!(elements["EBCD"])
+setg̃!(elements["EBCS"],elements["EBC"])
 
 coefficient = (:k=>1.0,:α=>1e3)
 ops = [Operator(:∫∇v∇udΩ,coefficient...),
@@ -51,7 +54,7 @@ ops[1](elements["DomainS"],k)
 ops[2](elements["Domain"],f)
 ops[3](elements["NBC"],f)
 ops[4](elements["EBC"],k,f)
-ops[5](elements["EBC"],k,f)
+ops[5](elements["EBCS"],k,f)
 d = k\f
 
 push!(nodes,:d=>d)

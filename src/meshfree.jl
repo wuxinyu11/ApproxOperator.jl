@@ -572,7 +572,13 @@ function get∇𝝭(ap::ReproducingKernel,ξ::SNode)
 end
 
 ## RK gradient smoothing
-function set∇̃𝝭!(gps::Vector{T},aps::Vector{S}) where{T<:ReproducingKernel,S<:ReproducingKernel}
+function set∇̃𝝭!(aps::Vector{T}) where T<:ReproducingKernel
+    for ap in aps
+        set∇̃𝝭!(ap)
+    end
+end
+
+function set∇̃𝝭!(gps::Vector{T},aps::Vector{S}) where {T<:ReproducingKernel,S<:ReproducingKernel}
     if length(gps) ≠ length(aps)
         error("Miss match element numbers")
     else
@@ -698,6 +704,48 @@ function set∇̃𝝭!(gp::ReproducingKernel{SNode,𝒑,𝑠,𝜙,:Tet4},ap::Rep
     end
 end
 
+function setg̃!(gps::Vector{T},aps::Vector{S}) where{T<:ReproducingKernel,S<:ReproducingKernel}
+    if length(gps) ≠ length(aps)
+        error("Miss match element numbers")
+    else
+        for i in 1:length(gps)
+            setg̃!(gps[i],aps[i])
+        end
+    end
+end
+
+function setg̃!(gp::ReproducingKernel{SNode,𝒑,𝑠,𝜙,:Seg2},ap::ReproducingKernel{SNode,𝒑,𝑠,𝜙,:Seg2}) where {𝒑,𝑠,𝜙}
+    n₁ =  1.0
+    n₂ = -1.0
+    𝗚⁻¹ = cal𝗚!(gp)
+    𝓒 = gp.𝓒
+    𝓖 = gp.𝓖
+    for ξ̂ in 𝓖
+        𝒒̂ = get𝒒(gp,ξ̂)
+        𝒒̂ᵀ𝗚⁻¹ = 𝒒̂*𝗚⁻¹
+        𝝭 = gp.𝝭[:∂1]
+        g̃ = 0.0
+        fill!(𝝭,0.0)
+        for ξ in ap.𝓖
+            w = ξ.w
+            n = 0.0
+            n += ξ.ξ ==  1.0 ? n₁ : 0.0
+            n += ξ.ξ == -1.0 ? n₂ : 0.0
+            𝝭 = get𝝭(ap,ξ)
+            g = ξ.g
+            𝒒 = get𝒒(gp,ξ)
+            W₁ = 𝒒̂ᵀ𝗚⁻¹*𝒒*n*w
+            for i in 1:length(𝓒)
+                𝝭[i] += 𝝭[i]*W₁
+            end
+            g̃ += 𝒒̂ᵀ𝗚⁻¹*𝒒*g*n*w
+        end
+        ξ̂.g = g̃
+        for i in 1:length(𝓒)
+            ξ̂.𝝭[:∂1][ξ̂.index[ξ̂.id]+i] = 𝝭[i]
+        end
+    end
+end
 ## convert
 function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(a::ReproducingKernel{𝜼,𝒒}) where {𝝃<:AbstractNode,𝜼<:AbstractNode,𝒑,𝒒,𝑠,𝜙,T}
     𝓒 = a.𝓒

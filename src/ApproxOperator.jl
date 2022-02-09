@@ -1,6 +1,6 @@
 module ApproxOperator
 
-import Base: +, -, *, getindex, setindex!, getproperty, setproperty!, length, push!, fill!, similar
+import Base: +, -, *, getindex, setindex!, getproperty, setproperty!, length, push!, fill!, issubset, intersect
 import InteractiveUtils: subtypes
 
 abstract type AbstractNode end
@@ -16,8 +16,8 @@ include("import.jl")
 export Node, Element, SNode, ReproducingKernel
 export importmsh
 export RegularGrid
-export Operator, prescribe!, similar, glue
+export Operator, prescribe!, issubset, intersect
 export set𝓖!
-export set𝝭!, set∇𝝭!, set∇̃𝝭!, set𝒏!
+export set𝝭!, set∇𝝭!, set∇̃𝝭!, set𝒏!, setg̃!
 
 end
