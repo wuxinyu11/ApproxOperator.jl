@@ -10,7 +10,7 @@ set𝓖!(elements["NBC"],:PoiGI1)
 set𝓖!(elements["EBC"],:PoiGI1)
 elements["EBC"] = Element{:Seg2}(elements["Domain"][1],elements["EBC"][1])
 
-r = 2
+r = 3
 prescribe!(elements["Domain"],:u,(x,y,z)->x^r)
 prescribe!(elements["Domain"],:∂u∂x,(x,y,z)->r*x^abs(r-1))
 prescribe!(elements["Domain"],:b,(x,y,z)->-r*(r-1)*x^abs(r-2))

@@ -161,7 +161,7 @@ end
 
 ## shape functions
 # ------------- Poi1 ---------------
-get𝝭(::Element{:Poi1},::Node) = 1.0
+@inline get𝝭(::Element{:Poi1},::Node) = 1.0
 # ------------- Seg2 ---------------
 @inline get𝝭(ap::Element{:Seg2},ξ::Node) = get𝝭(ap,ξ.ξ)
 @inline get𝝭(ap::Element{:Seg2},ξ::Float64) = (0.5*(1-ξ),0.5*(1+ξ))
@@ -179,11 +179,29 @@ end
 end
 @inline get∇𝑛𝝭(ap::Element{:Seg2},ξ::Node) = (get𝝭(ap,ξ),get∂𝝭∂𝑛(ap,ξ))
 # ------------- Tri3 ---------------
+@inline get𝝭(ap::Element{:Tri3},ξ::Node) = (ξ.ξ,ξ.η,1.0-ξ.ξ-ξ.η)
+@inline function get∂𝝭∂x(ap::Element{:Tri3},ξ::Node)
+    y₁ = ap.𝓒[1].y
+    y₂ = ap.𝓒[2].y
+    y₃ = ap.𝓒[3].y
+    𝐴 = get𝐴(ap)
+    return (y₂-y₃)/2.0/𝐴,(y₃-y₁)/2.0/𝐴,(y₁-y₂)/2.0/𝐴
+end
+
+@inline function get∂𝝭∂y(ap::Element{:Tri3},ξ::Node)
+    x₁ = ap.𝓒[1].x
+    x₂ = ap.𝓒[2].x
+    x₃ = ap.𝓒[3].x
+    𝐴 = get𝐴(ap)
+    return (x₃-x₂)/2.0/𝐴,(x₁-x₃)/2.0/𝐴,(x₂-x₁)/2.0/𝐴
+end
+@inline get∂𝝭∂z(ap::Element{:Tri3},ξ::Node) = (0.0,0.0,0.0)
+@inline get∇𝝭(ap::Element{:Tri3},ξ::Node) = (get𝝭(ap,ξ),get∂𝝭∂x(ap,ξ),get∂𝝭∂y(ap,ξ),(0.0,0.0,0.0))
 
 # ------------- Quad ---------------
-get𝝭(ap::Element{:Quad},ξ::Node) = get𝝭(ap,ξ.ξ,ξ.η)
-get∂𝝭∂ξ(ap::Element{:Quad},ξ::Node) = get∂𝝭∂ξ(ap,ξ.η)
-get∂𝝭∂η(ap::Element{:Quad},ξ::Node) = get∂𝝭∂η(ap,ξ.ξ)
+@inline get𝝭(ap::Element{:Quad},ξ::Node) = get𝝭(ap,ξ.ξ,ξ.η)
+@inline get∂𝝭∂ξ(ap::Element{:Quad},ξ::Node) = get∂𝝭∂ξ(ap,ξ.η)
+@inline get∂𝝭∂η(ap::Element{:Quad},ξ::Node) = get∂𝝭∂η(ap,ξ.ξ)
 
 function get𝝭(ap::Element{:Quad},ξ::Float64,η::Float64)
     N₁ = 0.25*(1.0-ξ)*(1.0-η)
@@ -236,7 +254,7 @@ function get∂𝝭∂x∂𝝭∂y(ap::Element{:Quad},ξ::Node)
     ∂N₄∂y = ∂N₄∂ξ*∂ξ∂y + ∂N₄∂η*∂η∂y
     return (∂N₁∂x,∂N₂∂x,∂N₃∂x,∂N₄∂x),(∂N₁∂y,∂N₂∂y,∂N₃∂y,∂N₄∂y)
 end
-get∇𝝭(ap::Element{:Quad},ξ::Node) = get𝝭(ap,ξ),get∂𝝭∂x∂𝝭∂y(ap,ξ)...,(0.0,0.0,0.0,0.0)
+@inline get∇𝝭(ap::Element{:Quad},ξ::Node) = get𝝭(ap,ξ),get∂𝝭∂x∂𝝭∂y(ap,ξ)...,(0.0,0.0,0.0,0.0)
 
 ## ⊆,∩
 function issubset(a::T,b::S) where {T<:AbstractElement{:Poi1},S<:AbstractElement{:Seg2}}

@@ -7,17 +7,12 @@ nₑ = length(elements["Domain"])
 
 type = (SNode,:Quadratic1D,:□,:CubicSpline)
 sp = RegularGrid(nodes[:x],nodes[:y],nodes[:z],n = 2,γ = 1)
-elements["Domain"] = ReproducingKernel{type...,:Seg2}(elements["Domain"])
-elements["NBC"] = ReproducingKernel{type...,:Poi1}(elements["NBC"])
-elements["EBC"] = ReproducingKernel{type...,:Poi1}(elements["EBC"])
-sp(elements["Domain"])
-sp(elements["NBC"])
-sp(elements["EBC"])
+elements["Domain"] = ReproducingKernel{type...,:Seg2}(elements["Domain"],sp)
+elements["NBC"] = ReproducingKernel{type...,:Poi1}(elements["NBC"],sp)
+elements["EBC"] = ReproducingKernel{type...,:Poi1}(elements["EBC"],sp)
 elements["DomainS"] = ReproducingKernel{type...,:Seg2}(elements["Domain"])
 s = 0.25*ones(nₚ)
-nodes[:s₁] = s
-nodes[:s₂] = s
-nodes[:s₃] = s
+push!(nodes,:s₁=>s,:s₂=>s,:s₃=>s)
 
 set𝓖!(elements["Domain"],:SegRK3,:∂1,:∂x,:∂y,:∂z)
 set𝓖!(elements["DomainS"],:SegGI2,:∂1,:∂x,:∂y,:∂z)
@@ -36,10 +31,9 @@ prescribe!(elements["EBC"],:g,(x,y,z)->x^r)
 set𝝭!(elements["Domain"])
 set∇̃𝝭!(elements["DomainS"],elements["Domain"])
 set𝝭!(elements["NBC"])
-set∇̃𝝭!(elements["EBCD"])
-setg̃!(elements["EBCS"],elements["EBC"])
+set∇̃𝝭!(elements["EBCS"],elements["EBC"],elements["EBCD"])
 
-coefficient = (:k=>1.0,:α=>1e3)
+coefficient = (:k=>1.0,:α=>1.0)
 ops = [Operator(:∫∇v∇udΩ,coefficient...),
        Operator(:∫vbdΩ,coefficient...),
        Operator(:∫vtdΓ,coefficient...),

@@ -141,7 +141,42 @@ function get𝓖(a::T,b::S) where {T<:AbstractElement{:Seg2},S<:AbstractElement{
     i = findfirst(x->x.id==b.𝓒[1].id, a.𝓒)
     if i ≠ nothing && i ≤ 2
         for ξ in b.𝓖
-            i == 1 ? ξ.ξ = -1.0 : ξ.ξ = 1.0
+            i == 1 ? (ξ.ξ = -1.0;ξ.n₁ = -1.0) : (ξ.ξ = 1.0;ξ.n₁ = 1.0)
+        end
+        return b.𝓖
+    else
+        return nothing
+    end
+end
+
+function get𝓖(a::T,b::S) where {T<:AbstractElement{:Tri3},S<:AbstractElement{:Seg2}}
+    i = findfirst(x->x.id==b.𝓒[1].id, a.𝓒)
+    j = findfirst(x->x.id==b.𝓒[2].id, a.𝓒)
+    if i ≠ nothing && j ≠ nothing && i ≤ 3 && i ≤ 3
+        x₁ = a.𝓒[1].x
+        y₁ = a.𝓒[1].y
+        x₂ = a.𝓒[2].x
+        y₂ = a.𝓒[2].y
+        x₃ = a.𝓒[3].x
+        y₃ = a.𝓒[3].y
+        for ξ in b.𝓖
+            if i == 1
+                ξ.ξ = (1.0-ξ.ξ)/2.0
+                ξ.η = 1.0-ξ.ξ
+                ξ.n₁ = y₂-y₁
+                ξ.n₂ = x₁-x₂
+            elseif i == 2
+                ξ.η = (1.0-ξ.ξ)/2.0
+                ξ.ξ = 0.0
+                ξ.n₁ = y₃-y₂
+                ξ.n₂ = x₂-x₃
+            else
+                ξ.ξ = (1.0+ξ.ξ)/2.0
+                ξ.η = 0.0
+                ξ.n₁ = y₂-y₁
+                ξ.n₂ = x₁-x₂
+            end
+            ξ.w *= 0.5
         end
         return b.𝓖
     else

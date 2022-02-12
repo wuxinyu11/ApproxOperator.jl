@@ -13,6 +13,9 @@ end
 @inline function setindex!(A::SymMat,val::Float64,i::Int,j::Int)
     A.m[Int(i+j*(j-1)/2)] = val
 end
+@inline function setindex!(A::SymMat,val::Float64,i::Int)
+    A.m[i] = val
+end
 @inline *(A::SymMat,v::NTuple{N,Float64}) where N = sum(A[1,i]*v[i] for i in 1:N)
 @inline function *(v::NTuple{N,Float64},A::SymMat) where N
     return Tuple(sum(v[i]*A[i,j] for i in 1:N) for j in 1:N)
@@ -431,6 +434,16 @@ function cal𝗚!(ap::ReproducingKernel)
     return 𝗚⁻¹
 end
 
+function cal𝗚!(ap::ReproducingKernel{𝝃,𝒑,𝑠,𝜙,:Seg2}) where {𝝃<:AbstractNode,𝒑,𝑠,𝜙}
+    𝗚⁻¹ = ap.𝗠[:∇̃]
+    fill!(𝗚⁻¹,0.0)
+    𝐿 = get𝐿(ap)
+    𝗚⁻¹[1] =  4.0/𝐿
+    𝗚⁻¹[2] = -6.0/𝐿
+    𝗚⁻¹[3] = 12.0/𝐿
+    return 𝗚⁻¹
+end
+
 ## shape functions
 function get𝝭(ap::ReproducingKernel,ξ::Node)
     𝓒 = ap.𝓒
@@ -584,6 +597,15 @@ function set∇̃𝝭!(gps::Vector{T},aps::Vector{S}) where {T<:ReproducingKerne
     else
         for i in 1:length(gps)
             set∇̃𝝭!(gps[i],aps[i])
+        end
+    end
+end
+function set∇̃𝝭!(as::Vector{T},bs::Vector{S},cs::Vector{R}) where {T<:ReproducingKernel,S<:ReproducingKernel,R<:ReproducingKernel}
+    if length(as) ≠ length(bs) || length(bs) ≠ length(cs)
+        error("Miss match element numbers")
+    else
+        for i in 1:length(as)
+            set∇̃𝝭!(as[i],bs[i],cs[i])
         end
     end
 end
@@ -746,6 +768,11 @@ function setg̃!(gp::ReproducingKernel{SNode,𝒑,𝑠,𝜙,:Seg2},ap::Reproduci
         end
     end
 end
+
+@inline function set∇̃𝝭!(a::ReproducingKernel{SNode,𝒑,𝑠,𝜙,:Seg2},b::ReproducingKernel{SNode,𝒑,𝑠,𝜙,:Seg2},c::ReproducingKernel{SNode,𝒑,𝑠,𝜙,:Seg2}) where {𝒑,𝑠,𝜙}
+    set∇̃𝝭!(b,c)
+    setg̃!(a,b)
+end
 ## convert
 function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(a::ReproducingKernel{𝜼,𝒒}) where {𝝃<:AbstractNode,𝜼<:AbstractNode,𝒑,𝒒,𝑠,𝜙,T}
     𝓒 = a.𝓒
@@ -776,7 +803,7 @@ function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(a::Element{S},𝗠::Dict{Symbo
     return ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(𝓒,𝓖,𝗠,𝝭)
 end
 
-function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(as::Vector{Element{S}};renumbering::Bool=false) where {𝝃<:AbstractNode,𝒑,𝑠,𝜙,T,S}
+function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(as::Vector{Element{S}},sp::Union{Nothing,SpatialPartition}=nothing;renumbering::Bool=false) where {𝝃<:AbstractNode,𝒑,𝑠,𝜙,T,S}
     aps = ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}[]
     𝗠 = Dict{Symbol,SymMat}()
     𝝭 = Dict{Symbol,Vector{Float64}}()
@@ -785,11 +812,15 @@ function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(as::Vector{Element{S}};renumbe
         for a in as
             𝓒 = [Node(index[x.id],data) for x in a.𝓒]
             𝓖 = Node[]
-            push!(aps,ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(𝓒,𝓖,𝗠,𝝭))
+            ap = ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(𝓒,𝓖,𝗠,𝝭)
+            sp ≠ nothing ? sp(ap) : nothing
+            push!(aps,ap)
         end
     else
         for a in as
-            push!(aps,ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(a,𝗠,𝝭))
+            ap = ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(a,𝗠,𝝭)
+            sp ≠ nothing ? sp(ap) : nothing
+            push!(aps,ap)
         end
     end
     return aps
