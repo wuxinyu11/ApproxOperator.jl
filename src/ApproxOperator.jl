@@ -13,11 +13,14 @@ include("meshfree.jl")
 include("integration.jl")
 include("operation.jl")
 include("import.jl")
-export Node, Element, SNode, ReproducingKernel
+export Node, Element, SNode, ReproducingKernel, getnₚ
 export importmsh
 export RegularGrid
 export Operator, prescribe!, issubset, intersect
 export set𝓖!
 export set𝝭!, set∇𝝭!, set∇̃𝝭!, set𝒏!, setg̃!
+
+#debug
+export get𝐴,cal𝗚!
 
 end

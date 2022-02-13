@@ -72,7 +72,7 @@ function set𝓖!(aps::Vector{T},𝓖::NTuple{N,NTuple{D,Float64}},stype::Symbol
         data[:wᵇ] = zeros(nᵢ)
         N > 3 ? data[:η] = zeros(nᵢ) : nothing
         N > 4 ? data[:γ] = zeros(nᵢ) : nothing
-        nₕ = length(get𝒒(aps[1],0.0))
+        nₕ = get𝑛𝒒(aps[1])
         aps[1].𝗠[:∇̃]=SymMat(nₕ)
     else
         N > 2 ? data[:η] = zeros(nᵢ) : nothing
@@ -81,7 +81,7 @@ function set𝓖!(aps::Vector{T},𝓖::NTuple{N,NTuple{D,Float64}},stype::Symbol
 
     n = 0
     nₘ = 0
-    nₕ = length(get𝒑(aps[1],(0.0,0.0,0.0)))
+    nₕ = get𝑛𝒑(aps[1])
     index = zeros(Int,nᵢ)
     𝝭 = Dict{Symbol,Vector{Float64}}()
     for ap in aps
@@ -152,7 +152,7 @@ end
 function get𝓖(a::T,b::S) where {T<:AbstractElement{:Tri3},S<:AbstractElement{:Seg2}}
     i = findfirst(x->x.id==b.𝓒[1].id, a.𝓒)
     j = findfirst(x->x.id==b.𝓒[2].id, a.𝓒)
-    if i ≠ nothing && j ≠ nothing && i ≤ 3 && i ≤ 3
+    if i ≠ nothing && j ≠ nothing && i ≤ 3 && j ≤ 3
         x₁ = a.𝓒[1].x
         y₁ = a.𝓒[1].y
         x₂ = a.𝓒[2].x

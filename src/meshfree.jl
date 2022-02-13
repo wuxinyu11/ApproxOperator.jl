@@ -206,42 +206,51 @@ end
 @inline get∇𝒒(ap::ReproducingKernel{𝝃,𝒑,𝑠,𝜙,:Tri3},ξ::Any) where {𝝃<:AbstractNode,𝒑,𝑠,𝜙} = get𝒒(ap,ξ), get∂𝒒∂ξ(ap,ξ), get∂𝒒∂η(ap,ξ)
 @inline get∇𝒒(ap::ReproducingKernel{𝝃,𝒑,𝑠,𝜙,:Tet4},ξ::Any) where {𝝃<:AbstractNode,𝒑,𝑠,𝜙} = get𝒒(ap,ξ), get∂𝒒∂ξ(ap,ξ), get∂𝒒∂η(ap,ξ), get∂𝒒∂γ(ap,ξ)
 # ------------ Linear1D ---------------
+@inline get𝑛𝒑(::ReproducingKernel{𝝃,:Linear1D}) where 𝝃 = 2
 @inline get𝒑(::ReproducingKernel{𝝃,:Linear1D},x::NTuple{3,Float64}) where 𝝃 = (1.,x[1])
 @inline get∂𝒑∂x(::ReproducingKernel{𝝃,:Linear1D},::NTuple{3,Float64}) where 𝝃 = (0.,1.)
 @inline get∂𝒑∂y(::ReproducingKernel{𝝃,:Linear1D},::Any) where 𝝃 = (0.,0.)
 @inline get∂𝒑∂z(::ReproducingKernel{𝝃,:Linear1D},::Any) where 𝝃 = (0.,0.)
+@inline get𝑛𝒒(::ReproducingKernel{𝝃,:Linear1D}) where 𝝃 = 1
 @inline get𝒒(::ReproducingKernel{𝝃,:Linear1D},::Any) where 𝝃<:AbstractNode = (1.0,)
 @inline get∂𝒒∂ξ(::ReproducingKernel{𝝃,:Linear1D},::Any) where 𝝃<:AbstractNode = (0.0,)
 
 # ------------ Quadaratic1D ---------------
+@inline get𝑛𝒑(::ReproducingKernel{𝝃,:Quadratic1D}) where 𝝃 = 3
 @inline get𝒑(::ReproducingKernel{𝝃,:Quadratic1D},x::NTuple{3,Float64}) where 𝝃 = (1.,x[1],x[1]^2)
 @inline get∂𝒑∂x(::ReproducingKernel{𝝃,:Quadratic1D},x::NTuple{3,Float64}) where 𝝃 = (0.,1.,2*x[1])
 @inline get∂𝒑∂y(::ReproducingKernel{𝝃,:Quadratic1D},::Any) where 𝝃 = (0.,0.,0.)
 @inline get∂𝒑∂z(::ReproducingKernel{𝝃,:Quadratic1D},::Any) where 𝝃 = (0.,0.,0.)
 @inline get∂²𝒑∂x²(::ReproducingKernel{𝝃,:Quadratic1D},::Any) where 𝝃 =(0.,0.,2.)
+@inline get𝑛𝒒(::ReproducingKernel{𝝃,:Quadratic1D}) where 𝝃 = 2
 @inline get𝒒(ap::ReproducingKernel{𝝃,:Quadratic1D},ξ::𝝃) where 𝝃<:AbstractNode = get𝒒(ap,ξ.ξ)
 @inline get𝒒(::ReproducingKernel{𝝃,:Quadratic1D},ξ::Float64) where 𝝃<:AbstractNode = (1.0,0.5*(1.0-ξ))
 @inline get∂𝒒∂ξ(::ReproducingKernel{𝝃,:Quadratic1D},::Any) where 𝝃<:AbstractNode = (0.0,1.0)
 
 # ------------ Cubic1D ---------------
+@inline get𝑛𝒑(::ReproducingKernel{𝝃,:Cubic1D}) where 𝝃 = 4
 @inline get𝒑(::ReproducingKernel{𝝃,:Cubic1D},x::NTuple{3,Float64}) where 𝝃 = (1.,x[1],x[1]^2,x[1]^3)
 @inline get∂𝒑∂x(::ReproducingKernel{𝝃,:Cubic1D},x::NTuple{3,Float64}) where 𝝃 = (0.,1.,2*x[1],3*x[1]^2)
 @inline get∂𝒑∂y(::ReproducingKernel{𝝃,:Cubic1D}, ::Any) where 𝝃 = (0.,0.,0.,0.)
 @inline get∂𝒑∂z(::ReproducingKernel{𝝃,:Cubic1D}, ::Any) where 𝝃 = (0.,0.,0.,0.)
 @inline get∂²𝒑∂x²(::ReproducingKernel{𝝃,:Cubic1D},x::NTuple{3,Float64}) where 𝝃 = (0.,0.,2.,6*x[1])
+@inline get𝑛𝒒(::ReproducingKernel{𝝃,:Cubic1D}) where 𝝃 = 3
 @inline get𝒒(ap::ReproducingKernel{𝝃,:Cubic1D},ξ::𝝃) where 𝝃<:AbstractNode = get𝒒(ap,ξ.ξ)
 @inline get∂𝒒∂ξ(ap::ReproducingKernel{𝝃,:Cubic1D},ξ::𝝃) where 𝝃<:AbstractNode = get𝒒(ap,ξ.ξ)
 @inline get𝒒(::ReproducingKernel{𝝃,:Cubic1D},ξ::Float64) where 𝝃<:AbstractNode = (1.,ξ,ξ^2)
 @inline get∂𝒒∂ξ(::ReproducingKernel{𝝃,:Cubic1D},ξ::Float64) where 𝝃<:AbstractNode = (0.,-0.5,-ξ)
 
 # ------------ Linear2D ---------------
+@inline get𝑛𝒑(::ReproducingKernel{𝝃,:Linear2D}) where 𝝃 = 3
 @inline get𝒑(::ReproducingKernel{𝝃,:Linear2D},x::NTuple{3,Float64}) where 𝝃 = (1.,x[1],x[2])
 @inline get∂𝒑∂x(::ReproducingKernel{𝝃,:Linear2D}, ::Any) where 𝝃 = (0.,1.,0.)
 @inline get∂𝒑∂y(::ReproducingKernel{𝝃,:Linear2D}, ::Any) where 𝝃 = (0.,0.,1.)
 @inline get∂𝒑∂z(::ReproducingKernel{𝝃,:Linear2D}, ::Any) where 𝝃 = (0.,0.,0.)
 @inline get𝒑(::ReproducingKernel{𝝃,:Linear2D},ξ::𝝃) where 𝝃<:AbstractNode = (1.,ξ.ξ,ξ.η)
+@inline get𝑛𝒒(::ReproducingKernel{𝝃,:Linear2D}) where 𝝃 = 1
 
 # ------------ Quadratic2D ---------------
+@inline get𝑛𝒑(::ReproducingKernel{𝝃,:Quadratic2D}) where 𝝃 = 6
 @inline get𝒑(::ReproducingKernel{𝝃,:Quadratic2D},x::NTuple{3,Float64}) where 𝝃 = (1.,x[1],x[2],x[1]^2,x[1]*x[2],x[2]^2)
 @inline get∂𝒑∂x(::ReproducingKernel{𝝃,:Quadratic2D},x::NTuple{3,Float64}) where 𝝃 = (0.,1.,0.,2*x[1],x[2],0.)
 @inline get∂𝒑∂y(::ReproducingKernel{𝝃,:Quadratic2D},x::NTuple{3,Float64}) where 𝝃 = (0.,0.,1.,0.,x[1],2*x[2])
@@ -249,8 +258,16 @@ end
 @inline get𝒑(::ReproducingKernel{𝝃,:Quadratic2D},ξ::𝝃) where 𝝃<:AbstractNode = (1.,ξ.ξ,ξ.η,ξ.ξ^2,ξ.ξ*ξ.η,ξ.η^2)
 @inline get∂𝒑∂x(::ReproducingKernel{𝝃,:Quadratic2D},ξ::𝝃) where 𝝃<:AbstractNode = (0.,1.,0.,2*ξ.ξ,ξ.η,0.)
 @inline get∂𝒑∂y(::ReproducingKernel{𝝃,:Quadratic2D},ξ::𝝃) where 𝝃<:AbstractNode = (0.,0.,1.,0.,ξ.ξ,2*ξ.η)
+@inline get𝑛𝒒(::ReproducingKernel{𝝃,:Quadratic2D}) where 𝝃 = 3
+@inline get𝒒(ap::ReproducingKernel{𝝃,:Quadratic2D},ξ::𝝃) where 𝝃<:AbstractNode = get𝒒(ap,ξ.ξ,ξ.η)
+@inline get∂𝒒∂ξ(ap::ReproducingKernel{𝝃,:Quadratic2D},ξ::𝝃) where 𝝃<:AbstractNode = get∂𝒒∂ξ(ap,ξ.ξ,ξ.η)
+@inline get∂𝒒∂η(ap::ReproducingKernel{𝝃,:Quadratic2D},ξ::𝝃) where 𝝃<:AbstractNode = get∂𝒒∂η(ap,ξ.ξ,ξ.η)
+@inline get𝒒(::ReproducingKernel{𝝃,:Quadratic2D},ξ::Float64,η::Float64) where 𝝃<:AbstractNode = (1.,ξ,η)
+@inline get∂𝒒∂ξ(::ReproducingKernel{𝝃,:Quadratic2D},::Any,::Any) where 𝝃<:AbstractNode = (0.,1.,0.)
+@inline get∂𝒒∂η(::ReproducingKernel{𝝃,:Quadratic2D},::Any,::Any) where 𝝃<:AbstractNode = (0.,0.,1.)
 
 # ------------ Cubic2D ---------------
+@inline get𝑛𝒑(::ReproducingKernel{𝝃,:Cubic2D}) where 𝝃 = 10
 @inline get𝒑(::ReproducingKernel{𝝃,:Cubic2D},x::NTuple{3,Float64}) where 𝝃 =
 (
     1., x[1], x[2], x[1]^2, x[1]*x[2], x[2]^2, x[1]^3, x[1]^2*x[2], x[1]*x[2]^2, x[2]^3
@@ -267,6 +284,7 @@ end
 (
     0., 0., 0., 0., 0., 0., 0., 0., 0., 0.
 )
+@inline get𝑛𝒒(::ReproducingKernel{𝝃,:Cubic2D}) where 𝝃 = 6
 
 ## Kernel Function
 function get𝜙(ap::ReproducingKernel{𝝃,𝒑,:□,𝜙},x::Node,Δx::NTuple{3,Float64}) where {𝝃,𝒑,𝜙}
@@ -417,7 +435,7 @@ end
 function cal𝗚!(ap::ReproducingKernel)
     𝓖 = ap.𝓖
     𝗚 = ap.𝗠[:∇̃]
-    n = length(get𝒒(ap,0.0))
+    n = get𝑛𝒒(ap)
     fill!(𝗚,0.0)
     for ξ in 𝓖
         w = get𝑤(ap,ξ)
@@ -444,6 +462,18 @@ function cal𝗚!(ap::ReproducingKernel{𝝃,𝒑,𝑠,𝜙,:Seg2}) where {𝝃<
     return 𝗚⁻¹
 end
 
+# function cal𝗚!(ap::ReproducingKernel{𝝃,𝒑,𝑠,𝜙,:Tri3}) where {𝝃<:AbstractNode,𝒑,𝑠,𝜙}
+#     𝗚⁻¹ = ap.𝗠[:∇̃]
+#     fill!(𝗚⁻¹,0.0)
+#     𝐴 = get𝐴(ap)
+#     𝗚⁻¹[1] =   9.0/𝐴
+#     𝗚⁻¹[2] = -12.0/𝐴
+#     𝗚⁻¹[3] =  24.0/𝐴
+#     𝗚⁻¹[4] = -12.0/𝐴
+#     𝗚⁻¹[5] =  12.0/𝐴
+#     𝗚⁻¹[6] =  24.0/𝐴
+#     return 𝗚⁻¹
+# end
 ## shape functions
 function get𝝭(ap::ReproducingKernel,ξ::Node)
     𝓒 = ap.𝓒
@@ -658,19 +688,19 @@ function set∇̃𝝭!(gp::ReproducingKernel{SNode,𝒑,𝑠,𝜙,:Tri3},ap::Rep
         fill!(∂𝝭∂y,0.0)
         for ξ in ap.𝓖
             w = ξ.w
-            wᵇ = ξ.wᵇ
-            n₁ = ξ.n₁
-            n₂ = ξ.n₂
+            wᵇ = ξ.wᵇ/2
             𝝭 = get𝝭(ap,ξ)
             𝒒, ∂𝒒∂ξ, ∂𝒒∂η = get∇𝒒(gp,ξ)
-            𝒒̂ᵀ𝗚⁻¹∂𝒒 =  𝒒̂ᵀ𝗚⁻¹*∂𝒒
+            𝒒̂ᵀ𝗚⁻¹𝒒 =  𝒒̂ᵀ𝗚⁻¹*𝒒
             𝒒̂ᵀ𝗚⁻¹∂𝒒∂ξ = 𝒒̂ᵀ𝗚⁻¹*∂𝒒∂ξ
             𝒒̂ᵀ𝗚⁻¹∂𝒒∂η = 𝒒̂ᵀ𝗚⁻¹*∂𝒒∂η
             nᵇ₁ = 0.0;nᵇ₂ = 0.0
             nᵇ₁ += ξ.ξ == 0.0 ? n₁₁ : 0.0
             nᵇ₁ += ξ.η == 0.0 ? n₂₁ : 0.0
+            nᵇ₁ += ξ.ξ+ξ.η ≈ 1.0 ? n₃₁ : 0.0
             nᵇ₂ += ξ.ξ == 0.0 ? n₁₂ : 0.0
             nᵇ₂ += ξ.η == 0.0 ? n₂₂ : 0.0
+            nᵇ₂ += ξ.ξ+ξ.η ≈ 1.0 ? n₃₂ : 0.0
             b₁ = 𝒒̂ᵀ𝗚⁻¹∂𝒒∂ξ*n₁₁ + 𝒒̂ᵀ𝗚⁻¹∂𝒒∂η*n₂₁
             b₂ = 𝒒̂ᵀ𝗚⁻¹∂𝒒∂ξ*n₁₂ + 𝒒̂ᵀ𝗚⁻¹∂𝒒∂η*n₂₂
             W₁ = 𝒒̂ᵀ𝗚⁻¹𝒒*nᵇ₁*wᵇ + b₁*w/2
@@ -825,7 +855,7 @@ function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(as::Vector{Element{S}},sp::Uni
     end
     return aps
 end
-function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(a::A,b::B;sharing::Bool=false) where {𝝃<:AbstractNode,𝒑,𝑠,𝜙,T,A<:ReproducingKernel{𝝃},B<:ReproducingKernel{𝝃}}
+function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(a::A,b::B,sp::Union{Nothing,SpatialPartition}=nothing;sharing::Bool=false) where {𝝃<:AbstractNode,𝒑,𝑠,𝜙,T,A<:ReproducingKernel{𝝃},B<:ReproducingKernel{𝝃}}
     𝓒 = a.𝓒
     𝓖 = get𝓖(a,b)
     if 𝓖 ≠ nothing
@@ -834,7 +864,9 @@ function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(a::A,b::B;sharing::Bool=false)
         end
         𝗠 = a.𝗠
         𝝭 = a.𝝭
-        return ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(𝓒,𝓖,𝗠,𝝭)
+        ap = ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(𝓒,𝓖,𝗠,𝝭)
+        sp ≠ nothing ? sp(ap) : nothing
+        return ap
     else
         return nothing
     end
@@ -842,8 +874,8 @@ end
 
 function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(as::Vector{A},bs::Vector{B};sharing::Bool=false) where {𝝃<:AbstractNode,𝒑,𝑠,𝜙,T,A<:ReproducingKernel,B<:ReproducingKernel}
     aps = ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}[]
-    for a in as
-        for b in bs
+    for b in bs
+        for a in as
             ap = ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(a,b,sharing=sharing)
             ap ≠ nothing ? push!(aps,ap) : nothing
         end
@@ -860,7 +892,7 @@ function addindex(𝓖::Vector{SNode},n::Int)
     end
     for ξ in 𝓖
         for i in 1:length(index)-ξ.id
-            index[ξ.id+i] += i*n
+            index[ξ.id+i] += n
         end
     end
 end

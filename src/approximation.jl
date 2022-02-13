@@ -15,7 +15,7 @@ Element{T}(a::S) where {T,S<:AbstractElement} = Element{T}(a.𝓒)
 function Element{T}(as::Vector{S};renumbering::Bool=false) where {T,S<:AbstractElement}
     aps = Element{T}[]
     if renumbering
-        index, data = renumber(aps)
+        index, data = renumber(as)
         for a in as
             𝓒 = [Node(index[x.id],data) for x in a.𝓒]
             𝓖 = Node[]
@@ -34,6 +34,7 @@ function Element{T}(a::AbstractElement,b::AbstractElement) where T
     𝓖 = get𝓖(a,b)
     𝓖 ≠ nothing ? Element{T}(𝓒,𝓖) : nothing
 end
+
 function Element{T}(as::Vector{A},bs::Vector{B}) where {T,A<:AbstractElement,B<:AbstractElement}
     aps = Element{T}[]
     for a in as
@@ -43,6 +44,28 @@ function Element{T}(as::Vector{A},bs::Vector{B}) where {T,A<:AbstractElement,B<:
         end
     end
     return aps
+end
+
+function renumber(aps::Vector{T}) where T<:AbstractElement
+    index = Dict{Int,Int}()
+    n = 0
+    for ap in aps
+        for x in ap.𝓒
+            I = x.id
+            if ~haskey(index,I)
+                n += 1
+                index[I] = n
+            end
+        end
+    end
+    data_ = aps[1].𝓒[1].data
+    data = Dict(:x=>zeros(n),:y=>zeros(n),:z=>zeros(n))
+    for (j,i) in index
+        data[:x][i] = data_[:x][j]
+        data[:y][i] = data_[:y][j]
+        data[:z][i] = data_[:z][j]
+    end
+    return index, data
 end
 ## get𝒙
 @inline get𝒙(ap::T,::Any) where T<:AbstractElement{:Poi1} = (ap.𝓒[1].x,ap.𝓒[1].y,ap.𝓒[1].z)
@@ -161,9 +184,9 @@ end
 
 ## shape functions
 # ------------- Poi1 ---------------
-@inline get𝝭(::Element{:Poi1},::Node) = 1.0
+@inline get𝝭(::Element{:Poi1},::Any) = 1.0
 # ------------- Seg2 ---------------
-@inline get𝝭(ap::Element{:Seg2},ξ::Node) = get𝝭(ap,ξ.ξ)
+@inline get𝝭(ap::Element{:Seg2},ξ::𝝃) where 𝝃<:AbstractNode = get𝝭(ap,ξ.ξ)
 @inline get𝝭(ap::Element{:Seg2},ξ::Float64) = (0.5*(1-ξ),0.5*(1+ξ))
 @inline function get∂𝝭∂x(ap::Element{:Seg2},::Any)
     𝐿 = get𝐿(ap)
@@ -171,16 +194,16 @@ end
 end
 @inline get∂𝝭∂y(ap::Element{:Seg2},::Any) = (0.0,0.0)
 @inline get∂𝝭∂z(ap::Element{:Seg2},::Any) = (0.0,0.0)
-@inline get∇𝝭(ap::Element{:Seg2},ξ::Node) = (get𝝭(ap,ξ),get∂𝝭∂x(ap,ξ),(0.0,0.0),(0.0,0.0))
-@inline function get∂𝝭∂𝑛(ap::Element{:Seg2},ξ::Node)
+@inline get∇𝝭(ap::Element{:Seg2},ξ::𝝃) where 𝝃<:AbstractNode = (get𝝭(ap,ξ),get∂𝝭∂x(ap,ξ),(0.0,0.0),(0.0,0.0))
+@inline function get∂𝝭∂𝑛(ap::Element{:Seg2},ξ::𝝃) where 𝝃<:AbstractNode
     n₁ = get𝒏(ap,ξ)
     𝐿 = get𝐿(ap)
     return (-n₁/𝐿,n₁/𝐿)
 end
-@inline get∇𝑛𝝭(ap::Element{:Seg2},ξ::Node) = (get𝝭(ap,ξ),get∂𝝭∂𝑛(ap,ξ))
+@inline get∇𝑛𝝭(ap::Element{:Seg2},ξ::𝝃) where 𝝃<:AbstractNode = (get𝝭(ap,ξ),get∂𝝭∂𝑛(ap,ξ))
 # ------------- Tri3 ---------------
-@inline get𝝭(ap::Element{:Tri3},ξ::Node) = (ξ.ξ,ξ.η,1.0-ξ.ξ-ξ.η)
-@inline function get∂𝝭∂x(ap::Element{:Tri3},ξ::Node)
+@inline get𝝭(ap::Element{:Tri3},ξ::𝝃) where 𝝃<:AbstractNode = (ξ.ξ,ξ.η,1.0-ξ.ξ-ξ.η)
+@inline function get∂𝝭∂x(ap::Element{:Tri3},ξ::𝝃) where 𝝃<:AbstractNode
     y₁ = ap.𝓒[1].y
     y₂ = ap.𝓒[2].y
     y₃ = ap.𝓒[3].y
@@ -188,20 +211,20 @@ end
     return (y₂-y₃)/2.0/𝐴,(y₃-y₁)/2.0/𝐴,(y₁-y₂)/2.0/𝐴
 end
 
-@inline function get∂𝝭∂y(ap::Element{:Tri3},ξ::Node)
+@inline function get∂𝝭∂y(ap::Element{:Tri3},ξ::𝝃) where 𝝃<:AbstractNode
     x₁ = ap.𝓒[1].x
     x₂ = ap.𝓒[2].x
     x₃ = ap.𝓒[3].x
     𝐴 = get𝐴(ap)
     return (x₃-x₂)/2.0/𝐴,(x₁-x₃)/2.0/𝐴,(x₂-x₁)/2.0/𝐴
 end
-@inline get∂𝝭∂z(ap::Element{:Tri3},ξ::Node) = (0.0,0.0,0.0)
-@inline get∇𝝭(ap::Element{:Tri3},ξ::Node) = (get𝝭(ap,ξ),get∂𝝭∂x(ap,ξ),get∂𝝭∂y(ap,ξ),(0.0,0.0,0.0))
+@inline get∂𝝭∂z(ap::Element{:Tri3},::Any) = (0.0,0.0,0.0)
+@inline get∇𝝭(ap::Element{:Tri3},ξ::𝝃) where 𝝃<:AbstractNode = (get𝝭(ap,ξ),get∂𝝭∂x(ap,ξ),get∂𝝭∂y(ap,ξ),(0.0,0.0,0.0))
 
 # ------------- Quad ---------------
-@inline get𝝭(ap::Element{:Quad},ξ::Node) = get𝝭(ap,ξ.ξ,ξ.η)
-@inline get∂𝝭∂ξ(ap::Element{:Quad},ξ::Node) = get∂𝝭∂ξ(ap,ξ.η)
-@inline get∂𝝭∂η(ap::Element{:Quad},ξ::Node) = get∂𝝭∂η(ap,ξ.ξ)
+@inline get𝝭(ap::Element{:Quad},ξ::𝝃) where 𝝃<:AbstractNode = get𝝭(ap,ξ.ξ,ξ.η)
+@inline get∂𝝭∂ξ(ap::Element{:Quad},ξ::𝝃) where 𝝃<:AbstractNode = get∂𝝭∂ξ(ap,ξ.η)
+@inline get∂𝝭∂η(ap::Element{:Quad},ξ::𝝃) where 𝝃<:AbstractNode = get∂𝝭∂η(ap,ξ.ξ)
 
 function get𝝭(ap::Element{:Quad},ξ::Float64,η::Float64)
     N₁ = 0.25*(1.0-ξ)*(1.0-η)
@@ -224,7 +247,7 @@ function get∂𝝭∂η(ap::Element{:Quad},ξ::Float64)
     ∂N₄∂η =   0.25*(1-ξ)
     return (∂N₁∂η,∂N₂∂η,∂N₃∂η,∂N₄∂η)
 end
-function get∂𝝭∂x∂𝝭∂y(ap::Element{:Quad},ξ::Node)
+function get∂𝝭∂x∂𝝭∂y(ap::Element{:Quad},ξ::𝝃) where 𝝃<:AbstractNode
     x₁ = ap.𝓒[1].x
     x₂ = ap.𝓒[2].x
     x₃ = ap.𝓒[3].x
@@ -254,7 +277,7 @@ function get∂𝝭∂x∂𝝭∂y(ap::Element{:Quad},ξ::Node)
     ∂N₄∂y = ∂N₄∂ξ*∂ξ∂y + ∂N₄∂η*∂η∂y
     return (∂N₁∂x,∂N₂∂x,∂N₃∂x,∂N₄∂x),(∂N₁∂y,∂N₂∂y,∂N₃∂y,∂N₄∂y)
 end
-@inline get∇𝝭(ap::Element{:Quad},ξ::Node) = get𝝭(ap,ξ),get∂𝝭∂x∂𝝭∂y(ap,ξ)...,(0.0,0.0,0.0,0.0)
+@inline get∇𝝭(ap::Element{:Quad},ξ::𝝃) where 𝝃<:AbstractNode = get𝝭(ap,ξ),get∂𝝭∂x∂𝝭∂y(ap,ξ)...,(0.0,0.0,0.0,0.0)
 
 ## ⊆,∩
 function issubset(a::T,b::S) where {T<:AbstractElement{:Poi1},S<:AbstractElement{:Seg2}}
@@ -273,3 +296,7 @@ function intersect(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement,S<:Abs
     end
     return aps
 end
+
+## getnₚ,getnₑ
+getnₚ(a::T) where T<:AbstractElement = length(a.𝓒[1].data[:x])
+getnₚ(as::Vector{T}) where T<:AbstractElement = getnₚ(as[1])
