@@ -248,6 +248,12 @@ end
 @inline get∂𝒑∂z(::ReproducingKernel{𝝃,:Linear2D}, ::Any) where 𝝃 = (0.,0.,0.)
 @inline get𝒑(::ReproducingKernel{𝝃,:Linear2D},ξ::𝝃) where 𝝃<:AbstractNode = (1.,ξ.ξ,ξ.η)
 @inline get𝑛𝒒(::ReproducingKernel{𝝃,:Linear2D}) where 𝝃 = 1
+@inline get𝒒(ap::ReproducingKernel{𝝃,:Linear2D},ξ::𝝃) where 𝝃<:AbstractNode = get𝒒(ap,ξ.ξ,ξ.η)
+@inline get∂𝒒∂ξ(ap::ReproducingKernel{𝝃,:Linear2D},ξ::𝝃) where 𝝃<:AbstractNode = get∂𝒒∂ξ(ap,ξ.ξ,ξ.η)
+@inline get∂𝒒∂η(ap::ReproducingKernel{𝝃,:Linear2D},ξ::𝝃) where 𝝃<:AbstractNode = get∂𝒒∂η(ap,ξ.ξ,ξ.η)
+@inline get𝒒(::ReproducingKernel{𝝃,:Linear2D},::Any,::Any) where 𝝃<:AbstractNode = (1.,)
+@inline get∂𝒒∂ξ(::ReproducingKernel{𝝃,:Linear2D},::Any,::Any) where 𝝃<:AbstractNode = (0.,)
+@inline get∂𝒒∂η(::ReproducingKernel{𝝃,:Linear2D},::Any,::Any) where 𝝃<:AbstractNode = (0.,)
 
 # ------------ Quadratic2D ---------------
 @inline get𝑛𝒑(::ReproducingKernel{𝝃,:Quadratic2D}) where 𝝃 = 6
@@ -289,8 +295,8 @@ end
 ## Kernel Function
 function get𝜙(ap::ReproducingKernel{𝝃,𝒑,:□,𝜙},x::Node,Δx::NTuple{3,Float64}) where {𝝃,𝒑,𝜙}
     rx = abs(Δx[1])/x.s₁
-    ry = abs(Δx[2])/x.s₁
-    rz = abs(Δx[3])/x.s₁
+    ry = abs(Δx[2])/x.s₂
+    rz = abs(Δx[3])/x.s₃
     wx = get𝜙ᵣ(ap,rx)
     wy = get𝜙ᵣ(ap,ry)
     wz = get𝜙ᵣ(ap,rz)
@@ -600,9 +606,9 @@ end
 
 function get∇𝝭(ap::ReproducingKernel,ξ::SNode)
     𝝭 = ap.𝝭[:∂1]
-    ∂𝝭∂x = ξ.𝝭[:∂x]
-    ∂𝝭∂y = ξ.𝝭[:∂y]
-    ∂𝝭∂z = ξ.𝝭[:∂z]
+    ∂𝝭∂x = ap.𝝭[:∂x]
+    ∂𝝭∂y = ap.𝝭[:∂y]
+    ∂𝝭∂z = ap.𝝭[:∂z]
     i = ξ.id
     index = ξ.index
     for j in 1:length(ap.𝓒)
@@ -675,7 +681,7 @@ function set∇̃𝝭!(gp::ReproducingKernel{SNode,𝒑,𝑠,𝜙,:Tri3},ap::Rep
     x₂ = gp.𝓒[2].x;y₂ = gp.𝓒[2].y
     x₃ = gp.𝓒[3].x;y₃ = gp.𝓒[3].y
     n₁₁ = y₃-y₂;n₂₁ = y₁-y₃;n₃₁ = y₂-y₁
-    n₁₂ = x₃-x₂;n₂₂ = x₃-x₁;n₃₂ = x₁-x₂
+    n₁₂ = x₂-x₃;n₂₂ = x₃-x₁;n₃₂ = x₁-x₂
     𝗚⁻¹ = cal𝗚!(gp)
     𝓒 = gp.𝓒
     𝓖 = gp.𝓖
@@ -688,9 +694,9 @@ function set∇̃𝝭!(gp::ReproducingKernel{SNode,𝒑,𝑠,𝜙,:Tri3},ap::Rep
         fill!(∂𝝭∂y,0.0)
         for ξ in ap.𝓖
             w = ξ.w
-            wᵇ = ξ.wᵇ/2
+            wᵇ = ξ.wᵇ
             𝝭 = get𝝭(ap,ξ)
-            𝒒, ∂𝒒∂ξ, ∂𝒒∂η = get∇𝒒(gp,ξ)
+            𝒒, ∂𝒒∂ξ, ∂𝒒∂η = get∇𝒒(ap,ξ)
             𝒒̂ᵀ𝗚⁻¹𝒒 =  𝒒̂ᵀ𝗚⁻¹*𝒒
             𝒒̂ᵀ𝗚⁻¹∂𝒒∂ξ = 𝒒̂ᵀ𝗚⁻¹*∂𝒒∂ξ
             𝒒̂ᵀ𝗚⁻¹∂𝒒∂η = 𝒒̂ᵀ𝗚⁻¹*∂𝒒∂η
@@ -855,7 +861,7 @@ function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(as::Vector{Element{S}},sp::Uni
     end
     return aps
 end
-function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(a::A,b::B,sp::Union{Nothing,SpatialPartition}=nothing;sharing::Bool=false) where {𝝃<:AbstractNode,𝒑,𝑠,𝜙,T,A<:ReproducingKernel{𝝃},B<:ReproducingKernel{𝝃}}
+function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(a::A,b::B,sp::Union{Nothing,SpatialPartition}=nothing;sharing::Bool=false) where {A<:ReproducingKernel,B<:ReproducingKernel,𝝃<:AbstractNode,𝒑,𝑠,𝜙,T}
     𝓒 = a.𝓒
     𝓖 = get𝓖(a,b)
     if 𝓖 ≠ nothing

@@ -1,7 +1,7 @@
 
 a = 1.0;
 b = 1.0;
-n = 1;
+n = 11;
 
 Point(1) = {0.0, 0.0, 0.0};
 Point(2) = {  a, 0.0, 0.0};
@@ -24,7 +24,7 @@ Transfinite Curve{1,2,3,4} = n;
 Physical Curve("Γᵍ") = {1,2,3,4};
 Physical Surface("Ω") = {1};
 
-Mesh.Algorithm = 1;
+Mesh.Algorithm = 9;
 Mesh.MshFileVersion = 2;
 Mesh 2;
 // RecombineMesh;

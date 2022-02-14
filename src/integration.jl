@@ -6,7 +6,7 @@ function set𝓖!(aps::Vector{T},s::Symbol) where T<:AbstractElement
 end
 function set𝓖!(aps::Vector{T},s::Symbol,stype::Symbol...) where T<:ReproducingKernel
     rule = QuadratureRule[s]
-    isrk = s∈(:SegRK2,:SegRK3,:SegRK4,:SegRK5,:TriRK6,:TriRK13,:TetRK14,:TetRK27)
+    isrk = s∈(:SegRK2,:SegRK3,:SegRK4,:SegRK5,:TriRK3,:TriRK6,:TriRK13,:TetRK14,:TetRK27)
     return set𝓖!(aps,rule,stype...;isrk=isrk)
 end
 
@@ -15,8 +15,8 @@ function set𝓖!(aps::Vector{Element{T}},𝓖::NTuple{N,NTuple{D,Float64}}) whe
     nᵢ = nₑ*N
     data = Dict(:w=>zeros(nᵢ))
     data[:ξ] = zeros(nᵢ)
-    N > 2 ? data[:η] = zeros(nᵢ) : nothing
-    N > 3 ? data[:γ] = zeros(nᵢ) : nothing
+    D > 2 ? data[:η] = zeros(nᵢ) : nothing
+    D > 3 ? data[:γ] = zeros(nᵢ) : nothing
 
     n = 0
     for ap in aps
@@ -34,8 +34,8 @@ function set𝓖!(aps::Vector{T},𝓖::NTuple{N,NTuple{D,Float64}},stype::Symbol
     nᵢ = nₑ*N
     data = Dict(:w=>zeros(nᵢ))
     data[:ξ] = zeros(nᵢ)
-    N > 2 ? data[:η] = zeros(nᵢ) : nothing
-    N > 3 ? data[:γ] = zeros(nᵢ) : nothing
+    D > 2 ? data[:η] = zeros(nᵢ) : nothing
+    D > 3 ? data[:γ] = zeros(nᵢ) : nothing
 
     nₘ = 0
     nₕ = length(get𝒑(aps[1],(0.0,0.0,0.0)))
@@ -70,13 +70,13 @@ function set𝓖!(aps::Vector{T},𝓖::NTuple{N,NTuple{D,Float64}},stype::Symbol
     data[:ξ] = zeros(nᵢ)
     if isrk
         data[:wᵇ] = zeros(nᵢ)
-        N > 3 ? data[:η] = zeros(nᵢ) : nothing
-        N > 4 ? data[:γ] = zeros(nᵢ) : nothing
+        D > 3 ? data[:η] = zeros(nᵢ) : nothing
+        D > 4 ? data[:γ] = zeros(nᵢ) : nothing
         nₕ = get𝑛𝒒(aps[1])
         aps[1].𝗠[:∇̃]=SymMat(nₕ)
     else
-        N > 2 ? data[:η] = zeros(nᵢ) : nothing
-        N > 3 ? data[:γ] = zeros(nᵢ) : nothing
+        D > 2 ? data[:η] = zeros(nᵢ) : nothing
+        D > 3 ? data[:γ] = zeros(nᵢ) : nothing
     end
 
     n = 0
@@ -388,6 +388,12 @@ const QuadratureRule = Dict(
     (32/45, 0.0,      0.0),
     (49/90, (3/7)^0.5,0.0),
     (1/10,  1.0,      1.0)
+),
+:TriRK3 =>
+(
+    (1/3,1.0,0.0,1/2),
+    (1/3,0.0,1.0,1/2),
+    (1/3,0.0,0.0,1/2)
 ),
 :TriRK6 =>
 (

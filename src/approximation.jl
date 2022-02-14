@@ -288,10 +288,13 @@ end
 @inline intersect(a::T,b::S) where {T<:AbstractElement,S<:AbstractElement} = a.𝓒 == b.𝓒 ? a : nothing
 function intersect(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement,S<:AbstractElement}
     aps = T[]
-    for a in as
-        for b in bs
+    for b in bs
+        for a in as
             ap = a∩b
-            ap ≠ nothing ? push!(aps,a) : nothing
+            # ap ≠ nothing ? push!(aps,ap) : nothing
+            if ap ≠ nothing
+                push!(aps,ap)
+            end
         end
     end
     return aps
