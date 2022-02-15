@@ -458,7 +458,7 @@ function cal𝗚!(ap::ReproducingKernel)
     return 𝗚⁻¹
 end
 
-function cal𝗚!(ap::ReproducingKernel{𝝃,𝒑,𝑠,𝜙,:Seg2}) where {𝝃<:AbstractNode,𝒑,𝑠,𝜙}
+function cal𝗚!(ap::ReproducingKernel{𝝃,:Quadratic1D,𝑠,𝜙,:Seg2}) where {𝝃<:AbstractNode,𝑠,𝜙}
     𝗚⁻¹ = ap.𝗠[:∇̃]
     fill!(𝗚⁻¹,0.0)
     𝐿 = get𝐿(ap)
@@ -468,18 +468,26 @@ function cal𝗚!(ap::ReproducingKernel{𝝃,𝒑,𝑠,𝜙,:Seg2}) where {𝝃<
     return 𝗚⁻¹
 end
 
-# function cal𝗚!(ap::ReproducingKernel{𝝃,𝒑,𝑠,𝜙,:Tri3}) where {𝝃<:AbstractNode,𝒑,𝑠,𝜙}
-#     𝗚⁻¹ = ap.𝗠[:∇̃]
-#     fill!(𝗚⁻¹,0.0)
-#     𝐴 = get𝐴(ap)
-#     𝗚⁻¹[1] =   9.0/𝐴
-#     𝗚⁻¹[2] = -12.0/𝐴
-#     𝗚⁻¹[3] =  24.0/𝐴
-#     𝗚⁻¹[4] = -12.0/𝐴
-#     𝗚⁻¹[5] =  12.0/𝐴
-#     𝗚⁻¹[6] =  24.0/𝐴
-#     return 𝗚⁻¹
-# end
+function cal𝗚!(ap::ReproducingKernel{𝝃,:Linear2D,𝑠,𝜙,:Tri3}) where {𝝃<:AbstractNode,𝑠,𝜙}
+    𝗚⁻¹ = ap.𝗠[:∇̃]
+    fill!(𝗚⁻¹,0.0)
+    𝐴 = get𝐴(ap)
+    𝗚⁻¹[1] = 1.0/𝐴
+    return 𝗚⁻¹
+end
+
+function cal𝗚!(ap::ReproducingKernel{𝝃,:Quadratic2D,𝑠,𝜙,:Tri3}) where {𝝃<:AbstractNode,𝑠,𝜙}
+    𝗚⁻¹ = ap.𝗠[:∇̃]
+    fill!(𝗚⁻¹,0.0)
+    𝐴 = get𝐴(ap)
+    𝗚⁻¹[1] =   9.0/𝐴
+    𝗚⁻¹[2] = -12.0/𝐴
+    𝗚⁻¹[3] =  24.0/𝐴
+    𝗚⁻¹[4] = -12.0/𝐴
+    𝗚⁻¹[5] =  12.0/𝐴
+    𝗚⁻¹[6] =  24.0/𝐴
+    return 𝗚⁻¹
+end
 ## shape functions
 function get𝝭(ap::ReproducingKernel,ξ::Node)
     𝓒 = ap.𝓒
@@ -701,12 +709,9 @@ function set∇̃𝝭!(gp::ReproducingKernel{SNode,𝒑,𝑠,𝜙,:Tri3},ap::Rep
             𝒒̂ᵀ𝗚⁻¹∂𝒒∂ξ = 𝒒̂ᵀ𝗚⁻¹*∂𝒒∂ξ
             𝒒̂ᵀ𝗚⁻¹∂𝒒∂η = 𝒒̂ᵀ𝗚⁻¹*∂𝒒∂η
             nᵇ₁ = 0.0;nᵇ₂ = 0.0
-            nᵇ₁ += ξ.ξ == 0.0 ? n₁₁ : 0.0
-            nᵇ₁ += ξ.η == 0.0 ? n₂₁ : 0.0
-            nᵇ₁ += ξ.ξ+ξ.η ≈ 1.0 ? n₃₁ : 0.0
-            nᵇ₂ += ξ.ξ == 0.0 ? n₁₂ : 0.0
-            nᵇ₂ += ξ.η == 0.0 ? n₂₂ : 0.0
-            nᵇ₂ += ξ.ξ+ξ.η ≈ 1.0 ? n₃₂ : 0.0
+            ξ.ξ == 0.0 ? (nᵇ₁ += n₁₁;nᵇ₂ += n₁₂) : nothing
+            ξ.η == 0.0 ? (nᵇ₁ += n₂₁;nᵇ₂ += n₂₂) : nothing
+            ξ.ξ+ξ.η ≈ 1.0 ? (nᵇ₁ += n₃₁;nᵇ₂ += n₃₂) : nothing
             b₁ = 𝒒̂ᵀ𝗚⁻¹∂𝒒∂ξ*n₁₁ + 𝒒̂ᵀ𝗚⁻¹∂𝒒∂η*n₂₁
             b₂ = 𝒒̂ᵀ𝗚⁻¹∂𝒒∂ξ*n₁₂ + 𝒒̂ᵀ𝗚⁻¹∂𝒒∂η*n₂₂
             W₁ = 𝒒̂ᵀ𝗚⁻¹𝒒*nᵇ₁*wᵇ + b₁*w/2
@@ -781,31 +786,73 @@ function setg̃!(gp::ReproducingKernel{SNode,𝒑,𝑠,𝜙,:Seg2},ap::Reproduci
     for ξ̂ in 𝓖
         𝒒̂ = get𝒒(gp,ξ̂)
         𝒒̂ᵀ𝗚⁻¹ = 𝒒̂*𝗚⁻¹
-        𝝭 = gp.𝝭[:∂1]
-        g̃ = 0.0
-        fill!(𝝭,0.0)
+        ∂𝝭∂x = gp.𝝭[:∂x]
+        g̃₁ = 0.0
+        fill!(∂𝝭∂x,0.0)
         for ξ in ap.𝓖
             w = ξ.w
-            n = 0.0
-            n += ξ.ξ ==  1.0 ? n₁ : 0.0
-            n += ξ.ξ == -1.0 ? n₂ : 0.0
+            n = ξ.n₁
             𝝭 = get𝝭(ap,ξ)
             g = ξ.g
             𝒒 = get𝒒(gp,ξ)
             W₁ = 𝒒̂ᵀ𝗚⁻¹*𝒒*n*w
             for i in 1:length(𝓒)
-                𝝭[i] += 𝝭[i]*W₁
+                ∂𝝭∂x[i] += 𝝭[i]*W₁
             end
-            g̃ += 𝒒̂ᵀ𝗚⁻¹*𝒒*g*n*w
+            g̃₁ += 𝒒̂ᵀ𝗚⁻¹*𝒒*g*n*w
         end
-        ξ̂.g = g̃
+        ξ̂.g₁ = g̃₁
         for i in 1:length(𝓒)
-            ξ̂.𝝭[:∂1][ξ̂.index[ξ̂.id]+i] = 𝝭[i]
+            ξ̂.𝝭[:∂x][ξ̂.index[ξ̂.id]+i] = ∂𝝭∂x[i]
         end
     end
 end
 
-@inline function set∇̃𝝭!(a::ReproducingKernel{SNode,𝒑,𝑠,𝜙,:Seg2},b::ReproducingKernel{SNode,𝒑,𝑠,𝜙,:Seg2},c::ReproducingKernel{SNode,𝒑,𝑠,𝜙,:Seg2}) where {𝒑,𝑠,𝜙}
+function setg̃!(gp::ReproducingKernel{SNode,𝒑,𝑠,𝜙,:Tri3},ap::ReproducingKernel{SNode,𝒑,𝑠,𝜙,:Tri3}) where {𝒑,𝑠,𝜙}
+    x₁ = gp.𝓒[1].x;y₁ = gp.𝓒[1].y
+    x₂ = gp.𝓒[2].x;y₂ = gp.𝓒[2].y
+    x₃ = gp.𝓒[3].x;y₃ = gp.𝓒[3].y
+    n₁₁ = y₃-y₂;n₂₁ = y₁-y₃;n₃₁ = y₂-y₁
+    n₁₂ = x₂-x₃;n₂₂ = x₃-x₁;n₃₂ = x₁-x₂
+    𝗚⁻¹ = cal𝗚!(gp)
+    𝓒 = gp.𝓒
+    𝓖 = gp.𝓖
+    for ξ̂ in 𝓖
+        𝒒̂ = get𝒒(gp,ξ̂)
+        𝒒̂ᵀ𝗚⁻¹ = 𝒒̂*𝗚⁻¹
+        ∂𝝭∂x = gp.𝝭[:∂x]
+        ∂𝝭∂y = gp.𝝭[:∂y]
+        g̃₁ = 0.0
+        g̃₂ = 0.0
+        fill!(∂𝝭∂x,0.0)
+        fill!(∂𝝭∂y,0.0)
+        for ξ in ap.𝓖
+            w = ξ.w
+            n₁ = ξ.n₁
+            n₂ = ξ.n₂
+            𝝭 = get𝝭(ap,ξ)
+            g = ξ.g
+            𝒒 = get𝒒(gp,ξ)
+            𝒒̂ᵀ𝗚⁻¹𝒒 = 𝒒̂ᵀ𝗚⁻¹*𝒒
+            W₁ = 𝒒̂ᵀ𝗚⁻¹𝒒*n₁*w
+            W₂ = 𝒒̂ᵀ𝗚⁻¹𝒒*n₂*w
+            for i in 1:length(𝓒)
+                ∂𝝭∂x[i] += 𝝭[i]*W₁
+                ∂𝝭∂y[i] += 𝝭[i]*W₂
+            end
+            g̃₁ += 𝒒̂ᵀ𝗚⁻¹𝒒*g*n₁*w
+            g̃₂ += 𝒒̂ᵀ𝗚⁻¹𝒒*g*n₂*w
+        end
+        ξ̂.g₁ = g̃₁
+        ξ̂.g₂ = g̃₂
+        for i in 1:length(𝓒)
+            ξ̂.𝝭[:∂x][ξ̂.index[ξ̂.id]+i] = ∂𝝭∂x[i]
+            ξ̂.𝝭[:∂y][ξ̂.index[ξ̂.id]+i] = ∂𝝭∂y[i]
+        end
+    end
+end
+
+@inline function set∇̃𝝭!(a::ReproducingKernel{SNode,𝒑,𝑠,𝜙,T},b::ReproducingKernel{SNode,𝒑,𝑠,𝜙,T},c::ReproducingKernel{SNode,𝒑,𝑠,𝜙,T}) where {𝒑,𝑠,𝜙,T}
     set∇̃𝝭!(b,c)
     setg̃!(a,b)
 end

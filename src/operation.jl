@@ -168,9 +168,31 @@ function (op::Operator{:∫∇𝑛vgdΓ})(ap::T,k::AbstractMatrix{Float64},f::Ab
             I = ap.𝓒[i].id
             for j in 1:length(ap.𝓒)
                 J = ap.𝓒[j].id
-                k[I,J] -= ((B₁[i]*n₁+B₂[i]*n₂+B₃[i]*n₃)*N[j] + N[i]*(B₁[j]*n₁+B₂[j]*n₂+B₃[j]*n₃))*ξ.w
+                k[I,J] -= op.k*((B₁[i]*n₁+B₂[i]*n₂+B₃[i]*n₃)*N[j] + N[i]*(B₁[j]*n₁+B₂[j]*n₂+B₃[j]*n₃))*ξ.w
             end
-            f[I] -= (B₁[i]*n₁+B₂[i]*n₂+B₃[i]*n₃)*ξ.g*ξ.w
+            f[I] -= op.k*(B₁[i]*n₁+B₂[i]*n₂+B₃[i]*n₃)*ξ.g*ξ.w
+        end
+    end
+end
+
+function (op::Operator{:∫ṽg̃dΩ})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    for ξ in 𝓖
+        𝑤 = get𝑤(ap,ξ)
+        ~,B₁,B₂,B₃ = get∇𝝭(ap,ξ)
+        n₁₁ = ξ.n₁₁
+        n₂₂ = ξ.n₂₂
+        n₁₂ = ξ.n₁₂
+        g₁ = ξ.g₁
+        g₂ = ξ.g₂
+        g₃ = ξ.g₃
+        for i in 1:length(𝓒)
+            I = 𝓒[i].id
+            for j in 1:length(𝓒)
+                J = 𝓒[j].id
+                k[I,J] += (B₁[i]*B₁[j]+B₂[i]*B₂[j]+B₃[i]*B₃[j])*𝑤
+            end
+            f[I] += (B₁[i]*g₁+B₂[i]*g₂+B₃[i]*g₃)*𝑤
         end
     end
 end

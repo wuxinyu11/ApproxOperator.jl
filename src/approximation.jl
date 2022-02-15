@@ -285,7 +285,16 @@ function issubset(a::T,b::S) where {T<:AbstractElement{:Poi1},S<:AbstractElement
     return i ≠ nothing && i ≤ 2
 end
 
-@inline intersect(a::T,b::S) where {T<:AbstractElement,S<:AbstractElement} = a.𝓒 == b.𝓒 ? a : nothing
+@inline intersect(a::T,b::T) where T<:AbstractElement = a.𝓒 == b.𝓒 ? a : nothing
+@inline function intersect(a::T,b::S) where {T<:AbstractElement{:Seg2},S<:AbstractElement{:Poi1}}
+    i = findfirst(x->x==b.𝓒[1],a.𝓒)
+    return i ≠ nothing && i ≤ 2 ? a : nothing
+end
+@inline function intersect(a::T,b::S) where {T<:AbstractElement{:Tri3},S<:AbstractElement{:Seg2}}
+    i = findfirst(x->x==b.𝓒[1],a.𝓒)
+    j = findfirst(x->x==b.𝓒[2],a.𝓒)
+    return i ≠ nothing && j ≠ nothing && i ≤ 3 && j ≤ 3 ? a : nothing
+end
 function intersect(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement,S<:AbstractElement}
     aps = T[]
     for b in bs
