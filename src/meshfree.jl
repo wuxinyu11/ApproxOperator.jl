@@ -168,7 +168,7 @@ function (rg::RegularGrid)(x::Float64,y::Float64,z::Float64)
 end
 
 for t in subtypes(SpatialPartition)
-    (sp::t)(x::T) where T<:AbstractNode = sp((x.x,x.y,x.z))
+    (sp::t)(x::T) where T<:AbstractNode = sp(x.x,x.y,x.z)
     function (sp::t)(xs::T...) where T<:AbstractNode
         indices = Set{Int}()
         for x in xs
@@ -291,6 +291,13 @@ end
     0., 0., 0., 0., 0., 0., 0., 0., 0., 0.
 )
 @inline get𝑛𝒒(::ReproducingKernel{𝝃,:Cubic2D}) where 𝝃 = 6
+@inline get𝒒(ap::ReproducingKernel{𝝃,:Cubic2D},ξ::𝝃) where 𝝃<:AbstractNode = get𝒒(ap,ξ.ξ,ξ.η)
+@inline get∂𝒒∂ξ(ap::ReproducingKernel{𝝃,:Cubic2D},ξ::𝝃) where 𝝃<:AbstractNode = get∂𝒒∂ξ(ap,ξ.ξ,ξ.η)
+@inline get∂𝒒∂η(ap::ReproducingKernel{𝝃,:Cubic2D},ξ::𝝃) where 𝝃<:AbstractNode = get∂𝒒∂η(ap,ξ.ξ,ξ.η)
+@inline get𝒒(::ReproducingKernel{𝝃,:Cubic2D},ξ::Float64,η::Float64) where 𝝃<:AbstractNode = (1.,ξ,η,ξ^2,ξ*η,η^2)
+@inline get∂𝒒∂ξ(::ReproducingKernel{𝝃,:Cubic2D},ξ::Float64,η::Float64) where 𝝃<:AbstractNode = (0.,1.,0.,2.0*ξ,η,0.)
+@inline get∂𝒒∂η(::ReproducingKernel{𝝃,:Cubic2D},ξ::Float64,η::Float64) where 𝝃<:AbstractNode = (0.,0.,1.,0.,ξ,2.0*η)
+
 
 ## Kernel Function
 function get𝜙(ap::ReproducingKernel{𝝃,𝒑,:□,𝜙},x::Node,Δx::NTuple{3,Float64}) where {𝝃,𝒑,𝜙}
@@ -374,6 +381,7 @@ function cal𝗠!(ap::ReproducingKernel,x::NTuple{3,Float64})
             end
         end
     end
+    # print(𝗠.m[1:55])
     cholesky!(𝗠)
     U⁻¹ = inverse!(𝗠)
     𝗠⁻¹ = UUᵀ!(U⁻¹)
@@ -488,11 +496,47 @@ function cal𝗚!(ap::ReproducingKernel{𝝃,:Quadratic2D,𝑠,𝜙,:Tri3}) wher
     𝗚⁻¹[6] =  24.0/𝐴
     return 𝗚⁻¹
 end
+
+function cal𝗚!(ap::ReproducingKernel{𝝃,:Cubic2D,𝑠,𝜙,:Tri3}) where {𝝃<:AbstractNode,𝑠,𝜙}
+    𝗚⁻¹ = ap.𝗠[:∇̃]
+    fill!(𝗚⁻¹,0.0)
+    𝐴 = get𝐴(ap)
+    𝗚⁻¹[1] =   36.0/𝐴
+    𝗚⁻¹[2] = -120.0/𝐴
+    𝗚⁻¹[3] =  600.0/𝐴
+    𝗚⁻¹[4] = -120.0/𝐴
+    𝗚⁻¹[5] =  300.0/𝐴
+    𝗚⁻¹[6] =  600.0/𝐴
+    𝗚⁻¹[7] =   90.0/𝐴
+    𝗚⁻¹[8] = -540.0/𝐴
+    𝗚⁻¹[9] = -180.0/𝐴
+    𝗚⁻¹[10] =  540.0/𝐴
+    𝗚⁻¹[11] =  180.0/𝐴
+    𝗚⁻¹[12] = -720.0/𝐴
+    𝗚⁻¹[13] = -720.0/𝐴
+    𝗚⁻¹[14] =  540.0/𝐴
+    𝗚⁻¹[15] = 1440.0/𝐴
+    𝗚⁻¹[16] =   90.0/𝐴
+    𝗚⁻¹[17] = -180.0/𝐴
+    𝗚⁻¹[18] = -540.0/𝐴
+    𝗚⁻¹[19] =   90.0/𝐴
+    𝗚⁻¹[20] =  540.0/𝐴
+    𝗚⁻¹[21] =  540.0/𝐴
+    return 𝗚⁻¹
+end
+
 ## shape functions
 function get𝝭(ap::ReproducingKernel,ξ::Node)
+    𝒙 = get𝒙(ap,ξ)
+    return get𝝭(ap,𝒙)
+end
+function get∇𝝭(ap::ReproducingKernel,ξ::Node)
+    𝒙 = get𝒙(ap,ξ)
+    return get∇𝝭(ap,𝒙)
+end
+function get𝝭(ap::ReproducingKernel,𝒙::NTuple{3,Float64})
     𝓒 = ap.𝓒
     𝝭 = ap.𝝭[:∂1]
-    𝒙 = get𝒙(ap,ξ)
     𝒑₀ᵀ𝗠⁻¹ = cal𝗠!(ap,𝒙)
     for i in 1:length(𝓒)
         𝒙ᵢ = 𝓒[i]
@@ -521,16 +565,34 @@ function get∂𝝭∂x(ap::ReproducingKernel,ξ::Node)
     return 𝝭, ∂𝝭∂x
 end
 
-function get∇𝝭(ap::ReproducingKernel,ξ::Node)
+function get∇𝝭(ap::ReproducingKernel,𝒙::NTuple{3,Float64})
     𝓒 = ap.𝓒
     𝝭 = ap.𝝭[:∂1]
     ∂𝝭∂x = ap.𝝭[:∂x]
     ∂𝝭∂y = ap.𝝭[:∂y]
     ∂𝝭∂z = ap.𝝭[:∂z]
-    𝒙 = get𝒙(ap,ξ)
     𝒑₀ᵀ𝗠⁻¹, 𝒑₀ᵀ∂𝗠⁻¹∂x, 𝒑₀ᵀ∂𝗠⁻¹∂y, 𝒑₀ᵀ∂𝗠⁻¹∂z= cal∇𝗠!(ap,𝒙)
     for i in 1:length(𝓒)
         𝒙ᵢ = 𝓒[i]
+        Δ𝒙 = 𝒙 - 𝒙ᵢ
+        𝒑, ∂𝒑∂x, ∂𝒑∂y, ∂𝒑∂z = get∇𝒑(ap,Δ𝒙)
+        𝜙, ∂𝜙∂x, ∂𝜙∂y, ∂𝜙∂z = get∇𝜙(ap,𝒙ᵢ,Δ𝒙)
+        𝝭[i] = 𝒑₀ᵀ𝗠⁻¹*𝒑*𝜙
+        ∂𝝭∂x[i] = 𝒑₀ᵀ∂𝗠⁻¹∂x*𝒑*𝜙 + 𝒑₀ᵀ𝗠⁻¹*∂𝒑∂x*𝜙 + 𝒑₀ᵀ𝗠⁻¹*𝒑*∂𝜙∂x
+        ∂𝝭∂y[i] = 𝒑₀ᵀ∂𝗠⁻¹∂y*𝒑*𝜙 + 𝒑₀ᵀ𝗠⁻¹*∂𝒑∂y*𝜙 + 𝒑₀ᵀ𝗠⁻¹*𝒑*∂𝜙∂y
+        ∂𝝭∂z[i] = 𝒑₀ᵀ∂𝗠⁻¹∂z*𝒑*𝜙 + 𝒑₀ᵀ𝗠⁻¹*∂𝒑∂z*𝜙 + 𝒑₀ᵀ𝗠⁻¹*𝒑*∂𝜙∂z
+    end
+    return 𝝭, ∂𝝭∂x, ∂𝝭∂y, ∂𝝭∂z
+end
+
+function get∇𝝭(ap::ReproducingKernel{𝝃,𝒑̄,𝑠,𝜙̄,:Node},𝒙::NTuple{3,Float64},index::Vector{Int}) where {𝝃<:AbstractNode,𝒑̄,𝑠,𝜙̄}
+    𝝭 = ap.𝝭[:∂1]
+    ∂𝝭∂x = ap.𝝭[:∂x]
+    ∂𝝭∂y = ap.𝝭[:∂y]
+    ∂𝝭∂z = ap.𝝭[:∂z]
+    𝒑₀ᵀ𝗠⁻¹, 𝒑₀ᵀ∂𝗠⁻¹∂x, 𝒑₀ᵀ∂𝗠⁻¹∂y, 𝒑₀ᵀ∂𝗠⁻¹∂z= cal∇𝗠!(ap,𝒙)
+    for i in 1:length(index)
+        𝒙ᵢ = ap.𝓒[index[i]]
         Δ𝒙 = 𝒙 - 𝒙ᵢ
         𝒑, ∂𝒑∂x, ∂𝒑∂y, ∂𝒑∂z = get∇𝒑(ap,Δ𝒙)
         𝜙, ∂𝜙∂x, ∂𝜙∂y, ∂𝜙∂z = get∇𝜙(ap,𝒙ᵢ,Δ𝒙)
@@ -955,7 +1017,7 @@ function glue(𝓖₁::Vector{SNode},𝓖₂::Vector{SNode})
         for s in keys(ξ.𝝭)
             ξ.𝝭[s] = 𝓖₁[1].𝝭[s]
         end
-        i = findfirst(η->(η.ξ,η.η,η.γ) == (ξ.ξ,ξ.η,ξ.γ),𝓖₁)
+        i = findfirst(η->η.ξ≈ξ.ξ && η.η≈ξ.η && η.γ≈ξ.γ,𝓖₁)
         if i ≠ nothing
             η = 𝓖₁[i]
             ξ.index[ξ.id] = η.index[η.id]
@@ -970,4 +1032,23 @@ function glue(𝓖₁::Vector{SNode},𝓖₂::Vector{SNode})
             ξ.index[ξ.id] = nₜ
         end
     end
+end
+
+## get∇𝑢
+function get∇𝑢(ap::T,𝒙::NTuple{3,Float64},sp::S) where {T<:ReproducingKernel,S<:SpatialPartition}
+    index = [sp(𝒙...)...]
+    N,B₁,B₂,B₃ = get∇𝝭(ap,𝒙,index)
+    u = 0.0
+    ∂u∂x = 0.0
+    ∂u∂y = 0.0
+    ∂u∂z = 0.0
+    for i in 1:length(index)
+        id = index[i]
+        x = ap.𝓒[id]
+        u += N[i]*x.d
+        ∂u∂x += B₁[i]*x.d
+        ∂u∂y += B₂[i]*x.d
+        ∂u∂z += B₃[i]*x.d
+    end
+    return u,∂u∂x,∂u∂y,∂u∂z
 end

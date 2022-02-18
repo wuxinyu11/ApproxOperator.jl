@@ -62,9 +62,6 @@ end
 function prescribe!(aps::Vector{T},s::Symbol,f::Function) where T<:AbstractElement
     𝓖 = aps[1].𝓖
     data = 𝓖[1].data
-    if ~haskey(data,s)
-        push!(data,s=>similar(data[:w]))
-    end
     for ap in aps
         prescribe!(ap,s,f)
     end
@@ -482,4 +479,36 @@ function (op::Operator{:Hₑ_PlaneStress})(aps::Vector{T}) where T<:AbstractElem
         L₂Norm_ū²  += ū²
     end
     return (HₑNorm_ΔW²/HₑNorm_W̄²)^0.5, (L₂Norm_Δu²/L₂Norm_ū²)^0.5
+end
+
+function set∇𝑢!(ap::T) where T<:AbstractElement
+    for ξ in ap.𝓖
+        N,B₁,B₂,B₃ = get∇𝝭(ap,ξ)
+        𝒙 = get𝒙(ap,ξ)
+        u = 0.
+        ∂u∂x = 0.
+        ∂u∂y = 0.
+        ∂u∂z = 0.
+        for i in 1:length(ap.𝓒)
+            x = ap.𝓒[i]
+            I = x.id
+            u += N[i]*x.d
+            ∂u∂x += B₁[i]*x.d
+            ∂u∂y += B₂[i]*x.d
+            ∂u∂z += B₃[i]*x.d
+        end
+        ξ.x = 𝒙[1]
+        ξ.y = 𝒙[2]
+        ξ.z = 𝒙[3]
+        ξ.u = u
+        ξ.∂u∂x = ∂u∂x
+        ξ.∂u∂y = ∂u∂y
+        ξ.∂u∂z = ∂u∂z
+    end
+end
+
+function set∇𝑢!(aps::Vector{T}) where T<:AbstractElement
+    for ap in aps
+        set∇𝑢!(ap)
+    end
 end

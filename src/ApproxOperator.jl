@@ -18,10 +18,10 @@ export importmsh
 export RegularGrid
 export Operator, prescribe!, issubset, intersect
 export set𝓖!
-export set𝝭!, set∇𝝭!, set∇̃𝝭!, set𝒏!, setg̃!
+export set𝝭!, set∇𝝭!, set∇̃𝝭!, set𝒏!, setg̃!, set∇𝑢!, get∇𝑢
 
 #debug
-include("littletools.jl")
-export get𝐴,cal𝗚!,get𝒙,get∇𝝭,get𝝭,checkIC, checkCC
+# include("littletools.jl")
+# export get𝐴,cal𝗚!,get𝒙,get∇𝝭,get𝝭,checkIC, checkCC
 
 end
