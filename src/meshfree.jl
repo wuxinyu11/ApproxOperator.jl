@@ -237,8 +237,8 @@ end
 @inline get𝑛𝒒(::ReproducingKernel{𝝃,:Cubic1D}) where 𝝃 = 3
 @inline get𝒒(ap::ReproducingKernel{𝝃,:Cubic1D},ξ::𝝃) where 𝝃<:AbstractNode = get𝒒(ap,ξ.ξ)
 @inline get∂𝒒∂ξ(ap::ReproducingKernel{𝝃,:Cubic1D},ξ::𝝃) where 𝝃<:AbstractNode = get𝒒(ap,ξ.ξ)
-@inline get𝒒(::ReproducingKernel{𝝃,:Cubic1D},ξ::Float64) where 𝝃<:AbstractNode = (1.,ξ,ξ^2)
-@inline get∂𝒒∂ξ(::ReproducingKernel{𝝃,:Cubic1D},ξ::Float64) where 𝝃<:AbstractNode = (0.,-0.5,-ξ)
+@inline get𝒒(::ReproducingKernel{𝝃,:Cubic1D},ξ::Float64) where 𝝃<:AbstractNode = (1.0,0.5*(1.0-ξ),0.25*(1.0-ξ)^2)
+@inline get∂𝒒∂ξ(::ReproducingKernel{𝝃,:Cubic1D},ξ::Float64) where 𝝃<:AbstractNode = (0.,1.0,(1.0-ξ))
 
 # ------------ Linear2D ---------------
 @inline get𝑛𝒑(::ReproducingKernel{𝝃,:Linear2D}) where 𝝃 = 3
@@ -473,6 +473,19 @@ function cal𝗚!(ap::ReproducingKernel{𝝃,:Quadratic1D,𝑠,𝜙,:Seg2}) wher
     𝗚⁻¹[1] =  4.0/𝐿
     𝗚⁻¹[2] = -6.0/𝐿
     𝗚⁻¹[3] = 12.0/𝐿
+    return 𝗚⁻¹
+end
+
+function cal𝗚!(ap::ReproducingKernel{𝝃,:Cubic1D,𝑠,𝜙,:Seg2}) where {𝝃<:AbstractNode,𝑠,𝜙}
+    𝗚⁻¹ = ap.𝗠[:∇̃]
+    fill!(𝗚⁻¹,0.0)
+    𝐿 = get𝐿(ap)
+    𝗚⁻¹[1] =    9.0/𝐿
+    𝗚⁻¹[2] =  -36.0/𝐿
+    𝗚⁻¹[3] =  192.0/𝐿
+    𝗚⁻¹[4] =   30.0/𝐿
+    𝗚⁻¹[5] = -180.0/𝐿
+    𝗚⁻¹[6] =  180.0/𝐿
     return 𝗚⁻¹
 end
 

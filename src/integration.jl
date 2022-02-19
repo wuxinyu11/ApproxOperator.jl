@@ -34,8 +34,16 @@ function set𝓖!(aps::Vector{T},𝓖::NTuple{N,NTuple{D,Float64}},stype::Symbol
     nᵢ = nₑ*N
     data = Dict(:w=>zeros(nᵢ))
     data[:ξ] = zeros(nᵢ)
-    D > 2 ? data[:η] = zeros(nᵢ) : nothing
-    D > 3 ? data[:γ] = zeros(nᵢ) : nothing
+    if isrk
+        data[:wᵇ] = zeros(nᵢ)
+        D > 3 ? data[:η] = zeros(nᵢ) : nothing
+        D > 4 ? data[:γ] = zeros(nᵢ) : nothing
+        nₕ = get𝑛𝒒(aps[1])
+        aps[1].𝗠[:∇̃]=SymMat(nₕ)
+    else
+        D > 2 ? data[:η] = zeros(nᵢ) : nothing
+        D > 3 ? data[:γ] = zeros(nᵢ) : nothing
+    end
 
     nₘ = 0
     nₕ = length(get𝒑(aps[1],(0.0,0.0,0.0)))
