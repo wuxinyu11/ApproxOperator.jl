@@ -236,7 +236,7 @@ end
 @inline get∂²𝒑∂x²(::ReproducingKernel{𝝃,:Cubic1D},x::NTuple{3,Float64}) where 𝝃 = (0.,0.,2.,6*x[1])
 @inline get𝑛𝒒(::ReproducingKernel{𝝃,:Cubic1D}) where 𝝃 = 3
 @inline get𝒒(ap::ReproducingKernel{𝝃,:Cubic1D},ξ::𝝃) where 𝝃<:AbstractNode = get𝒒(ap,ξ.ξ)
-@inline get∂𝒒∂ξ(ap::ReproducingKernel{𝝃,:Cubic1D},ξ::𝝃) where 𝝃<:AbstractNode = get𝒒(ap,ξ.ξ)
+@inline get∂𝒒∂ξ(ap::ReproducingKernel{𝝃,:Cubic1D},ξ::𝝃) where 𝝃<:AbstractNode = get∂𝒒∂ξ(ap,ξ.ξ)
 @inline get𝒒(::ReproducingKernel{𝝃,:Cubic1D},ξ::Float64) where 𝝃<:AbstractNode = (1.0,0.5*(1.0-ξ),0.25*(1.0-ξ)^2)
 @inline get∂𝒒∂ξ(::ReproducingKernel{𝝃,:Cubic1D},ξ::Float64) where 𝝃<:AbstractNode = (0.,1.0,(1.0-ξ))
 
@@ -373,8 +373,10 @@ function cal𝗠!(ap::ReproducingKernel,x::NTuple{3,Float64})
     fill!(𝗠,0.)
     for xᵢ in 𝓒
         Δx = x - xᵢ
+        print(Δx)
         𝒑 = get𝒑(ap,Δx)
         𝜙 = get𝜙(ap,xᵢ,Δx)
+        print(𝜙)
         for I in 1:n
             for J in I:n
                 𝗠[I,J] += 𝜙*𝒑[I]*𝒑[J]
@@ -703,6 +705,21 @@ function get∇𝝭(ap::ReproducingKernel,ξ::SNode)
     return 𝝭, ∂𝝭∂x, ∂𝝭∂y, ∂𝝭∂z
 end
 
+function get∇̄𝝭(ap::ReproducingKernel,ξ::SNode)
+    𝝭 = ap.𝝭[:∂1]
+    ∂𝝭∂x = ap.𝝭[:∂x]
+    ∂𝝭∂y = ap.𝝭[:∂y]
+    ∂𝝭∂z = ap.𝝭[:∂z]
+    i = ξ.id
+    index = ξ.index
+    for j in 1:length(ap.𝓒)
+        𝝭[j] = ξ.𝝭[:∂1][index[i]+j]
+        ∂𝝭∂x[j] = ξ.𝝭[:∂̄x][index[i]+j]
+        ∂𝝭∂y[j] = haskey(ξ.𝝭,:∂̄y) ? ξ.𝝭[:∂̄y][index[i]+j] : 0.0
+        ∂𝝭∂z[j] = haskey(ξ.𝝭,:∂̄z) ? ξ.𝝭[:∂̄z][index[i]+j] : 0.0
+    end
+    return 𝝭, ∂𝝭∂x, ∂𝝭∂y, ∂𝝭∂z
+end
 ## RK gradient smoothing
 function set∇̃𝝭!(aps::Vector{T}) where T<:ReproducingKernel
     for ap in aps
@@ -804,6 +821,7 @@ function set∇̃𝝭!(gp::ReproducingKernel{SNode,𝒑,𝑠,𝜙,:Tri3},ap::Rep
 end
 
 function set∇̃𝝭!(gp::ReproducingKernel{SNode,𝒑,𝑠,𝜙,:Tet4},ap::ReproducingKernel{SNode,𝒑,𝑠,𝜙,:Tet4}) where {𝒑,𝑠,𝜙}
+    n₁₁
     𝗚⁻¹ = cal𝗚!(gp)
     𝓒 = gp.𝓒
     𝓖 = gp.𝓖
@@ -824,7 +842,9 @@ function set∇̃𝝭!(gp::ReproducingKernel{SNode,𝒑,𝑠,𝜙,:Tet4},ap::Rep
             n₃ = ξ.n₃
             𝝭 = get𝝭(ap,ξ)
             𝒒, ∂𝒒∂ξ, ∂𝒒∂η, ∂𝒒∂γ = get∇𝒒(gp,ξ)
-            b = 𝒒̂ᵀ𝗚⁻¹*∂𝒒∂ξ*n₁ + 𝒒̂ᵀ𝗚⁻¹*∂𝒒∂η*n₂ + 𝒒̂ᵀ𝗚⁻¹*∂𝒑∂γ*n₃
+            b₁ = 𝒒̂ᵀ𝗚⁻¹∂𝒒∂ξ*n₁₁ + 𝒒̂ᵀ𝗚⁻¹∂𝒒∂η*n₂₁ + 𝒒̂ᵀ𝗚⁻¹∂𝒒∂γ*n₃₁
+            b₂ = 𝒒̂ᵀ𝗚⁻¹∂𝒒∂ξ*n₁₂ + 𝒒̂ᵀ𝗚⁻¹∂𝒒∂η*n₂₂ + 𝒒̂ᵀ𝗚⁻¹∂𝒒∂γ*n₃₂
+            b₂ = 𝒒̂ᵀ𝗚⁻¹∂𝒒∂ξ*n₁₃ + 𝒒̂ᵀ𝗚⁻¹∂𝒒∂η*n₂₃ + 𝒒̂ᵀ𝗚⁻¹∂𝒒∂γ*n₃₃
             W₁ = 𝒒̂ᵀ𝗚⁻¹*𝒒*n₁*wᵇ + b*w/3
             W₂ = 𝒒̂ᵀ𝗚⁻¹*𝒒*n₂*wᵇ + b*w/3
             W₃ = 𝒒̂ᵀ𝗚⁻¹*𝒒*n₃*wᵇ + b*w/3
@@ -842,6 +862,29 @@ function set∇̃𝝭!(gp::ReproducingKernel{SNode,𝒑,𝑠,𝜙,:Tet4},ap::Rep
     end
 end
 
+# function set∇̃𝝭!(a::ReproducingKernel{SNode,𝒑,𝑠,𝜙,:Seg2},b::ReproducingKernel{SNode,𝒑,𝑠,𝜙,:Seg2}) where {𝒑,𝑠,𝜙}
+#     𝗚⁻¹ = cal𝗚!(b)
+#     for ξ̂ in a.𝓖
+#         𝒒̂ = get𝒒(a,ξ̂)
+#         𝒒̂ᵀ𝗚⁻¹ = 𝒒̂*𝗚⁻¹
+#         ∂𝝭∂x = gp.𝝭[:∂x]
+#         fill!(∂𝝭∂x,0.0)
+#         for ξ in b.𝓖
+#             w = ξ.w
+#             wᵇ = ξ.wᵇ
+#             nᵇ₁,nᵇ₂,nᵇ₃ = get𝒏(b,ξ)
+#             𝝭 = get𝝭(b,ξ)
+#             𝒒, ∂𝒒∂ξ = get∇𝒒(a,ξ)
+#             W₁ = 𝒒̂ᵀ𝗚⁻¹*𝒒*nᵇ₁*wᵇ + 𝒒̂ᵀ𝗚⁻¹*∂𝒒∂ξ*n₁*w
+#             for i in 1:length(𝓒)
+#                 ∂𝝭∂x[i] += 𝝭[i]*W₁
+#             end
+#         end
+#         for i in 1:length(𝓒)
+#             ξ̂.𝝭[:∂x][ξ̂.index[ξ̂.id]+i] = ∂𝝭∂x[i]
+#         end
+#     end
+# end
 function setg̃!(gps::Vector{T},aps::Vector{S}) where{T<:ReproducingKernel,S<:ReproducingKernel}
     if length(gps) ≠ length(aps)
         error("Miss match element numbers")
@@ -883,6 +926,77 @@ function setg̃!(gp::ReproducingKernel{SNode,𝒑,𝑠,𝜙,:Seg2},ap::Reproduci
     end
 end
 
+function set∇̄𝝭!(aps::Vector{T}) where T<:AbstractElement{:Seg2}
+    aps[1].𝓖[1].𝝭[:∂̄x] = zeros(length(aps[1].𝓖[1].𝝭[:∂1]))
+    for ap in aps
+        set∇̄𝝭!(ap)
+    end
+end
+function set∇̄𝝭!(aps::Vector{T}) where T<:AbstractElement{:Tri3}
+    aps[1].𝓖[1].𝝭[:∂̄x] = zeros(length(aps[1].𝓖[1].𝝭[:∂1]))
+    aps[1].𝓖[1].𝝭[:∂̄y] = zeros(length(aps[1].𝓖[1].𝝭[:∂1]))
+    for ap in aps
+        set∇̄𝝭!(ap)
+    end
+end
+function set∇̄𝝭!(ap::ReproducingKernel{SNode,𝒑,𝑠,𝜙,:Seg2}) where {𝒑,𝑠,𝜙}
+    𝗚⁻¹ = cal𝗚!(ap)
+    𝓒 = ap.𝓒
+    𝓖 = ap.𝓖
+    for ξ̂ in 𝓖
+        𝒒̂ = get𝒒(ap,ξ̂)
+        𝒒̂ᵀ𝗚⁻¹ = 𝒒̂*𝗚⁻¹
+        ∂𝝭∂x = ap.𝝭[:∂x]
+        fill!(∂𝝭∂x,0.0)
+        for ξ in ap.𝓖
+            w = ξ.w
+            n = ξ.n₁
+            𝝭 = get𝝭(ap,ξ)
+            g = ξ.g
+            𝒒 = get𝒒(ap,ξ)
+            W₁ = 𝒒̂ᵀ𝗚⁻¹*𝒒*n*w
+            for i in 1:length(𝓒)
+                ∂𝝭∂x[i] += 𝝭[i]*W₁
+            end
+        end
+        for i in 1:length(𝓒)
+            ξ̂.𝝭[:∂̄x][ξ̂.index[ξ̂.id]+i] = ∂𝝭∂x[i]
+        end
+    end
+end
+
+function set∇̄𝝭!(ap::ReproducingKernel{SNode,𝒑,𝑠,𝜙,:Tri3}) where {𝒑,𝑠,𝜙}
+    𝗚⁻¹ = cal𝗚!(ap)
+    𝓒 = ap.𝓒
+    𝓖 = ap.𝓖
+    for ξ̂ in 𝓖
+        𝒒̂ = get𝒒(ap,ξ̂)
+        𝒒̂ᵀ𝗚⁻¹ = 𝒒̂*𝗚⁻¹
+        ∂𝝭∂x = ap.𝝭[:∂x]
+        ∂𝝭∂y = ap.𝝭[:∂y]
+        fill!(∂𝝭∂x,0.0)
+        fill!(∂𝝭∂y,0.0)
+        for ξ in ap.𝓖
+            w = ξ.w
+            n₁ = ξ.n₁
+            n₂ = ξ.n₂
+            𝝭 = get𝝭(ap,ξ)
+            g = ξ.g
+            𝒒 = get𝒒(ap,ξ)
+            𝒒̂ᵀ𝗚⁻¹𝒒 = 𝒒̂ᵀ𝗚⁻¹*𝒒
+            W₁ = 𝒒̂ᵀ𝗚⁻¹𝒒*n₁*w
+            W₂ = 𝒒̂ᵀ𝗚⁻¹𝒒*n₂*w
+            for i in 1:length(𝓒)
+                ∂𝝭∂x[i] += 𝝭[i]*W₁
+                ∂𝝭∂y[i] += 𝝭[i]*W₂
+            end
+        end
+        for i in 1:length(𝓒)
+            ξ̂.𝝭[:∂̄x][ξ̂.index[ξ̂.id]+i] = ∂𝝭∂x[i]
+            ξ̂.𝝭[:∂̄y][ξ̂.index[ξ̂.id]+i] = ∂𝝭∂y[i]
+        end
+    end
+end
 function setg̃!(gp::ReproducingKernel{SNode,𝒑,𝑠,𝜙,:Tri3},ap::ReproducingKernel{SNode,𝒑,𝑠,𝜙,:Tri3}) where {𝒑,𝑠,𝜙}
     x₁ = gp.𝓒[1].x;y₁ = gp.𝓒[1].y
     x₂ = gp.𝓒[2].x;y₂ = gp.𝓒[2].y
@@ -1064,4 +1178,22 @@ function get∇𝑢(ap::T,𝒙::NTuple{3,Float64},sp::S) where {T<:ReproducingKe
         ∂u∂z += B₃[i]*x.d
     end
     return u,∂u∂x,∂u∂y,∂u∂z
+end
+
+function get𝝐(ap::T,𝒙::NTuple{3,Float64},sp::S) where {T<:ReproducingKernel,S<:SpatialPartition}
+    index = [sp(𝒙...)...]
+    N,B₁,B₂ = get∇𝝭(ap,𝒙,index)
+    u = 0.0
+    ε₁₁ = 0.0
+    ε₂₂ = 0.0
+    ε₁₂ = 0.0
+    for i in 1:length(index)
+        id = index[i]
+        x = ap.𝓒[id]
+        u += N[i]*x.d
+        ε₁₁ += B₁[i]*x.d₁
+        ε₂₂ += B₂[i]*x.d₂
+        ε₁₂ += B₁[i]*x.d₂ + B₂[i]*x.d₁
+    end
+    return u,ε₁₁,ε₂₂,ε₁₂
 end

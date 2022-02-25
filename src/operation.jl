@@ -172,24 +172,21 @@ function (op::Operator{:∫∇𝑛vgdΓ})(ap::T,k::AbstractMatrix{Float64},f::Ab
     end
 end
 
-function (op::Operator{:∫ṽg̃dΩ})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+function (op::Operator{:∫∇̄𝑛vgdΓ})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
-        𝑤 = get𝑤(ap,ξ)
-        ~,B₁,B₂,B₃ = get∇𝝭(ap,ξ)
-        n₁₁ = ξ.n₁₁
-        n₂₂ = ξ.n₂₂
-        n₁₂ = ξ.n₁₂
-        g₁ = ξ.g₁
-        g₂ = ξ.g₂
-        g₃ = ξ.g₃
+        N,B₁,B₂,B₃ = get∇̄𝝭(ap,ξ)
+        n₁ = ξ.n₁
+        n₂ = ξ.n₂
+        n₃ = ξ.n₃
+        g = ξ.g
         for i in 1:length(𝓒)
             I = 𝓒[i].id
             for j in 1:length(𝓒)
                 J = 𝓒[j].id
-                k[I,J] += (B₁[i]*B₁[j]+B₂[i]*B₂[j]+B₃[i]*B₃[j])*𝑤
+                k[I,J] += (B₁[i]*n₁+B₂[i]*n₂+B₃[i]*n₃)*N[j]*ξ.w
             end
-            f[I] += (B₁[i]*g₁+B₂[i]*g₂+B₃[i]*g₃)*𝑤
+            f[I] += (B₁[i]*n₁+B₂[i]*n₂+B₃[i]*n₃)*ξ.g*ξ.w
         end
     end
 end
@@ -256,7 +253,7 @@ function (op::Operator{:∫∫εᵢⱼσᵢⱼdxdy})(ap::T,k::AbstractMatrix{Flo
     end
 end
 
-function (op::Operator{:∫∫vᵢbᵢdxdy})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+function (op::Operator{:∫∫vᵢbᵢdxdy})(ap::T,f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
         N = get𝝭(ap,ξ)
@@ -278,6 +275,31 @@ function (op::Operator{:∫vᵢtᵢds})(ap::T,f::Vector{Float64}) where T<:Abstr
             I = 𝓒[i].id
             f[2*I-1] += N[i]*ξ.t₁*𝑤
             f[2*I]   += N[i]*ξ.t₂*𝑤
+        end
+    end
+end
+
+function (op::Operator{:∫λᵢgᵢds})(ap1::T,ap2::S,g::AbstractMatrix{Float64},q::AbstractVector{Float64}) where {T<:AbstractElement,S<:AbstractElement}
+    for ξ in ap1.𝓖
+        𝑤 = get𝑤(ap1,ξ)
+        N = get𝝭(ap1,ξ)
+        N̄ = get𝝭(ap2,ξ)
+        g₁ = ξ.g₁
+        g₂ = ξ.g₂
+        n₁₁ = ξ.n₁₁
+        n₂₂ = ξ.n₂₂
+        n₁₂ = ξ.n₁₂
+        for k in 1:length(ap2.𝓒)
+            K = ap2.𝓒[k].id
+            for i in 1:length(ap1.𝓒)
+                I = ap1.𝓒[i].id
+                g[2*I-1,2*K-1] -= n₁₁*N[i]*N̄[k]*𝑤
+                g[2*I-1,2*K]   -= n₁₂*N[i]*N̄[k]*𝑤
+                g[2*I,2*K-1]   -= n₁₂*N[i]*N̄[k]*𝑤
+                g[2*I,2*K]     -= n₂₂*N[i]*N̄[k]*𝑤
+            end
+            q[2*K-1] -= N̄[k]*(n₁₁*g₁+n₁₂*g₂)*𝑤
+            q[2*K]   -= N̄[k]*(n₁₂*g₁+n₂₂*g₂)*𝑤
         end
     end
 end
@@ -313,6 +335,36 @@ function (op::Operator{:∫σᵢⱼnⱼgᵢds})(ap::T,k::AbstractMatrix{Float64}
     end
 end
 
+function (op::Operator{:∫σ̄ᵢⱼnⱼgᵢds})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    for ξ in 𝓖
+        N,B₁,B₂ = get∇̄𝝭(ap,ξ)
+        E = op.E
+        ν = op.ν
+        Cᵢᵢᵢᵢ = E/(1-ν^2)
+        Cᵢᵢⱼⱼ = E*ν/(1-ν^2)
+        Cᵢⱼᵢⱼ = E/2/(1+ν)
+        n₁₁ = ξ.n₁₁
+        n₁₂ = ξ.n₁₂
+        n₂₂ = ξ.n₂₂
+        g₁ = ξ.g₁
+        g₂ = ξ.g₂
+        n₁ = ξ.n₁
+        n₂ = ξ.n₂
+        for i in 1:length(𝓒)
+            I = 𝓒[i].id
+            for j in 1:length(𝓒)
+                J = 𝓒[j].id
+                k[2*I-1,2*J-1] += ((Cᵢᵢᵢᵢ*n₁*n₁₁+Cᵢᵢⱼⱼ*n₂*n₁₂)*B₁[i]*N[j] + Cᵢⱼᵢⱼ*(n₁*n₁₂+n₂*n₁₁)*B₂[i]*N[j])*ξ.w
+                k[2*I-1,2*J]   += ((Cᵢᵢᵢᵢ*n₁*n₁₂+Cᵢᵢⱼⱼ*n₂*n₂₂)*B₁[i]*N[j] + Cᵢⱼᵢⱼ*(n₂*n₁₂+n₁*n₂₂)*B₂[i]*N[j])*ξ.w
+                k[2*I,2*J-1]   += (Cᵢⱼᵢⱼ*(n₁*n₁₂+n₂*n₁₁)*B₁[i]*N[j] + (Cᵢᵢⱼⱼ*n₁*n₁₁+Cᵢᵢᵢᵢ*n₂*n₁₂)*B₂[i]*N[j])*ξ.w
+                k[2*I,2*J]     += (Cᵢⱼᵢⱼ*(n₂*n₁₂+n₁*n₂₂)*B₁[i]*N[j] + (Cᵢᵢⱼⱼ*n₁*n₁₂+Cᵢᵢᵢᵢ*n₂*n₂₂)*B₂[i]*N[j])*ξ.w
+            end
+            f[2*I-1] += (((Cᵢᵢᵢᵢ*n₁*n₁₁+Cᵢᵢⱼⱼ*n₂*n₁₂)*B₁[i] + Cᵢⱼᵢⱼ*(n₁*n₁₂+n₂*n₁₁)*B₂[i])*g₁ + ((Cᵢᵢᵢᵢ*n₁*n₁₂+Cᵢᵢⱼⱼ*n₂*n₂₂)*B₁[i] + Cᵢⱼᵢⱼ*(n₂*n₁₂+n₁*n₂₂)*B₂[i])*g₂)*ξ.w
+            f[2*I]   += ((Cᵢⱼᵢⱼ*(n₁*n₁₂+n₂*n₁₁)*B₁[i] + (Cᵢᵢⱼⱼ*n₁*n₁₁+Cᵢᵢᵢᵢ*n₂*n₁₂)*B₂[i])*g₁ + (Cᵢⱼᵢⱼ*(n₂*n₁₂+n₁*n₂₂)*B₁[i] + (Cᵢᵢⱼⱼ*n₁*n₁₂+Cᵢᵢᵢᵢ*n₂*n₂₂)*B₂[i])*g₂)*ξ.w
+        end
+    end
+end
 function (op::Operator{:∫vᵢgᵢds})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
@@ -467,10 +519,10 @@ function (op::Operator{:Hₑ_PlaneStress})(ap::T) where T<:AbstractElement
 end
 
 function (op::Operator{:Hₑ_PlaneStress})(aps::Vector{T}) where T<:AbstractElement
-    HₑNorm_ΔW²= 0
-    HₑNorm_W̄² = 0
-    L₂Norm_Δu²= 0
-    L₂Norm_ū² = 0
+    HₑNorm_ΔW²= 0.0
+    HₑNorm_W̄² = 0.0
+    L₂Norm_Δu²= 0.0
+    L₂Norm_ū² = 0.0
     for ap in aps
         ΔW², W̄², Δu², ū² = op(ap)
         HₑNorm_ΔW² += ΔW²
