@@ -18,10 +18,6 @@ end
 end
 @inline *(A::SymMat,v::NTuple{N,Float64}) where N = sum(A[1,i]*v[i] for i in 1:N)
 
-# @inline function *(v::NTuple{N,Float64},A::SymMat) where N
-#     return Tuple(sum(v[i]*A[i,j] for i in 1:N) for j in 1:N)
-# end
-
 @inline function *(v::NTuple{N,Float64},A::SymMat) where N
     for j in 1:N
         A[1,j] = sum(v[i]*A[i,j] for i in 1:N)
@@ -911,19 +907,13 @@ function setg̃!(gp::ReproducingKernel{SNode,𝒑,𝑠,𝜙,:Seg2},ap::Reproduci
     end
 end
 
-function set∇̄𝝭!(aps::Vector{T}) where T<:AbstractElement{:Seg2}
-    aps[1].𝓖[1].𝝭[:∂̄x] = zeros(length(aps[1].𝓖[1].𝝭[:∂1]))
+function set∇̄𝝭!(aps::Vector{T}) where T<:AbstractElement
+    set𝝭!(aps)
     for ap in aps
         set∇̄𝝭!(ap)
     end
 end
-function set∇̄𝝭!(aps::Vector{T}) where T<:AbstractElement{:Tri3}
-    aps[1].𝓖[1].𝝭[:∂̄x] = zeros(length(aps[1].𝓖[1].𝝭[:∂1]))
-    aps[1].𝓖[1].𝝭[:∂̄y] = zeros(length(aps[1].𝓖[1].𝝭[:∂1]))
-    for ap in aps
-        set∇̄𝝭!(ap)
-    end
-end
+
 function set∇̄𝝭!(ap::ReproducingKernel{SNode,𝒑,𝑠,𝜙,:Seg2}) where {𝒑,𝑠,𝜙}
     𝓒 = ap.𝓒
     𝓖 = ap.𝓖
@@ -1080,7 +1070,7 @@ function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(as::Vector{Element{S}},sp::Uni
     end
     return aps
 end
-function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(a::A,b::B,sp::Union{Nothing,SpatialPartition}=nothing;sharing::Bool=false) where {A<:ReproducingKernel,B<:ReproducingKernel,𝝃<:AbstractNode,𝒑,𝑠,𝜙,T}
+function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(a::A,b::B,sp::Union{Nothing,SpatialPartition}=nothing) where {A<:ReproducingKernel,B<:ReproducingKernel,𝝃<:AbstractNode,𝒑,𝑠,𝜙,T}
     𝓒 = a.𝓒
     𝓖 = get𝓖(a,b)
     if 𝓖 ≠ nothing
@@ -1097,24 +1087,6 @@ function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(a::A,b::B,sp::Union{Nothing,Sp
                     index[ξ.id+i] += n
                 end
             end
-            if sharing
-                for ξ in 𝓖₂
-                    i = findfirst(η->η.ξ≈ξ.ξ && η.η≈ξ.η && η.γ≈ξ.γ,𝓖₁)
-                    if i ≠ nothing
-                        η = 𝓖₁[i]
-                        ξ.index[ξ.id] = η.index[η.id]
-                    else
-                        η = 𝓖₁[1]
-                        n = η.index[η.id+1] - η.index[η.id]
-                        nₜ = 0
-                        for s in keys(ξ.𝝭)
-                            nₜ = length(ξ.𝝭[s])
-                            append!(ξ.𝝭[s],zeros(n))
-                        end
-                        ξ.index[ξ.id] = nₜ
-                    end
-                end
-            end
         end
         𝗠 = a.𝗠
         𝝭 = a.𝝭
@@ -1126,55 +1098,15 @@ function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(a::A,b::B,sp::Union{Nothing,Sp
     end
 end
 
-function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(as::Vector{A},bs::Vector{B};sharing::Bool=false) where {𝝃<:AbstractNode,𝒑,𝑠,𝜙,T,A<:ReproducingKernel,B<:ReproducingKernel}
+function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(as::Vector{A},bs::Vector{B}) where {𝝃<:AbstractNode,𝒑,𝑠,𝜙,T,A<:ReproducingKernel,B<:ReproducingKernel}
     aps = ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}[]
     for b in bs
         for a in as
-            ap = ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(a,b,sharing=sharing)
+            ap = ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(a,b)
             ap ≠ nothing ? push!(aps,ap) : nothing
         end
     end
     return aps
-end
-
-function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(as::Vector{A},bs::Vector{B};sharing::Bool=false) where {𝝃<:AbstractNode,𝒑,𝑠,𝜙,T,A<:ReproducingKernel,B<:ReproducingKernel}
-    return ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(as,bs;sharing=sharing)
-end
-
-function addindex(𝓖::Vector{SNode},n::Int)
-    nₜ = length(𝓖)*n
-    index = 𝓖[1].index
-    𝝭 = 𝓖[1].𝝭
-    for s in keys(𝝭)
-        append!(𝝭[s],zeros(nₜ))
-    end
-    for ξ in 𝓖
-        for i in 1:length(index)-ξ.id
-            index[ξ.id+i] += n
-        end
-    end
-end
-
-function glue(𝓖₁::Vector{SNode},𝓖₂::Vector{SNode})
-    for ξ in 𝓖₂
-        for s in keys(ξ.𝝭)
-            ξ.𝝭[s] = 𝓖₁[1].𝝭[s]
-        end
-        i = findfirst(η->η.ξ≈ξ.ξ && η.η≈ξ.η && η.γ≈ξ.γ,𝓖₁)
-        if i ≠ nothing
-            η = 𝓖₁[i]
-            ξ.index[ξ.id] = η.index[η.id]
-        else
-            η = 𝓖₁[1]
-            n = η.index[η.id+1] - η.index[η.id]
-            nₜ = 0
-            for s in keys(ξ.𝝭)
-                nₜ = length(ξ.𝝭[s])
-                append!(ξ.𝝭[s],zeros(n))
-            end
-            ξ.index[ξ.id] = nₜ
-        end
-    end
 end
 
 ## get∇𝑢
