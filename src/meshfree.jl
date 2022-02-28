@@ -17,8 +17,16 @@ end
     A.m[i] = val
 end
 @inline *(A::SymMat,v::NTuple{N,Float64}) where N = sum(A[1,i]*v[i] for i in 1:N)
+
+# @inline function *(v::NTuple{N,Float64},A::SymMat) where N
+#     return Tuple(sum(v[i]*A[i,j] for i in 1:N) for j in 1:N)
+# end
+
 @inline function *(v::NTuple{N,Float64},A::SymMat) where N
-    return Tuple(sum(v[i]*A[i,j] for i in 1:N) for j in 1:N)
+    for j in 1:N
+        A[1,j] = sum(v[i]*A[i,j] for i in 1:N)
+    end
+    return A
 end
 
 @inline function -(A::SymMat)
@@ -266,8 +274,8 @@ end
 @inline get∂𝒑∂y(::ReproducingKernel{𝝃,:Quadratic2D},ξ::𝝃) where 𝝃<:AbstractNode = (0.,0.,1.,0.,ξ.ξ,2*ξ.η)
 @inline get𝑛𝒒(::ReproducingKernel{𝝃,:Quadratic2D}) where 𝝃 = 3
 @inline get𝒒(ap::ReproducingKernel{𝝃,:Quadratic2D},ξ::𝝃) where 𝝃<:AbstractNode = get𝒒(ap,ξ.ξ,ξ.η)
-@inline get∂𝒒∂ξ(ap::ReproducingKernel{𝝃,:Quadratic2D},ξ::𝝃) where 𝝃<:AbstractNode = get∂𝒒∂ξ(ap,ξ.ξ,ξ.η)
-@inline get∂𝒒∂η(ap::ReproducingKernel{𝝃,:Quadratic2D},ξ::𝝃) where 𝝃<:AbstractNode = get∂𝒒∂η(ap,ξ.ξ,ξ.η)
+@inline get∂𝒒∂ξ(ap::ReproducingKernel{𝝃,:Quadratic2D},ξ::Any) where 𝝃 = (0.,1.,0.)
+@inline get∂𝒒∂η(ap::ReproducingKernel{𝝃,:Quadratic2D},ξ::Any) where 𝝃 = (0.,0.,1.)
 @inline get𝒒(::ReproducingKernel{𝝃,:Quadratic2D},ξ::Float64,η::Float64) where 𝝃<:AbstractNode = (1.,ξ,η)
 @inline get∂𝒒∂ξ(::ReproducingKernel{𝝃,:Quadratic2D},::Any,::Any) where 𝝃<:AbstractNode = (0.,1.,0.)
 @inline get∂𝒒∂η(::ReproducingKernel{𝝃,:Quadratic2D},::Any,::Any) where 𝝃<:AbstractNode = (0.,0.,1.)
@@ -373,10 +381,10 @@ function cal𝗠!(ap::ReproducingKernel,x::NTuple{3,Float64})
     fill!(𝗠,0.)
     for xᵢ in 𝓒
         Δx = x - xᵢ
-        print(Δx)
+        # print(Δx)
         𝒑 = get𝒑(ap,Δx)
         𝜙 = get𝜙(ap,xᵢ,Δx)
-        print(𝜙)
+        # print(𝜙)
         for I in 1:n
             for J in I:n
                 𝗠[I,J] += 𝜙*𝒑[I]*𝒑[J]
@@ -749,11 +757,11 @@ set∇̃𝝭!(ap::T) where T<:ReproducingKernel{SNode} = set∇̃𝝭!(ap,ap)
 function set∇̃𝝭!(gp::ReproducingKernel{SNode,𝒑,𝑠,𝜙,:Seg2},ap::ReproducingKernel{SNode,𝒑,𝑠,𝜙,:Seg2}) where {𝒑,𝑠,𝜙}
     n₁ =  1.0
     n₂ = -1.0
-    𝗚⁻¹ = cal𝗚!(gp)
     𝓒 = gp.𝓒
     𝓖 = gp.𝓖
     for ξ̂ in 𝓖
         𝒒̂ = get𝒒(gp,ξ̂)
+        𝗚⁻¹ = cal𝗚!(gp)
         𝒒̂ᵀ𝗚⁻¹ = 𝒒̂*𝗚⁻¹
         ∂𝝭∂x = gp.𝝭[:∂x]
         fill!(∂𝝭∂x,0.0)
@@ -782,11 +790,11 @@ function set∇̃𝝭!(gp::ReproducingKernel{SNode,𝒑,𝑠,𝜙,:Tri3},ap::Rep
     x₃ = gp.𝓒[3].x;y₃ = gp.𝓒[3].y
     n₁₁ = y₃-y₂;n₂₁ = y₁-y₃;n₃₁ = y₂-y₁
     n₁₂ = x₂-x₃;n₂₂ = x₃-x₁;n₃₂ = x₁-x₂
-    𝗚⁻¹ = cal𝗚!(gp)
     𝓒 = gp.𝓒
     𝓖 = gp.𝓖
     for ξ̂ in 𝓖
         𝒒̂ = get𝒒(gp,ξ̂)
+        𝗚⁻¹ = cal𝗚!(gp)
         𝒒̂ᵀ𝗚⁻¹ = 𝒒̂*𝗚⁻¹
         ∂𝝭∂x = gp.𝝭[:∂x]
         ∂𝝭∂y = gp.𝝭[:∂y]
@@ -862,29 +870,6 @@ function set∇̃𝝭!(gp::ReproducingKernel{SNode,𝒑,𝑠,𝜙,:Tet4},ap::Rep
     end
 end
 
-# function set∇̃𝝭!(a::ReproducingKernel{SNode,𝒑,𝑠,𝜙,:Seg2},b::ReproducingKernel{SNode,𝒑,𝑠,𝜙,:Seg2}) where {𝒑,𝑠,𝜙}
-#     𝗚⁻¹ = cal𝗚!(b)
-#     for ξ̂ in a.𝓖
-#         𝒒̂ = get𝒒(a,ξ̂)
-#         𝒒̂ᵀ𝗚⁻¹ = 𝒒̂*𝗚⁻¹
-#         ∂𝝭∂x = gp.𝝭[:∂x]
-#         fill!(∂𝝭∂x,0.0)
-#         for ξ in b.𝓖
-#             w = ξ.w
-#             wᵇ = ξ.wᵇ
-#             nᵇ₁,nᵇ₂,nᵇ₃ = get𝒏(b,ξ)
-#             𝝭 = get𝝭(b,ξ)
-#             𝒒, ∂𝒒∂ξ = get∇𝒒(a,ξ)
-#             W₁ = 𝒒̂ᵀ𝗚⁻¹*𝒒*nᵇ₁*wᵇ + 𝒒̂ᵀ𝗚⁻¹*∂𝒒∂ξ*n₁*w
-#             for i in 1:length(𝓒)
-#                 ∂𝝭∂x[i] += 𝝭[i]*W₁
-#             end
-#         end
-#         for i in 1:length(𝓒)
-#             ξ̂.𝝭[:∂x][ξ̂.index[ξ̂.id]+i] = ∂𝝭∂x[i]
-#         end
-#     end
-# end
 function setg̃!(gps::Vector{T},aps::Vector{S}) where{T<:ReproducingKernel,S<:ReproducingKernel}
     if length(gps) ≠ length(aps)
         error("Miss match element numbers")
@@ -940,11 +925,11 @@ function set∇̄𝝭!(aps::Vector{T}) where T<:AbstractElement{:Tri3}
     end
 end
 function set∇̄𝝭!(ap::ReproducingKernel{SNode,𝒑,𝑠,𝜙,:Seg2}) where {𝒑,𝑠,𝜙}
-    𝗚⁻¹ = cal𝗚!(ap)
     𝓒 = ap.𝓒
     𝓖 = ap.𝓖
     for ξ̂ in 𝓖
         𝒒̂ = get𝒒(ap,ξ̂)
+        𝗚⁻¹ = cal𝗚!(ap)
         𝒒̂ᵀ𝗚⁻¹ = 𝒒̂*𝗚⁻¹
         ∂𝝭∂x = ap.𝝭[:∂x]
         fill!(∂𝝭∂x,0.0)
@@ -952,7 +937,6 @@ function set∇̄𝝭!(ap::ReproducingKernel{SNode,𝒑,𝑠,𝜙,:Seg2}) where 
             w = ξ.w
             n = ξ.n₁
             𝝭 = get𝝭(ap,ξ)
-            g = ξ.g
             𝒒 = get𝒒(ap,ξ)
             W₁ = 𝒒̂ᵀ𝗚⁻¹*𝒒*n*w
             for i in 1:length(𝓒)
@@ -966,11 +950,11 @@ function set∇̄𝝭!(ap::ReproducingKernel{SNode,𝒑,𝑠,𝜙,:Seg2}) where 
 end
 
 function set∇̄𝝭!(ap::ReproducingKernel{SNode,𝒑,𝑠,𝜙,:Tri3}) where {𝒑,𝑠,𝜙}
-    𝗚⁻¹ = cal𝗚!(ap)
     𝓒 = ap.𝓒
     𝓖 = ap.𝓖
     for ξ̂ in 𝓖
         𝒒̂ = get𝒒(ap,ξ̂)
+        𝗚⁻¹ = cal𝗚!(ap)
         𝒒̂ᵀ𝗚⁻¹ = 𝒒̂*𝗚⁻¹
         ∂𝝭∂x = ap.𝝭[:∂x]
         ∂𝝭∂y = ap.𝝭[:∂y]
@@ -981,7 +965,6 @@ function set∇̄𝝭!(ap::ReproducingKernel{SNode,𝒑,𝑠,𝜙,:Tri3}) where 
             n₁ = ξ.n₁
             n₂ = ξ.n₂
             𝝭 = get𝝭(ap,ξ)
-            g = ξ.g
             𝒒 = get𝒒(ap,ξ)
             𝒒̂ᵀ𝗚⁻¹𝒒 = 𝒒̂ᵀ𝗚⁻¹*𝒒
             W₁ = 𝒒̂ᵀ𝗚⁻¹𝒒*n₁*w
@@ -1102,7 +1085,36 @@ function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(a::A,b::B,sp::Union{Nothing,Sp
     𝓖 = get𝓖(a,b)
     if 𝓖 ≠ nothing
         if 𝝃 == SNode
-            sharing ? glue(a.𝓖,b.𝓖) : addindex(𝓖,length(a.𝓒)-length(b.𝓒))
+            n = length(a.𝓒)-length(b.𝓒)
+            nₜ = length(𝓖)*n
+            index = 𝓖[1].index
+            𝝭 = 𝓖[1].𝝭
+            for s in keys(𝝭)
+                append!(𝝭[s],zeros(nₜ))
+            end
+            for ξ in 𝓖
+                for i in 1:length(index)-ξ.id
+                    index[ξ.id+i] += n
+                end
+            end
+            if sharing
+                for ξ in 𝓖₂
+                    i = findfirst(η->η.ξ≈ξ.ξ && η.η≈ξ.η && η.γ≈ξ.γ,𝓖₁)
+                    if i ≠ nothing
+                        η = 𝓖₁[i]
+                        ξ.index[ξ.id] = η.index[η.id]
+                    else
+                        η = 𝓖₁[1]
+                        n = η.index[η.id+1] - η.index[η.id]
+                        nₜ = 0
+                        for s in keys(ξ.𝝭)
+                            nₜ = length(ξ.𝝭[s])
+                            append!(ξ.𝝭[s],zeros(n))
+                        end
+                        ξ.index[ξ.id] = nₜ
+                    end
+                end
+            end
         end
         𝗠 = a.𝗠
         𝝭 = a.𝝭
@@ -1123,6 +1135,10 @@ function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(as::Vector{A},bs::Vector{B};sh
         end
     end
     return aps
+end
+
+function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(as::Vector{A},bs::Vector{B};sharing::Bool=false) where {𝝃<:AbstractNode,𝒑,𝑠,𝜙,T,A<:ReproducingKernel,B<:ReproducingKernel}
+    return ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(as,bs;sharing=sharing)
 end
 
 function addindex(𝓖::Vector{SNode},n::Int)

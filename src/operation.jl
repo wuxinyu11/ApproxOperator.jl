@@ -54,14 +54,17 @@ function prescribe!(ap::T,s::Symbol,f::Function) where T<:AbstractElement
     𝓖 = ap.𝓖
     for ξ in 𝓖
         𝒙 = get𝒙(ap,ξ)
-        v = f(𝒙...)
+        if applicable(f,𝒙...)
+            v = f(𝒙...)
+        else
+            𝒏 = get𝒏(ap)
+            v = f(𝒙...,𝒏...)
+        end
         setproperty!(ξ,s,v)
     end
 end
 
 function prescribe!(aps::Vector{T},s::Symbol,f::Function) where T<:AbstractElement
-    𝓖 = aps[1].𝓖
-    data = 𝓖[1].data
     for ap in aps
         prescribe!(ap,s,f)
     end
@@ -87,7 +90,7 @@ end
 function (op::Operator{:∫∇v∇udΩ})(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
-        ~,B₁,B₂,B₃ = get∇𝝭(ap,ξ)
+        _,B₁,B₂,B₃ = get∇𝝭(ap,ξ)
         𝑤 = get𝑤(ap,ξ)
         for i in 1:length(𝓒)
             I = 𝓒[i].id
@@ -233,7 +236,7 @@ end
 function (op::Operator{:∫∫εᵢⱼσᵢⱼdxdy})(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
-        N,B₁,B₂ = get∇𝝭(ap,ξ)
+        _,B₁,B₂ = get∇𝝭(ap,ξ)
         𝑤 = get𝑤(ap,ξ)
         E = op.E
         ν = op.ν
