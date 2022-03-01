@@ -71,6 +71,7 @@ end
 @inline get𝒙(ap::T,::Any) where T<:AbstractElement{:Poi1} = (ap.𝓒[1].x,ap.𝓒[1].y,ap.𝓒[1].z)
 @inline get𝒙(ap::T,ξ::𝝃) where {T<:AbstractElement{:Seg2},𝝃<:AbstractNode} = get𝒙(ap,ξ.ξ)
 @inline get𝒙(ap::T,ξ::𝝃) where {T<:AbstractElement{:Tri3},𝝃<:AbstractNode} = get𝒙(ap,ξ.ξ,ξ.η)
+@inline get𝒙(ap::T,ξ::𝝃) where {T<:AbstractElement{:Quad},𝝃<:AbstractNode} = get𝒙(ap,ξ.ξ,ξ.η)
 
 function get𝒙(ap::T,ξ::Float64) where T<:AbstractElement{:Seg2}
     x₁ = ap.𝓒[1].x
@@ -99,14 +100,54 @@ function get𝒙(ap::T,ξ::Float64,η::Float64) where T<:AbstractElement{:Tri3}
     return (x₁*N₁+x₂*N₂+x₃*N₃,y₁*N₁+y₂*N₂+y₃*N₃,z₁*N₁+z₂*N₂+z₃*N₃)
 end
 
+function get𝒙(ap::T,ξ::Float64,η::Float64) where T<:AbstractElement{:Quad}
+    x₁ = ap.𝓒[1].x
+    y₁ = ap.𝓒[1].y
+    z₁ = ap.𝓒[1].z
+    x₂ = ap.𝓒[2].x
+    y₂ = ap.𝓒[2].y
+    z₂ = ap.𝓒[2].z
+    x₃ = ap.𝓒[3].x
+    y₃ = ap.𝓒[3].y
+    z₃ = ap.𝓒[3].z
+    x₄ = ap.𝓒[4].x
+    y₄ = ap.𝓒[4].y
+    z₄ = ap.𝓒[4].z
+    N₁,N₂,N₃,N₄ = get𝝭(ap,ξ,η)
+    return (x₁*N₁+x₂*N₂+x₃*N₃+x₄*N₄,y₁*N₁+y₂*N₂+y₃*N₃+y₄*N₄,z₁*N₁+z₂*N₂+z₃*N₃+z₄*N₄)
+end
+## get∇𝒙
+function get𝑱(ap::T,ξ::𝝃) where {T<:AbstractElement{:Quad},𝝃<:AbstractNode}
+    x₁ = ap.𝓒[1].x
+    x₂ = ap.𝓒[2].x
+    x₃ = ap.𝓒[3].x
+    x₄ = ap.𝓒[4].x
+    y₁ = ap.𝓒[1].y
+    y₂ = ap.𝓒[2].y
+    y₃ = ap.𝓒[3].y
+    y₄ = ap.𝓒[4].y
+    ∂N₁∂ξ,∂N₂∂ξ,∂N₃∂ξ,∂N₄∂ξ = get∂𝝭∂ξ(ap,ξ)
+    ∂N₁∂η,∂N₂∂η,∂N₃∂η,∂N₄∂η = get∂𝝭∂η(ap,ξ)
+    J₁₁ = ∂N₁∂ξ*x₁ + ∂N₂∂ξ*x₂ + ∂N₃∂ξ*x₃ + ∂N₄∂ξ*x₄
+    J₁₂ = ∂N₁∂η*x₁ + ∂N₂∂η*x₂ + ∂N₃∂η*x₃ + ∂N₄∂η*x₄
+    J₂₁ = ∂N₁∂ξ*y₁ + ∂N₂∂ξ*y₂ + ∂N₃∂ξ*y₃ + ∂N₄∂ξ*y₄
+    J₂₂ = ∂N₁∂η*y₁ + ∂N₂∂η*y₂ + ∂N₃∂η*y₃ + ∂N₄∂η*y₄
+    return J₁₁,J₂₁,J₁₂,J₂₂
+end
 ## get𝐽
 @inline get𝐽(  ::T,::Any) where T<:AbstractElement{:Poi1} = 1.0
 @inline get𝐽(ap::T,::Any) where T<:AbstractElement{:Seg2} = 0.5*get𝐿(ap)
-@inline get𝐽(ap::T,::Any) where T<:AbstractElement{:Tri3} = get𝐴(ap)
+@inline get𝐽(ap::T,::Any) where T<:AbstractElement{:Tri3} = 2.0*get𝐴(ap)
+@inline function get𝐽(ap::T,ξ::𝝃) where {T<:AbstractElement{:Quad},𝝃<:AbstractNode}
+    J₁₁,J₂₁,J₁₂,J₂₂ = get𝑱(ap,ξ)
+    return J₁₁*J₂₂-J₂₁*J₁₂
+end
 ## get𝑤
 @inline get𝑤(  ::T,::Any) where T<:AbstractElement{:Poi1} = 1.0
 @inline get𝑤(ap::T,ξ::𝝃) where {T<:AbstractElement{:Seg2},𝝃<:AbstractNode} = 0.5*get𝐿(ap)*ξ.w
 @inline get𝑤(ap::T,ξ::𝝃) where {T<:AbstractElement{:Tri3},𝝃<:AbstractNode} = get𝐴(ap)*ξ.w
+@inline get𝑤(ap::T,ξ::𝝃) where {T<:AbstractElement{:Quad},𝝃<:AbstractNode} = get𝐽(ap,ξ)*ξ.w
+
 ## get𝐿 get𝐴 get𝑉
 @inline function get𝐿(ap::T) where T<:AbstractElement{:Seg2}
     x₁ = ap.𝓒[1].x

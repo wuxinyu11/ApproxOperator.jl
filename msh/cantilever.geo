@@ -20,9 +20,9 @@ Plane Surface(1) = {1};
 Transfinite Curve{1,3} = 4*n+1;
 Transfinite Curve{2,4} = n+1;
 
-Physical Curve("Traction") = {2};
-Physical Curve("EssentialBC") = {4};
-Physical Surface("Domain") = {1};
+Physical Curve("Γᵗ") = {2};
+Physical Curve("Γᵍ") = {4};
+Physical Surface("Ω") = {1};
 
 Transfinite Surface{1};
 
