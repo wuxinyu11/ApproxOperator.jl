@@ -256,6 +256,48 @@ function (op::Operator{:∫∫εᵢⱼσᵢⱼdxdy})(ap::T,k::AbstractMatrix{Flo
     end
 end
 
+function (op::Operator{:∫∫εᵛᵢⱼσᵛᵢⱼdxdy)(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    for ξ in 𝓖
+        _,B₁,B₂ = get∇𝝭(ap,ξ)
+        𝑤 = get𝑤(ap,ξ)
+        E = op.E
+        ν = op.ν
+        Cᵛ = E/(1-2*ν)
+        for i in 1:length(𝓒)
+            I = 𝓒[i].id
+            for j in 1:length(𝓒)
+                J = 𝓒[j].id
+                k[2*I-1,2*J-1] += Cᵛ/3*B₁[i]*B₁[j]*𝑤
+                k[2*I-1,2*J]   += Cᵛ/3*B₁[i]*B₂[j]*𝑤
+                k[2*I,2*J-1]   += Cᵛ/3*B₂[i]*B₁[j]*𝑤
+                k[2*I,2*J]     += Cᵛ/3*B₂[i]*B₂[j]*𝑤
+            end
+        end
+    end
+end
+
+function (op::Operator{:∫∫εᵈᵢⱼσᵈᵢⱼdxdy)(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    for ξ in 𝓖
+        _,B₁,B₂ = get∇𝝭(ap,ξ)
+        𝑤 = get𝑤(ap,ξ)
+        E = op.E
+        ν = op.ν
+        Cᵈ = E/(1+ν)
+        for i in 1:length(𝓒)
+            I = 𝓒[i].id
+            for j in 1:length(𝓒)
+                J = 𝓒[j].id
+                k[2*I-1,2*J-1] += Cᵈ*( 2/3*B₁[i]*B₁[j]+1/2*B₂[i]*B₂[j])*𝑤
+                k[2*I-1,2*J]   += Cᵈ*(-1/3*B₁[i]*B₂[j]+1/2*B₂[i]*B₁[j])*𝑤
+                k[2*I,2*J-1]   += Cᵈ*(-1/3*B₂[i]*B₁[j]+1/2*B₁[i]*B₂[j])*𝑤
+                k[2*I,2*J]     += Cᵈ*( 2/3*B₂[i]*B₂[j]+1/2*B₁[i]*B₁[j])*𝑤
+            end
+        end
+    end
+end
+
 function (op::Operator{:∫∫vᵢbᵢdxdy})(ap::T,f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
