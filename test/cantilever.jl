@@ -9,8 +9,10 @@ set𝓖!(elements["Γᵗ"],:SegGI2)
 set𝓖!(elements["Γᵍ"],:SegGI2)
 
 P = 1000.0
-E = 3e6
-ν = 0.3
+Ē = 3e6
+ν̄ = 0.499999999
+E = Ē/(1.0-ν̄^2)
+ν = ν̄/(1.0-ν̄)
 L = 48.0
 D = 12.0
 I = D^3/12
@@ -27,13 +29,18 @@ prescribe!(elements["Γᵍ"],:n₁₁,(x,y,z)->1.0)
 prescribe!(elements["Γᵍ"],:n₂₂,(x,y,z)->1.0)
 
 op_Ω = Operator(:∫∫εᵢⱼσᵢⱼdxdy,:E=>E,:ν=>ν)
+op_Ωᵛ = Operator(:∫∫εᵛᵢⱼσᵛᵢⱼdxdy,:E=>Ē,:ν=>ν̄)
+op_Ωᵈ = Operator(:∫∫εᵈᵢⱼσᵈᵢⱼdxdy,:E=>Ē,:ν=>ν̄)
 op_Γᵗ = Operator(:∫vᵢtᵢds)
-op_Γᵍ = Operator(:∫vᵢgᵢds,:α=>1e7*E)
+op_Γᵍ = Operator(:∫vᵢgᵢds,:α=>1e7*Ē)
 
 k = zeros(2*np,2*np)
 f = zeros(2*np)
 
-op_Ω(elements["Ω"],k)
+# op_Ω(elements["Ω"],k)
+op_Ωᵈ(elements["Ω"],k)
+set𝓖!(elements["Ω"],:QuadGI1)
+op_Ωᵛ(elements["Ω"],k)
 op_Γᵗ(elements["Γᵗ"],f)
 op_Γᵍ(elements["Γᵍ"],k,f)
 
