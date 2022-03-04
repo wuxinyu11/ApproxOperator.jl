@@ -17,13 +17,13 @@ push!(op::Operator,d::Pair{Symbol,D}...) where D<:Any = push!(op.data,d...)
     getfield(op,:data)[f] = x
 end
 
-@inline function (op::Operator)(aps::Vector{T},gps::Vector{S},k::AbstractMatrix{Float64},f::Vector{Float64}) where {T<:AbstractElement,S<:AbstractElement}
+@inline function (op::Operator)(aps::Vector{T},gps::Vector{S},k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where {T<:AbstractElement,S<:AbstractElement}
     for i in 1:length(aps)
-        op(aps[i],gps[i],k,f)
+        @inbounds op(aps[i],gps[i],k,f)
     end
 end
 
-@inline function (op::Operator)(aps::Vector{T},k::AbstractMatrix{Float64},f::Vector{Float64}) where T<:AbstractElement
+@inline function (op::Operator)(aps::Vector{T},k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
     for ap in aps
         op(ap,k,f)
     end
@@ -338,10 +338,11 @@ function (op::Operator{:∫λᵢgᵢds})(ap1::T,ap2::S,g::AbstractMatrix{Float64
             K = ap2.𝓒[k].id
             for i in 1:length(ap1.𝓒)
                 I = ap1.𝓒[i].id
-                g[2*I-1,2*K-1] -= n₁₁*N[i]*N̄[k]*𝑤
-                g[2*I-1,2*K]   -= n₁₂*N[i]*N̄[k]*𝑤
-                g[2*I,2*K-1]   -= n₁₂*N[i]*N̄[k]*𝑤
-                g[2*I,2*K]     -= n₂₂*N[i]*N̄[k]*𝑤
+                N̄ₖNᵢ = N̄[k]*N[i]
+                g[2*K-1,2*I-1] -= n₁₁*N̄ₖNᵢ*𝑤
+                g[2*K-1,2*I]   -= n₁₂*N̄ₖNᵢ*𝑤
+                g[2*K,2*I-1]   -= n₁₂*N̄ₖNᵢ*𝑤
+                g[2*K,2*I]     -= n₂₂*N̄ₖNᵢ*𝑤
             end
             q[2*K-1] -= N̄[k]*(n₁₁*g₁+n₁₂*g₂)*𝑤
             q[2*K]   -= N̄[k]*(n₁₂*g₁+n₂₂*g₂)*𝑤

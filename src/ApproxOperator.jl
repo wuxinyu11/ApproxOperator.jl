@@ -22,6 +22,6 @@ export set𝝭!, set∇𝝭!, set∇̃𝝭!, set∇̄𝝭!, set𝒏!, setg̃!, s
 
 #debug
 # include("littletools.jl")
-# export get𝐴,cal𝗠!,cal𝗚!,get𝒙,get∇𝝭,get𝝭,checkIC, checkCC
+export get𝐴,cal𝗠!,cal𝗚!,get𝒙,get∇𝝭,get𝝭,checkIC, checkCC
 
 end
