@@ -807,12 +807,6 @@ function get∇𝝭(ap::ReproducingKernel{𝝃,𝒑̄,𝑠,𝜙̄,:Node},𝒙::N
     return 𝝭, ∂𝝭∂x, ∂𝝭∂y, ∂𝝭∂z
 end
 
-function get∇𝑛𝝭(ap::ReproducingKernel{𝝃,𝒑,𝑠,𝜙,:Seg2},ξ::Any) where {𝝃<:AbstractNode,𝒑,𝑠,𝜙}
-    N,B₁ = get∇𝝭(ap,ξ)
-    n₁ = get𝒏(ap,ξ)
-    B = B₁*n₁
-    return N, B
-end
 ## set shape functions
 function set𝝭!(aps::Vector{T}) where T<:ReproducingKernel{SNode}
     for ap in aps
@@ -1046,47 +1040,6 @@ function set∇̃𝝭!(gp::ReproducingKernel{SNode,𝒑,𝑠,𝜙,:Tet4},ap::Rep
             ξ̂.𝝭[:∂x][ξ̂.index[ξ̂.id]+i] = ∂𝝭∂x[i]
             ξ̂.𝝭[:∂y][ξ̂.index[ξ̂.id]+i] = ∂𝝭∂y[i]
             ξ̂.𝝭[:∂z][ξ̂.index[ξ̂.id]+i] = ∂𝝭∂z[i]
-        end
-    end
-end
-
-function setg̃!(gps::Vector{T},aps::Vector{S}) where{T<:ReproducingKernel,S<:ReproducingKernel}
-    if length(gps) ≠ length(aps)
-        error("Miss match element numbers")
-    else
-        for i in 1:length(gps)
-            setg̃!(gps[i],aps[i])
-        end
-    end
-end
-
-function setg̃!(gp::ReproducingKernel{SNode,𝒑,𝑠,𝜙,:Seg2},ap::ReproducingKernel{SNode,𝒑,𝑠,𝜙,:Seg2}) where {𝒑,𝑠,𝜙}
-    n₁ =  1.0
-    n₂ = -1.0
-    𝗚⁻¹ = cal𝗚!(gp)
-    𝓒 = gp.𝓒
-    𝓖 = gp.𝓖
-    for ξ̂ in 𝓖
-        𝒒̂ = get𝒒(gp,ξ̂)
-        𝒒̂ᵀ𝗚⁻¹ = 𝒒̂*𝗚⁻¹
-        ∂𝝭∂x = gp.𝝭[:∂x]
-        g̃₁ = 0.0
-        fill!(∂𝝭∂x,0.0)
-        for ξ in ap.𝓖
-            w = ξ.w
-            n = ξ.n₁
-            𝝭 = get𝝭(ap,ξ)
-            g = ξ.g
-            𝒒 = get𝒒(gp,ξ)
-            W₁ = 𝒒̂ᵀ𝗚⁻¹*𝒒*n*w
-            for i in 1:length(𝓒)
-                ∂𝝭∂x[i] += 𝝭[i]*W₁
-            end
-            g̃₁ += 𝒒̂ᵀ𝗚⁻¹*𝒒*g*n*w
-        end
-        ξ̂.g₁ = g̃₁
-        for i in 1:length(𝓒)
-            ξ̂.𝝭[:∂x][ξ̂.index[ξ̂.id]+i] = ∂𝝭∂x[i]
         end
     end
 end
