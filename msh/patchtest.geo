@@ -1,7 +1,7 @@
 
 a = 1.0;
 b = 1.0;
-n = 11;
+n = 5;
 
 Point(1) = {0.0, 0.0, 0.0};
 Point(2) = {  a, 0.0, 0.0};
@@ -18,7 +18,7 @@ Curve Loop(1) = {1,2,3,4};
 Plane Surface(1) = {1};
 
 Transfinite Curve{1,2,3,4} = n;
-
+Transfinite Surface{1};
 // Physical Curve("Γᵗ₁") = {2};
 // Physical Curve("Γᵗ₂") = {3};
 Physical Curve("Γᵍ") = {1,2,3,4};

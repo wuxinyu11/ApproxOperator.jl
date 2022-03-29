@@ -73,3 +73,30 @@ function checkCC(a::ReproducingKernel)
     end
     return f,f₁,f₂
 end
+
+function checkCC2(a::ReproducingKernel)
+    nᵖ = get𝑛𝒑(a)
+    nⁱ = length(a.𝓖)
+    f₁₁ = zeros(nⁱ,nᵖ)
+    f₂₂ = zeros(nⁱ,nᵖ)
+    f₁₂ = zeros(nⁱ,nᵖ)
+    for i in 1:length(a.𝓖)
+        ξ = a.𝓖[i]
+        𝒙 = get𝒙(a,ξ)
+        p, ∂p∂x, ∂p∂y, ∂²p∂x², ∂²p∂x∂y, ∂²p∂y² = get∇²𝒑(a,𝒙)
+        N, B₁, B₂, B₁₁, B₁₂, B₂₂ = get∇𝝭(a,ξ)
+        for j in 1:nᵖ
+            for k in 1:length(a.𝓒)
+                𝒙̄ = (a.𝓒[k].x,a.𝓒[k].y,a.𝓒[k].z)
+                p̄ = get𝒑(a,𝒙̄)
+                f₁₁[i,j] += B₁₁[k]*p̄[j]
+                f₁₂[i,j] += B₁₂[k]*p̄[j]
+                f₂₂[i,j] += B₂₂[k]*p̄[j]
+            end
+            f₁₁[i,j] -= ∂²p∂x²[j]
+            f₁₂[i,j] -= ∂²p∂x∂y[j]
+            f₂₂[i,j] -= ∂²p∂y²[j]
+        end
+    end
+    return f₁₁,f₁₂,f₂₂
+end
