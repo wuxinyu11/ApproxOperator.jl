@@ -74,22 +74,49 @@ function checkCC(a::ReproducingKernel)
     return f,f₁,f₂
 end
 
-function checkConsistency(a::ReproducingKernel,get𝝭::Function,get𝒑::Function)
+function checkConsistency(a::T,get𝝭::typeof(get𝝭),get𝒑::typeof(get𝒑),f::Vector{Float64},𝒑ʰ::Vector{Float64}) where T<:ReproducingKernel
     nᵖ = get𝑛𝒑(a)
-    nⁱ = length(a.𝓖)
-    f = zeros(nᵖ)
-    𝒑ʰ = zeros(nᵖ)
     for ξ in (a.𝓖)
         𝒙 = get𝒙(a,ξ)
         𝝭 = get𝝭(a,ξ)
         𝑤 = get𝑤(a,ξ)
         𝒑 = get𝒑(a,𝒙)
-        fill!(𝒑,0.0)
+        fill!(𝒑ʰ,0.0)
         for (j,node) in enumerate(a.𝓒)
             𝒙ᵢ = (node.x,node.y,node.z)
             𝒑ᵢ = get𝒑(a,𝒙ᵢ)
             for i = 1:nᵖ
-                𝒑ʰ[i] += 𝝭[i][j]*𝒑ᵢ[j]
+                𝒑ʰ[i] += 𝝭[i][j]*𝒑ᵢ[i][j]
+            end
+        end
+        f .+= (𝒑 .- 𝒑ʰ).^2 .* 𝑤
+    end
+    return f
+end
+
+function checkConsistency(as::Vector{T},get𝝭::F,get𝒑::H) where {T<:ReproducingKernel,F<:Function,H<:Function}
+    nᵖ = get𝑛𝒑(as[1])
+    f = zeros(nᵖ)
+    𝒑ʰ = zeros(nᵖ)
+    for a in as
+        checkConsistency(a,get𝝭,get𝒑,f,𝒑ʰ)
+    end
+    return f
+end
+
+function checkConsistency(a::T,get𝝭::Function,get𝒑::Function,f::Vector{Float64},𝒑ʰ::Vector{Float64}) where T<:ReproducingKernel
+    nᵖ = get𝑛𝒑(a)
+    for ξ in (a.𝓖)
+        𝒙 = get𝒙(a,ξ)
+        𝝭 = get𝝭(a,ξ)
+        𝑤 = get𝑤(a,ξ)
+        𝒑 = get𝒑(a,𝒙)
+        fill!(𝒑ʰ,0.0)
+        for (j,node) in enumerate(a.𝓒)
+            𝒙ᵢ = (node.x,node.y,node.z)
+            𝒑ᵢ = get𝒑(a,𝒙ᵢ)
+            for i = 1:nᵖ
+                𝒑ʰ[i] += 𝝭[i][j]*𝒑ᵢ[i][j]
             end
         end
         f .+= (𝒑 .- 𝒑ʰ).^2 .* 𝑤
