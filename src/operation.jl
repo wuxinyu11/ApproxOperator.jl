@@ -70,6 +70,19 @@ function prescribe!(aps::Vector{T},s::Symbol,f::Function) where T<:AbstractEleme
     end
 end
 
+##
+function (op::Operator{:𝑓𝑣})(ap::T,f::AbstractVector{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    for ξ in 𝓖
+        𝑤 = get𝑤(ap,ξ)
+        N = get𝝭(ap,ξ)
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.id
+            f[I] += N[i]*ξ.u*𝑤
+        end
+    end
+end
+
 ## Potential Problem
 function (op::Operator{:∫∇v∇uvbdΩ})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
@@ -696,8 +709,219 @@ function set∇𝑢!(ap::T) where T<:AbstractElement
     end
 end
 
+function (op::Operator{:H₃})(aps::Vector{T}) where T<:AbstractElement
+    H₃Norm_Δu²= 0
+    H₃Norm_ū² = 0
+    H₂Norm_Δu²= 0
+    H₂Norm_ū² = 0
+    H₁Norm_Δu²= 0
+    H₁Norm_ū² = 0
+    L₂Norm_Δu²= 0
+    L₂Norm_ū² = 0
+    for ap in aps
+        Δ∇³u², ∇³ū²,Δ∇²u², ∇²ū²,Δ∇u², ∇ū², Δu², ū² = op(ap)
+        H₃Norm_Δu² += Δu² + Δ∇u² + Δ∇²u² + Δ∇³u²
+        H₃Norm_ū²  += ū² + ∇ū² + ∇²ū² + ∇³ū²
+        H₂Norm_Δu² += Δu² + Δ∇u² + Δ∇²u²
+        H₂Norm_ū²  += ū² + ∇ū² + ∇²ū²
+        H₁Norm_Δu² += Δu² + Δ∇u²
+        H₁Norm_ū²  += ū² + ∇ū²
+        L₂Norm_Δu² += Δu²
+        L₂Norm_ū²  += ū²
+    end
+    return (H₃Norm_Δu²/H₃Norm_ū²)^0.5, (H₂Norm_Δu²/H₂Norm_ū²)^0.5, (H₁Norm_Δu²/H₁Norm_ū²)^0.5, (L₂Norm_Δu²/L₂Norm_ū²)^0.5
+end
+function (op::Operator{:H₃})(ap::T) where T<:AbstractElement
+    Δ∇³u²= 0
+    ∇³ū² = 0
+    Δ∇²u²= 0
+    ∇²ū² = 0
+    Δ∇u²= 0
+    ∇ū² = 0
+    Δu²= 0
+    ū² = 0
+    for ξ in ap.𝓖
+        𝑤 = get𝑤(ap,ξ)
+        N,B₁,B₂,B₁₁,B₁₂,B₂₂,B₁₁₁,B₁₁₂,B₁₂₂,B₂₂₂ = get∇³𝝭(ap,ξ)
+        ūᵢ = ξ.u
+        ∂ūᵢ∂x = ξ.∂u∂x
+        ∂ūᵢ∂y = ξ.∂u∂y
+        ∂²ūᵢ∂x² = ξ.∂²u∂x²
+        ∂²ūᵢ∂x∂y = ξ.∂²u∂x∂y
+        ∂²ūᵢ∂y² = ξ.∂²u∂y²
+        ∂³ūᵢ∂x³ = ξ.∂³u∂x³
+        ∂³ūᵢ∂x²∂y = ξ.∂³u∂x²∂y
+        ∂³ūᵢ∂x∂y² = ξ.∂³u∂x∂y²
+        ∂³ūᵢ∂y³ = ξ.∂³u∂y³
+        uᵢ = 0.
+        ∂uᵢ∂x = 0.
+        ∂uᵢ∂y = 0.
+        ∂²uᵢ∂x² = 0.
+        ∂²uᵢ∂x∂y = 0.
+        ∂²uᵢ∂y² = 0.
+        ∂³uᵢ∂x³ = 0.
+        ∂³uᵢ∂x²∂y = 0.
+        ∂³uᵢ∂x∂y² = 0.
+        ∂³uᵢ∂y³ = 0.
+        for i in 1:length(ap.𝓒)
+            xᵢ = ap.𝓒[i]
+            I = xᵢ.id
+            uᵢ += N[i]*xᵢ.d
+            ∂uᵢ∂x += B₁[i]*xᵢ.d
+            ∂uᵢ∂y += B₂[i]*xᵢ.d
+            ∂²uᵢ∂x² += B₁₁[i]*xᵢ.d
+            ∂²uᵢ∂x∂y += B₁₂[i]*xᵢ.d
+            ∂²uᵢ∂y² += B₂₂[i]*xᵢ.d
+            ∂³uᵢ∂x³ += B₁₁₁[i]*xᵢ.d
+            ∂³uᵢ∂x²∂y += B₁₁₂[i]*xᵢ.d
+            ∂³uᵢ∂x∂y² += B₁₂₂[i]*xᵢ.d
+            ∂³uᵢ∂y³ += B₂₂₂[i]*xᵢ.d
+        end
+        Δ∇³u² += ((∂³uᵢ∂x³ - ∂³ūᵢ∂x³)^2 + (∂³uᵢ∂x²∂y - ∂³ūᵢ∂x²∂y)^2 + (∂³uᵢ∂x∂y² - ∂³ūᵢ∂x∂y²)^2 + (∂³uᵢ∂y³ - ∂³ūᵢ∂y³)^2)*𝑤
+        ∇³ū² += (∂³ūᵢ∂x³^2 + ∂³ūᵢ∂x²∂y^2  + ∂³ūᵢ∂x∂y²^2+ ∂³ūᵢ∂y³^2)*𝑤
+        Δ∇²u² += ((∂²uᵢ∂x² - ∂²ūᵢ∂x²)^2 + (∂²uᵢ∂x∂y - ∂²ūᵢ∂x∂y)^2 + (∂²uᵢ∂y² - ∂²ūᵢ∂y²)^2)*𝑤
+        ∇²ū² += (∂²ūᵢ∂x²^2 + ∂²ūᵢ∂x∂y^2 + ∂²ūᵢ∂y²^2)*𝑤
+        Δ∇u² += ((∂uᵢ∂x - ∂ūᵢ∂x)^2 + (∂uᵢ∂y - ∂ūᵢ∂y)^2)*𝑤
+        ∇ū² += (∂ūᵢ∂x^2 + ∂ūᵢ∂y^2)*𝑤
+        Δu² += (uᵢ - ūᵢ)^2*𝑤
+        ū² += ūᵢ^2*𝑤
+    end
+    return Δ∇³u², ∇³ū², Δ∇²u², ∇²ū², Δ∇u², ∇ū², Δu², ū²
+end
+
 function set∇𝑢!(aps::Vector{T}) where T<:AbstractElement
     for ap in aps
         set∇𝑢!(ap)
+    end
+end
+
+## Kirchhoff-Love plate
+function (op::Operator{:∫κᵢⱼMᵢⱼdΩ})(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    D = op.D
+    ν = op.ν
+    for ξ in 𝓖
+        _,_,_,B₁₁,B₁₂,B₂₂ = get∇²𝝭(ap,ξ)
+        𝑤 = get𝑤(ap,ξ)
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.id
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.id
+                k[I,J] += D*(B₁₁[i]*B₁₁[j] + ν*(B₁₁[i]*B₂₂[j] + B₂₂[i]*B₁₁[j]) + B₂₂[i]*B₂₂[j])*𝑤
+            end
+        end
+    end
+end
+
+function (op::Operator{:∫wqdΩ})(ap::T,f::AbstractVector{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    for ξ in 𝓖
+        𝑤 = get𝑤(ap,ξ)
+        N = get𝝭(ap,ξ)
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.id
+            f[I] += N[i]*ξ.q*𝑤
+        end
+    end
+end
+
+function (op::Operator{:∫wVdΩ})(ap::T,f::AbstractVector{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    for ξ in 𝓖
+        𝑤 = get𝑤(ap,ξ)
+        N = get𝝭(ap,ξ)
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.id
+            f[I] += N[i]*ξ.V*𝑤
+        end
+    end
+end
+
+function (op::Operator{:∫θMdΓ})(ap::T,f::AbstractVector{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    n₁,n₂ = get𝒏(ap)
+    for ξ in 𝓖
+        𝑤 = get𝑤(ap,ξ)
+        _,B₁,B₂ = get∇𝝭(ap,ξ)
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.id
+            f[I] -= (B₁[i]*n₁+B₂[i]*n₂)*ξ.M*𝑤
+        end
+    end
+end
+
+function (op::Operator{:∫∇𝑛vθdΓ})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    n₁,n₂,s₁,s₂ = get𝒏(ap)
+    for ξ in 𝓖
+        𝑤 = get𝑤(ap,ξ)
+        _,B₁,B₂ = get∇𝝭(ap,ξ)
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.id
+            θᵢ = B₁[i]*n₁+B₂[i]*n₂
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.id
+                θⱼ = B₁[j]*n₁+B₂[j]*n₂
+                k[I,J] += op.α*θᵢ*θⱼ*𝑤
+            end
+            f[I] += op.α*θᵢ*ξ.θ*𝑤
+        end
+    end
+end
+
+function (op::Operator{:∫MθdΓ})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    n₁,n₂,s₁,s₂ = get𝒏(ap)
+    α = op.α
+    D = op.D
+    ν = op.ν
+    D₁₁ = D*(n₁^2+ν*n₂^2)
+    D₁₂ = 2*D*n₁*n₂*(1-ν)
+    D₂₂ = D*(ν*n₁^2+n₂^2)
+    for ξ in 𝓖
+        𝑤 = get𝑤(ap,ξ)
+        _,B₁,B₂,B₁₁,B₁₂,B₂₂ = get∇²𝝭(ap,ξ)
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.id
+            θᵢ = B₁[i]*n₁ + B₂[i]*n₂
+            Mᵢ = D₁₁*B₁₁[i] + D₁₂*B₁₂[i] + D₂₂*B₂₂[i]
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.id
+                θⱼ = B₁[j]*n₁ + B₂[j]*n₂
+                Mⱼ = D₁₁*B₁₁[j] + D₁₂*B₁₂[j] + D₂₂*B₂₂[j]
+                k[I,J] += (-Mᵢ*θⱼ-θᵢ*Mⱼ+α*θᵢ*θⱼ)*𝑤
+            end
+            f[I] += (-Mᵢ+α*θᵢ)*ξ.θ*𝑤
+        end
+    end
+end
+
+function (op::Operator{:∫VwdΓ})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    n₁,n₂,s₁,s₂ = get𝒏(ap)
+    α = op.α
+    D = op.D
+    ν = op.ν
+    D₁₁₁ = D*(n₁ + n₁*s₁*s₁ + ν*n₂*s₁*s₂)
+    D₁₁₂ = D*(n₂ + n₂*s₁*s₁ + 2*n₁*s₁*s₂ + (n₂*s₂*s₂ - n₂*s₁*s₁ - n₁*s₁*s₂)*ν)
+    D₁₂₂ = D*(n₁ + n₁*s₂*s₂ + 2*n₂*s₁*s₂ + (n₁*s₁*s₁ - n₁*s₂*s₂ - n₂*s₁*s₂)*ν)
+    D₂₂₂ = D*(n₂ + n₂*s₂*s₂ + ν*n₁*s₁*s₂)
+    # D₁₁₁ = D*n₁
+    # D₁₁₂ = D*n₂
+    # D₁₂₂ = D*n₁
+    # D₂₂₂ = D*n₂
+    for ξ in 𝓖
+        𝑤 = get𝑤(ap,ξ)
+        N,_,_,_,_,_,B₁₁₁,B₁₁₂,B₁₂₂,B₂₂₂ = get∇³𝝭(ap,ξ)
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.id
+            Vᵢ = D₁₁₁*B₁₁₁[i] + D₁₁₂*B₁₁₂[i] + D₁₂₂*B₁₂₂[i] + D₂₂₂*B₂₂₂[i]
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.id
+                Vⱼ = D₁₁₁*B₁₁₁[j] + D₁₁₂*B₁₁₂[j] + D₁₂₂*B₁₂₂[j] + D₂₂₂*B₂₂₂[j]
+                k[I,J] += (Vᵢ*N[j]+N[i]*Vⱼ+α*N[i]*N[j])*𝑤
+            end
+            f[I] += (Vᵢ+α*N[i])*ξ.w*𝑤
+        end
     end
 end

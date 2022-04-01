@@ -181,7 +181,7 @@ end
     x₂ = ap.𝓒[2].x
     y₂ = ap.𝓒[2].y
     𝐿 = get𝐿(ap)
-    return (y₂-y₁)/𝐿,(x₁-x₂)/𝐿
+    return (y₂-y₁)/𝐿,(x₁-x₂)/𝐿,(x₂-x₁)/𝐿,(y₂-y₁)/𝐿
 end
 
 @inline get𝒏(ap::T,ξ::𝝃) where {T<:AbstractElement{:Seg2},𝝃<:AbstractNode} = get𝒏(ap,ξ.ξ)

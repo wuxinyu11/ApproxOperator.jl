@@ -55,6 +55,11 @@ function set𝓖!(aps::Vector{T},𝓖::NTuple{N,NTuple{D,Float64}},stype::Symbol
         s==:∂x² ? aps[1].𝗠[:∂x_] = SymMat(nₕ) : nothing
         s==:∂y² ? aps[1].𝗠[:∂y_] = SymMat(nₕ) : nothing
         s==:∂z² ? aps[1].𝗠[:∂z_] = SymMat(nₕ) : nothing
+        s==:∂x³ ? aps[1].𝗠[:∂x²_] = SymMat(nₕ) : nothing
+        if s==:∂y³
+            aps[1].𝗠[:∂x∂y_] = SymMat(nₕ)
+            aps[1].𝗠[:∂y²_] = SymMat(nₕ)
+        end
         if haskey(aps[1].𝝭,s)
             if nₘ>length(aps[1].𝝭[s])
                 aps[1].𝝭[s]=zeros(nₘ)
