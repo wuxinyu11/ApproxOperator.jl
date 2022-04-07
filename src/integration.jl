@@ -38,7 +38,7 @@ function set𝓖!(aps::Vector{T},𝓖::NTuple{N,NTuple{D,Float64}},stype::Symbol
         data[:wᵇ] = zeros(nᵢ)
         D > 3 ? data[:η] = zeros(nᵢ) : nothing
         D > 4 ? data[:γ] = zeros(nᵢ) : nothing
-        nₕ = get𝑛𝒒(aps[1])
+        nₕ = get𝑛𝒑₁(aps[1])
         aps[1].𝗠[:∇̃] = SymMat(nₕ)
     else
         D > 2 ? data[:η] = zeros(nᵢ) : nothing
@@ -88,7 +88,7 @@ function set𝓖!(aps::Vector{T},𝓖::NTuple{N,NTuple{D,Float64}},stype::Symbol
         data[:wᵇ] = zeros(nᵢ)
         D > 3 ? data[:η] = zeros(nᵢ) : nothing
         D > 4 ? data[:γ] = zeros(nᵢ) : nothing
-        nₕ = get𝑛𝒒(aps[1])
+        nₕ = get𝑛𝒑₁(aps[1])
         aps[1].𝗠[:∇̃]=SymMat(nₕ)
     else
         D > 2 ? data[:η] = zeros(nᵢ) : nothing
@@ -105,6 +105,15 @@ function set𝓖!(aps::Vector{T},𝓖::NTuple{N,NTuple{D,Float64}},stype::Symbol
         nₘ = max(nₘ,length(ap.𝓒))
     end
     for s in stype
+        s∉(:∂̄x,:∂̄y,:∂̄z) ? aps[1].𝗠[s] = SymMat(nₕ) : nothing
+        s==:∂x² ? aps[1].𝗠[:∂x_] = SymMat(nₕ) : nothing
+        s==:∂y² ? aps[1].𝗠[:∂y_] = SymMat(nₕ) : nothing
+        s==:∂z² ? aps[1].𝗠[:∂z_] = SymMat(nₕ) : nothing
+        s==:∂x³ ? aps[1].𝗠[:∂x²_] = SymMat(nₕ) : nothing
+        if s==:∂y³
+            aps[1].𝗠[:∂x∂y_] = SymMat(nₕ)
+            aps[1].𝗠[:∂y²_] = SymMat(nₕ)
+        end
         push!(𝝭,s=>zeros(n))
         aps[1].𝗠[s]=SymMat(nₕ)
         if haskey(aps[1].𝝭,s)
