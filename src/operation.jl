@@ -807,7 +807,7 @@ function (op::Operator{:∫κᵢⱼMᵢⱼdΩ})(ap::T,k::AbstractMatrix{Float64}
             I = xᵢ.id
             for (j,xⱼ) in enumerate(𝓒)
                 J = xⱼ.id
-                k[I,J] += D*(B₁₁[i]*B₁₁[j] + ν*(B₁₁[i]*B₂₂[j] + B₂₂[i]*B₁₁[j]) + B₂₂[i]*B₂₂[j])*𝑤
+                k[I,J] += D*(B₁₁[i]*B₁₁[j] + ν*(B₁₁[i]*B₂₂[j] + B₂₂[i]*B₁₁[j]) + B₂₂[i]*B₂₂[j] + 2*(1-ν)*B₁₂[i]*B₁₂[j])*𝑤
             end
         end
     end
@@ -825,14 +825,14 @@ function (op::Operator{:∫wqdΩ})(ap::T,f::AbstractVector{Float64}) where T<:Ab
     end
 end
 
-function (op::Operator{:∫wVdΩ})(ap::T,f::AbstractVector{Float64}) where T<:AbstractElement
+function (op::Operator{:∫wVdΓ})(ap::T,f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
         𝑤 = get𝑤(ap,ξ)
         N = get𝝭(ap,ξ)
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.id
-            f[I] += N[i]*ξ.V*𝑤
+            f[I] -= N[i]*ξ.V*𝑤
         end
     end
 end
@@ -845,7 +845,20 @@ function (op::Operator{:∫θMdΓ})(ap::T,f::AbstractVector{Float64}) where T<:A
         _,B₁,B₂ = get∇𝝭(ap,ξ)
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.id
-            f[I] -= (B₁[i]*n₁+B₂[i]*n₂)*ξ.M*𝑤
+            f[I] += (B₁[i]*n₁+B₂[i]*n₂)*ξ.M*𝑤
+        end
+    end
+end
+
+function (op::Operator{:∫θMdΓ})(ap::T,f::AbstractVector{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    n₁,n₂ = get𝒏(ap)
+    for ξ in 𝓖
+        𝑤 = get𝑤(ap,ξ)
+        _,B₁,B₂ = get∇𝝭(ap,ξ)
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.id
+            f[I] += (B₁[i]*n₁+B₂[i]*n₂)*ξ.M*𝑤
         end
     end
 end
