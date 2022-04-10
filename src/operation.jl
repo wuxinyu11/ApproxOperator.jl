@@ -850,7 +850,7 @@ function (op::Operator{:∫θMdΓ})(ap::T,f::AbstractVector{Float64}) where T<:A
     end
 end
 
-function (op::Operator{:∫θMdΓ})(ap::T,f::AbstractVector{Float64}) where T<:AbstractElement
+function (op::Operator{:∫∇wMdΓ})(ap::T,f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     n₁,n₂ = get𝒏(ap)
     for ξ in 𝓖
@@ -858,7 +858,7 @@ function (op::Operator{:∫θMdΓ})(ap::T,f::AbstractVector{Float64}) where T<:A
         _,B₁,B₂ = get∇𝝭(ap,ξ)
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.id
-            f[I] += (B₁[i]*n₁+B₂[i]*n₂)*ξ.M*𝑤
+            f[I] += (B₁[i]*ξ.M₁+B₂[i]*ξ.M₂)*𝑤
         end
     end
 end
