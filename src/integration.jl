@@ -2,12 +2,20 @@
 ## set𝓖
 function set𝓖!(aps::Vector{T},s::Symbol) where T<:AbstractElement
     rule = QuadratureRule[s]
-    return set𝓖!(aps,rule)
-end
-function set𝓖!(aps::Vector{T},s::Symbol,stype::Symbol...) where T<:ReproducingKernel
-    rule = QuadratureRule[s]
-    isrk = s∈(:SegRK2,:SegRK3,:SegRK4,:SegRK5,:TriRK3,:TriRK6,:TriRK13,:TetRK14,:TetRK27)
-    return set𝓖!(aps,rule,stype...;isrk=isrk)
+    nₑ = length(aps)
+    nᵢ = nₑ*length(rule)
+    data = Dict(:w=>zeros(nᵢ))
+    data[:ξ] = zeros(nᵢ)
+    if s∈(:SegRK2,:SegRK3,:SegRK4,:SegRK5,:TriRK3,:TriRK6,:TriRK13,:TetRK14,:TetRK27)
+        data[:wᵇ] = zeros(nᵢ)
+        D > 3 ? data[:η] = zeros(nᵢ) : nothing
+        D > 4 ? data[:γ] = zeros(nᵢ) : nothing
+    else
+        D > 2 ? data[:η] = zeros(nᵢ) : nothing
+        D > 3 ? data[:γ] = zeros(nᵢ) : nothing
+    end
+    T<:ReproducingKernel{SNode} ? T
+    return set𝓖!(aps,data)
 end
 
 function set𝓖!(aps::Vector{Element{T}},𝓖::NTuple{N,NTuple{D,Float64}}) where {T,N,D}
@@ -30,19 +38,9 @@ function set𝓖!(aps::Vector{Element{T}},𝓖::NTuple{N,NTuple{D,Float64}}) whe
 end
 
 function set𝓖!(aps::Vector{T},𝓖::NTuple{N,NTuple{D,Float64}},stype::Symbol...;isrk::Bool=false) where {T<:ReproducingKernel{Node},N,D}
-    nₑ = length(aps)
-    nᵢ = nₑ*N
-    data = Dict(:w=>zeros(nᵢ))
-    data[:ξ] = zeros(nᵢ)
     if isrk
-        data[:wᵇ] = zeros(nᵢ)
-        D > 3 ? data[:η] = zeros(nᵢ) : nothing
-        D > 4 ? data[:γ] = zeros(nᵢ) : nothing
-        nₕ = get𝑛𝒑₁(aps[1])
         aps[1].𝗠[:∇̃] = SymMat(nₕ)
     else
-        D > 2 ? data[:η] = zeros(nᵢ) : nothing
-        D > 3 ? data[:γ] = zeros(nᵢ) : nothing
     end
 
     nₘ = 0

@@ -13,12 +13,14 @@ include("meshfree.jl")
 include("integration.jl")
 include("operation.jl")
 include("import.jl")
+include("rkgradientsmoothing.jl")
+
 export Node, Element, SNode, ReproducingKernel, getnₚ
 export importmsh
 export RegularGrid
 export Operator, prescribe!, issubset, intersect
 export set𝓖!
-export set𝝭!, set∇𝝭!, set∇²𝝭!, set∇³𝝭!, set∇̃𝝭!, set∇̃²𝝭!, set∇̄𝝭!, set𝒏!, setg̃!, set∇𝑢!, get∇𝑢, get𝝐
+export set𝝭!, set∇𝝭!, set∇²𝝭!, set∇³𝝭!, set∇̃𝝭!, set∇̃²𝝭!, set∇∇̃²𝝭!, set∇̄𝝭!, set𝒏!, setg̃!, set∇𝑢!, get∇𝑢, get𝝐
 
 #debug
 include("littletools.jl")
