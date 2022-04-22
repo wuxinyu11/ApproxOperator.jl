@@ -20,7 +20,7 @@ export importmsh
 export RegularGrid
 export Operator, prescribe!, issubset, intersect
 export set𝓖!
-export set𝝭!, set∇𝝭!, set∇²𝝭!, set∇³𝝭!, set∇̃𝝭!, set∇̃²𝝭!, set∇∇̃²𝝭!, set∇̄𝝭!, set𝒏!, setg̃!, set∇𝑢!, get∇𝑢, get𝝐
+export set𝝭!, set∇𝝭!, set∇²𝝭!, set∇³𝝭!, set∇̃𝝭!, set∇̃²𝝭!, set∇∇̃²𝝭!, set∇̄𝝭!, set𝒏!, set∇𝑢!, get∇𝑢, get𝝐, set_memory_𝗠!, set_memory_𝝭!
 
 #debug
 include("littletools.jl")

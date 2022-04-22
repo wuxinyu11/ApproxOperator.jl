@@ -1326,7 +1326,44 @@ function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(as::Vector{A},bs::Vector{B}) w
     return aps
 end
 
-##
+## set memory
+function set_memory_𝗠!(aps::Vector{T},ss::Symbol...) where T<:ReproducingKernel
+    set_memory_𝗠!(aps[1],ss...)
+end
+
+function set_memory_𝗠!(ap::T,ss::Symbol...) where T<:ReproducingKernel
+    n = get𝑛𝒑(ap)
+    empty!(ap.𝗠)
+    for s in ss
+        ap.𝗠[s] = SymMat(n)
+    end
+end
+
+function set_memory_𝝭!(aps::Vector{T},ss::Symbol...) where T<:ReproducingKernel
+    nₚ = 0
+    for ap in aps
+        nₚ = max(nₚ,length(ap.𝓒))
+    end
+    for s in ss
+        aps[1].𝝭[s] = zeros(nₚ)
+    end
+end
+
+function set_memory_𝝭!(ap::T,ss::Symbol...) where T<:ReproducingKernel
+    nₚ = length(ap.𝓒)
+    for s in ss
+        ap.𝝭[s] = zeros(nₚ)
+    end
+end
+
+set_storage_𝝭!(aps::Vector{T},ss::Symbol...) where T<:ReproducingKernel{SNode} =    set_storage_𝝭!(aps[end],ss...)
+
+function set_storage_𝝭!(ap::T,ss::Symbol...) where T<:ReproducingKernel
+    nₘ = ap.𝓖[1].index[end]+length(ap.𝓒)
+    for s in ss
+        ap.𝓖[1].𝝭[s] = zeros(nₘ)
+    end
+end
 ## get∇𝑢
 function get∇𝑢(ap::T,𝒙::NTuple{3,Float64},sp::S) where {T<:ReproducingKernel,S<:SpatialPartition}
     index = [sp(𝒙...)...]

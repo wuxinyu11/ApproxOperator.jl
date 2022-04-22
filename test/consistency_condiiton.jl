@@ -14,7 +14,9 @@ push!(nodes,:s₁=>s,:s₂=>s,:s₃=>s)
 
 sp = RegularGrid(nodes[:x],nodes[:y],nodes[:z],n = 3,γ = 5)
 elements["Ω"] = ReproducingKernel{type...,:Tri3}(elements["Ω"],sp)
-set𝓖!(elements["Ω"],:TriRK6,:∂1,:∂x,:∂y,:∂z,:∂x²,:∂x∂y,:∂y²,:∂z²,:∂x∂z,:∂y∂z,:∂x³,:∂x²∂y,:∂x∂y²,:∂y³)
+set𝓖!(elements["Ω"],:TriRK6)
+set_memory_𝗠!(elements["Ω"],:∂1,:∂x,:∂y,:∂z,:∇̃)
+set_memory_𝝭!(elements["Ω"],:∂1,:∂x,:∂y,:∂z,:∂x²,:∂x∂y,:∂y²,:∂x∂z,:∂y∂z,:∂z²)
 # set𝓖!(elements["Ω"],:TriGI13,:∂1,:∂x,:∂y,:∂z,:∂x²,:∂x∂y,:∂y²,:∂z²,:∂x∂z,:∂y∂z,:∂x³,:∂x²∂y,:∂x∂y²,:∂y³)
 
 # set𝝭!(elements["Ω"])

@@ -1,12 +1,15 @@
 
 ## set𝓖
 function set𝓖!(aps::Vector{T},s::Symbol) where T<:AbstractElement
-    rule = QuadratureRule[s]
+    𝓖 = QuadratureRule[s]
     nₑ = length(aps)
-    nᵢ = nₑ*length(rule)
+    nᵢ = nₑ*length(𝓖)
     data = Dict(:w=>zeros(nᵢ))
     data[:ξ] = zeros(nᵢ)
+    isrk = false
+    D = length(𝓖[1])
     if s∈(:SegRK2,:SegRK3,:SegRK4,:SegRK5,:TriRK3,:TriRK6,:TriRK13,:TetRK14,:TetRK27)
+        isrk = true
         data[:wᵇ] = zeros(nᵢ)
         D > 3 ? data[:η] = zeros(nᵢ) : nothing
         D > 4 ? data[:γ] = zeros(nᵢ) : nothing
@@ -14,124 +17,31 @@ function set𝓖!(aps::Vector{T},s::Symbol) where T<:AbstractElement
         D > 2 ? data[:η] = zeros(nᵢ) : nothing
         D > 3 ? data[:γ] = zeros(nᵢ) : nothing
     end
-    T<:ReproducingKernel{SNode} ? T
-    return set𝓖!(aps,data)
-end
-
-function set𝓖!(aps::Vector{Element{T}},𝓖::NTuple{N,NTuple{D,Float64}}) where {T,N,D}
-    nₑ = length(aps)
-    nᵢ = nₑ*N
-    data = Dict(:w=>zeros(nᵢ))
-    data[:ξ] = zeros(nᵢ)
-    D > 2 ? data[:η] = zeros(nᵢ) : nothing
-    D > 3 ? data[:γ] = zeros(nᵢ) : nothing
-
-    n = 0
-    for ap in aps
-        empty!(ap.𝓖)
-        for ξ in 𝓖
-            n += 1
-            push!(ap.𝓖,Node(n,data))
-            set𝓖(n,data,ξ)
-        end
-    end
-end
-
-function set𝓖!(aps::Vector{T},𝓖::NTuple{N,NTuple{D,Float64}},stype::Symbol...;isrk::Bool=false) where {T<:ReproducingKernel{Node},N,D}
-    if isrk
-        aps[1].𝗠[:∇̃] = SymMat(nₕ)
-    else
-    end
-
-    nₘ = 0
-    nₕ = length(get𝒑(aps[1],(0.0,0.0,0.0)))
-    for ap in aps
-        nₘ = max(nₘ,length(ap.𝓒))
-    end
-    for s in stype
-        s∉(:∂̄x,:∂̄y,:∂̄z) ? aps[1].𝗠[s] = SymMat(nₕ) : nothing
-        s==:∂x² ? aps[1].𝗠[:∂x_] = SymMat(nₕ) : nothing
-        s==:∂y² ? aps[1].𝗠[:∂y_] = SymMat(nₕ) : nothing
-        s==:∂z² ? aps[1].𝗠[:∂z_] = SymMat(nₕ) : nothing
-        s==:∂x³ ? aps[1].𝗠[:∂x²_] = SymMat(nₕ) : nothing
-        if s==:∂y³
-            aps[1].𝗠[:∂x∂y_] = SymMat(nₕ)
-            aps[1].𝗠[:∂y²_] = SymMat(nₕ)
-        end
-        if haskey(aps[1].𝝭,s)
-            if nₘ>length(aps[1].𝝭[s])
-                aps[1].𝝭[s]=zeros(nₘ)
+    if T<:ReproducingKernel{SNode}
+        index = zeros(Int,nᵢ)
+        nₜ = 0
+        n = 0
+        𝗠 = Dict{Symbol,SymMat}()
+        𝝭 = Dict{Symbol,Vector{Float64}}()
+        for ap in aps
+            empty!(ap.𝓖)
+            for ξ in 𝓖
+                n += 1
+                index[n] = nₜ
+                nₜ += length(ap.𝓒)
+                push!(ap.𝓖,SNode(n,data,index,𝝭))
+                set𝓖(n,data,ξ,isrk)
             end
-        else
-            aps[1].𝝭[s]=zeros(nₘ)
         end
-    end
-    n = 0
-    for ap in aps
-        empty!(ap.𝓖)
-        for ξ in 𝓖
-            n += 1
-            push!(ap.𝓖,Node(n,data))
-            set𝓖(n,data,ξ)
-        end
-    end
-end
-
-function set𝓖!(aps::Vector{T},𝓖::NTuple{N,NTuple{D,Float64}},stype::Symbol...;isrk::Bool=false) where {T<:ReproducingKernel{SNode},N,D}
-    nₑ = length(aps)
-    nᵢ = nₑ*N
-    data = Dict(:w=>zeros(nᵢ))
-    data[:ξ] = zeros(nᵢ)
-    if isrk
-        data[:wᵇ] = zeros(nᵢ)
-        D > 3 ? data[:η] = zeros(nᵢ) : nothing
-        D > 4 ? data[:γ] = zeros(nᵢ) : nothing
-        nₕ = get𝑛𝒑₁(aps[1])
-        aps[1].𝗠[:∇̃]=SymMat(nₕ)
     else
-        D > 2 ? data[:η] = zeros(nᵢ) : nothing
-        D > 3 ? data[:γ] = zeros(nᵢ) : nothing
-    end
-
-    n = 0
-    nₘ = 0
-    nₕ = get𝑛𝒑(aps[1])
-    index = zeros(Int,nᵢ)
-    𝝭 = Dict{Symbol,Vector{Float64}}()
-    for ap in aps
-        n += length(ap.𝓒)*N
-        nₘ = max(nₘ,length(ap.𝓒))
-    end
-    for s in stype
-        s∉(:∂̄x,:∂̄y,:∂̄z) ? aps[1].𝗠[s] = SymMat(nₕ) : nothing
-        s==:∂x² ? aps[1].𝗠[:∂x_] = SymMat(nₕ) : nothing
-        s==:∂y² ? aps[1].𝗠[:∂y_] = SymMat(nₕ) : nothing
-        s==:∂z² ? aps[1].𝗠[:∂z_] = SymMat(nₕ) : nothing
-        s==:∂x³ ? aps[1].𝗠[:∂x²_] = SymMat(nₕ) : nothing
-        if s==:∂y³
-            aps[1].𝗠[:∂x∂y_] = SymMat(nₕ)
-            aps[1].𝗠[:∂y²_] = SymMat(nₕ)
-        end
-        push!(𝝭,s=>zeros(n))
-        aps[1].𝗠[s]=SymMat(nₕ)
-        if haskey(aps[1].𝝭,s)
-            if nₘ>length(aps[1].𝝭[s])
-                aps[1].𝝭[s]=zeros(nₘ)
+        n = 0
+        for ap in aps
+            empty!(ap.𝓖)
+            for ξ in 𝓖
+                n += 1
+                push!(ap.𝓖,Node(n,data))
+                set𝓖(n,data,ξ)
             end
-        else
-            aps[1].𝝭[s]=zeros(nₘ)
-        end
-    end
-    nₜ = 0
-    n = 0
-    for ap in aps
-        empty!(ap.𝓖)
-        for ξ in 𝓖
-            n += 1
-            index[n] = nₜ
-            nₜ += length(ap.𝓒)
-            push!(ap.𝓖,SNode(n,data,index,𝝭))
-            set𝓖(n,data,ξ,isrk)
         end
     end
 end
