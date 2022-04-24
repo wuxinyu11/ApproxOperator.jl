@@ -1340,9 +1340,17 @@ end
 
 function set_memory_𝗠!(ap::T,ss::Symbol...) where T<:ReproducingKernel
     n = get𝑛𝒑(ap)
+    n₁ = get𝑛𝒑₁(ap)
+    n₂ = get𝑛𝒑₂(ap)
     empty!(ap.𝗠)
     for s in ss
-        ap.𝗠[s] = SymMat(n)
+        if s == :∇̃
+            ap.𝗠[s] = SymMat(n₁)
+        elseif s == :∇̃²
+            ap.𝗠[s] = SymMat(n₂)
+        else
+            ap.𝗠[s] = SymMat(n)
+        end
     end
 end
 

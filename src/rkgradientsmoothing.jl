@@ -92,14 +92,14 @@ function cal𝗚!(ap::ReproducingKernel{𝝃,:Cubic2D,𝑠,𝜙,:Tri3}) where {�
 end
 
 function cal𝗚₂!(ap::ReproducingKernel{𝝃,:Quadratic2D,𝑠,𝜙,:Tri3}) where {𝝃<:AbstractNode,𝑠,𝜙}
-    𝗚⁻¹ = ap.𝗠[:∇̃]
+    𝗚⁻¹ = ap.𝗠[:∇̃²]
     fill!(𝗚⁻¹,0.0)
     𝐴 = get𝐴(ap)
     𝗚⁻¹[1] = 1.0/𝐴
     return 𝗚⁻¹
 end
 function cal𝗚₂!(ap::ReproducingKernel{𝝃,:Cubic2D,𝑠,𝜙,:Tri3}) where {𝝃<:AbstractNode,𝑠,𝜙}
-    𝗚⁻¹ = ap.𝗠[:∇̃]
+    𝗚⁻¹ = ap.𝗠[:∇̃²]
     fill!(𝗚⁻¹,0.0)
     𝐴 = get𝐴(ap)
     𝗚⁻¹[1] =   9.0/𝐴
@@ -112,7 +112,7 @@ function cal𝗚₂!(ap::ReproducingKernel{𝝃,:Cubic2D,𝑠,𝜙,:Tri3}) where
 end
 
 function cal𝗚₂!(ap::ReproducingKernel{𝝃,:Quartic2D,𝑠,𝜙,:Tri3}) where {𝝃<:AbstractNode,𝑠,𝜙}
-    𝗚⁻¹ = ap.𝗠[:∇̃]
+    𝗚⁻¹ = ap.𝗠[:∇̃²]
     fill!(𝗚⁻¹,0.0)
     𝐴 = get𝐴(ap)
     𝗚⁻¹[1] =   36.0/𝐴
