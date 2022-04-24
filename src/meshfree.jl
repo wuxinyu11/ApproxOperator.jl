@@ -205,6 +205,13 @@ for t in subtypes(SpatialPartition)
         for ap in aps
             sp(ap)
         end
+        T<:ReproducingKernel ? set_memory_𝝭!(aps) : nothing
+        T<:ReproducingKernel{SNode} ? (reindex(aps);set_storage_𝝭!(aps)) : nothing
+    end
+    function (sp::t)(apss::Any...)
+        for aps in apss
+            sp(aps)
+        end
     end
 end
 
@@ -1339,7 +1346,7 @@ function set_memory_𝗠!(ap::T,ss::Symbol...) where T<:ReproducingKernel
     end
 end
 
-function set_memory_𝝭!(aps::Vector{T},ss::Symbol...) where T<:ReproducingKernel
+function set_memory_𝝭!(aps::Vector{T},ss::Symbol... = keys(aps[1].𝝭)...) where T<:ReproducingKernel
     nₚ = 0
     for ap in aps
         nₚ = max(nₚ,length(ap.𝓒))
@@ -1349,19 +1356,34 @@ function set_memory_𝝭!(aps::Vector{T},ss::Symbol...) where T<:ReproducingKern
     end
 end
 
-function set_memory_𝝭!(ap::T,ss::Symbol...) where T<:ReproducingKernel
+function set_memory_𝝭!(ap::T,ss::Symbol... = keys(ap.𝝭)...) where T<:ReproducingKernel
     nₚ = length(ap.𝓒)
     for s in ss
         ap.𝝭[s] = zeros(nₚ)
     end
 end
 
-set_storage_𝝭!(aps::Vector{T},ss::Symbol...) where T<:ReproducingKernel{SNode} =    set_storage_𝝭!(aps[end],ss...)
+@inline set_storage_𝝭!(aps::Vector{T},ss::Symbol... = keys(aps[1].𝝭)...) where T<:ReproducingKernel{SNode} = set_storage_𝝭!(aps[end],ss...)
 
-function set_storage_𝝭!(ap::T,ss::Symbol...) where T<:ReproducingKernel
+function set_storage_𝝭!(ap::T,ss::Symbol... = keys(ap.𝝭)...) where T<:ReproducingKernel
     nₘ = ap.𝓖[1].index[end]+length(ap.𝓒)
     for s in ss
         ap.𝓖[1].𝝭[s] = zeros(nₘ)
+    end
+end
+
+function reindex(aps::Vector{T}) where T<:ReproducingKernel{SNode}
+    n = 0
+    ind = 0
+    index = aps[1].𝓖[1].index
+    for ap in aps
+        nₚ = length(ap.𝓒)
+        nᵢ = length(ap.𝓖)
+        for i in 1:nᵢ
+            index[n+i] = ind
+            ind += nₚ
+        end
+        n += nᵢ
     end
 end
 ## get∇𝑢

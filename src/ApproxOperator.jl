@@ -12,8 +12,8 @@ include("approximation.jl")
 include("meshfree.jl")
 include("integration.jl")
 include("operation.jl")
-include("import.jl")
 include("rkgradientsmoothing.jl")
+include("import.jl")
 
 export Node, Element, SNode, ReproducingKernel, getnₚ
 export importmsh

@@ -1,11 +1,9 @@
-using Revise, ApproxOperator, BenchmarkTools, Plots
+using Revise, YAML, ApproxOperator
 
-nₚ = 11
-nₑ = nₚ-1
-x = [1/nₑ*i for i in 0:nₑ]
+config = YAML.load_file("fem.yml")
 
-data = Dict(:x=>x,:y=>zeros(nₚ),:z=>zeros(nₚ))
+elements,nodes = importmsh("./msh/bar.msh",config)
 
-elements = [Seg2(i,i+1,data) for i in 1:nₑ]
+sp = RegularGrid(nodes[:x],nodes[:y],nodes[:z],n = 2,γ = 1)
 
-set𝓖!
+sp(elements["Ω"],elements["Γᵍ"])

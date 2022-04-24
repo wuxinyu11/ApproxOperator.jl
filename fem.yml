@@ -1,2 +1,19 @@
-etype:
-  1
+
+
+Ω:
+    𝓒:
+        tag: Ω
+        type: ReproducingKernel{SNode,:Quadratic1D,:□,:CubicSpline,:Seg2}
+    𝓖:
+        type: SegGI2
+        𝝭: [∂1,∂x,∂y,∂z]
+    𝗠: [∂1,∂x,∂y,∂z]
+    𝝭: [∂1,∂x,∂y,∂z]
+
+Γᵍ:
+    𝓒:
+        tag: Ω
+        type: Element{:Seg2}
+    𝓖:
+        tag: Γᵍ
+        type: PoiGI1

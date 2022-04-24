@@ -76,3 +76,43 @@ function import_msh_2(fid::IO)
         end
     end
 end
+
+function importmsh(filename::String,config::Dict{Any,Any})
+    elms, nodes = importmsh(filename)
+    elements = Dict{String,Any}()
+    for (name,cfg) in config
+        Type = eval(Meta.parse(cfg["𝓒"]["type"]))
+        if haskey(cfg,"𝓖")
+            QType = Meta.parse(cfg["𝓖"]["type"])
+            if haskey(cfg["𝓖"],"tag")
+                elms_𝓖 = elms[cfg["𝓖"]["tag"]]
+                elms_𝓒 = elms[cfg["𝓒"]["tag"]]∩elms_𝓖
+                set𝓖!(elms_𝓖,QType)
+                elems = Type(elms_𝓒,elms_𝓖)
+                elements[name] = elems
+            else
+                elems = Type(elms[cfg["𝓒"]["tag"]])
+                set𝓖!(elems,QType)
+                elements[name] = elems
+            end
+            if haskey(cfg["𝓖"],"𝝭")
+                ss = cfg["𝓖"]["𝝭"]
+                ss = [Meta.parse(s) for s in ss]
+                set_storage_𝝭!(elements[name],ss...)
+            end
+        else
+            elements[name] = Type(elms[cfg["𝓒"]["tag"]])
+        end
+        if haskey(cfg,"𝗠")
+            ss = cfg["𝗠"]
+            ss = [Meta.parse(s) for s in ss]
+            set_memory_𝗠!(elements[name],ss...)
+        end
+        if haskey(cfg,"𝝭")
+            ss = cfg["𝝭"]
+            ss = [Meta.parse(s) for s in ss]
+            set_memory_𝝭!(elements[name],ss...)
+        end
+    end
+    return elements,nodes
+end
