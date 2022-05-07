@@ -206,7 +206,6 @@ for t in subtypes(SpatialPartition)
             sp(ap)
         end
         T<:ReproducingKernel ? set_memory_𝝭!(aps) : nothing
-        T<:ReproducingKernel{SNode} ? (reindex(aps);set_storage_𝝭!(aps)) : nothing
     end
     function (sp::t)(apss::Any...)
         for aps in apss
@@ -228,6 +227,7 @@ end
 @inline get∇²𝒑(ap::ReproducingKernel,x::Any) = get𝒑(ap,x), get∂𝒑∂x(ap,x), get∂𝒑∂y(ap,x), get∂²𝒑∂x²(ap,x), get∂²𝒑∂x∂y(ap,x), get∂²𝒑∂y²(ap,x), get∂𝒑∂z(ap,x), get∂²𝒑∂x∂z(ap,x), get∂²𝒑∂y∂z(ap,x), get∂²𝒑∂z²(ap,x)
 # @inline get∇²𝒑(ap::ReproducingKernel,x::Any) = get𝒑(ap,x), get∂𝒑∂x(ap,x), get∂𝒑∂y(ap,x), get∂²𝒑∂x²(ap,x), get∂²𝒑∂x∂y(ap,x), get∂²𝒑∂y²(ap,x)
 @inline get∇³𝒑(ap::ReproducingKernel,x::Any) = get𝒑(ap,x), get∂𝒑∂x(ap,x), get∂𝒑∂y(ap,x), get∂²𝒑∂x²(ap,x), get∂²𝒑∂x∂y(ap,x), get∂²𝒑∂y²(ap,x), get∂³𝒑∂x³(ap,x), get∂³𝒑∂x²∂y(ap,x), get∂³𝒑∂x∂y²(ap,x), get∂³𝒑∂y³(ap,x)
+@inline get∇∇²𝒑(ap::ReproducingKernel,x::Any) = get𝒑(ap,x), get∂³𝒑∂x³(ap,x), get∂³𝒑∂x²∂y(ap,x), get∂³𝒑∂x²∂y(ap,x), get∂³𝒑∂x∂y²(ap,x), get∂³𝒑∂x∂y²(ap,x), get∂³𝒑∂y³(ap,x)
 @inline get∇𝒑₁(ap::ReproducingKernel{𝝃,𝒑,𝑠,𝜙,:Seg2},ξ::Any) where {𝝃<:AbstractNode,𝒑,𝑠,𝜙} = get𝒑₁(ap,ξ), get∂𝒑₁∂ξ(ap,ξ)
 @inline get∇𝒑₁(ap::ReproducingKernel{𝝃,𝒑,𝑠,𝜙,:Tri3},ξ::Any) where {𝝃<:AbstractNode,𝒑,𝑠,𝜙} = get𝒑₁(ap,ξ), get∂𝒑₁∂ξ(ap,ξ), get∂𝒑₁∂η(ap,ξ)
 @inline get∇𝒑₂(ap::ReproducingKernel{𝝃,𝒑,𝑠,𝜙,:Tri3},ξ::Any) where {𝝃<:AbstractNode,𝒑,𝑠,𝜙} = get𝒑₂(ap,ξ), get∂𝒑₂∂ξ(ap,ξ), get∂𝒑₂∂η(ap,ξ)
@@ -1294,6 +1294,30 @@ function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(as::Vector{Element{S}},sp::Uni
     end
     return aps
 end
+
+function ReproducingKernel{𝝃,𝒑,𝑠,𝜙}(as::Vector{Element{T}},sp::Union{Nothing,SpatialPartition}=nothing;renumbering::Bool=false) where {𝝃<:AbstractNode,𝒑,𝑠,𝜙,T}
+    aps = ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}[]
+    𝗠 = Dict{Symbol,SymMat}()
+    𝝭 = Dict{Symbol,Vector{Float64}}()
+    if renumbering
+        index, data = renumber(aps)
+        for a in as
+            𝓒 = [Node(index[x.id],data) for x in a.𝓒]
+            𝓖 = Node[]
+            ap = ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(𝓒,𝓖,𝗠,𝝭)
+            sp ≠ nothing ? sp(ap) : nothing
+            push!(aps,ap)
+        end
+    else
+        for a in as
+            ap = ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(a,𝗠,𝝭)
+            sp ≠ nothing ? sp(ap) : nothing
+            push!(aps,ap)
+        end
+    end
+    return aps
+end
+
 function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(a::A,b::B,sp::Union{Nothing,SpatialPartition}=nothing) where {A<:ReproducingKernel,B<:ReproducingKernel,𝝃<:AbstractNode,𝒑,𝑠,𝜙,T}
     𝓒 = a.𝓒
     𝓖 = get𝓖(a,b)
@@ -1322,23 +1346,36 @@ function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(a::A,b::B,sp::Union{Nothing,Sp
     end
 end
 
-function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(as::Vector{A},bs::Vector{B}) where {𝝃<:AbstractNode,𝒑,𝑠,𝜙,T,A<:ReproducingKernel,B<:ReproducingKernel}
+function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(as::Vector{A},bs::Vector{B}) where {𝝃<:AbstractNode,𝒑,𝑠,𝜙,T,A<:AbstractElement,B<:AbstractElement}
     aps = ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}[]
+    𝗠 = Dict{Symbol,SymMat}()
+    𝝭 = Dict{Symbol,Vector{Float64}}()
     for b in bs
         for a in as
-            ap = ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(a,b)
+            ap = ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(a,b,𝗠,𝝭)
             ap ≠ nothing ? push!(aps,ap) : nothing
         end
     end
     return aps
 end
 
+function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(a::A,b::B,𝗠::Dict{Symbol,SymMat},𝝭::Dict{Symbol,Vector{Float64}}) where {A<:AbstractElement,B<:AbstractElement,𝝃,𝒑,𝑠,𝜙,T}
+    𝓒 = a.𝓒
+    𝓖 = get𝓖(a,b)
+    if 𝓖 ≠ nothing
+        ap = ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(𝓒,𝓖,𝗠,𝝭)
+        return ap
+    else
+        return nothing
+    end
+end
+
 ## set memory
-function set_memory_𝗠!(aps::Vector{T},ss::Symbol...) where T<:ReproducingKernel
+function set_memory_𝗠!(aps::Vector{T},ss::Symbol... = keys(aps[1].𝗠)...) where T<:ReproducingKernel
     set_memory_𝗠!(aps[1],ss...)
 end
 
-function set_memory_𝗠!(ap::T,ss::Symbol...) where T<:ReproducingKernel
+function set_memory_𝗠!(ap::T,ss::Symbol... = keys(ap[1].𝗠)...) where T<:ReproducingKernel
     n = get𝑛𝒑(ap)
     n₁ = get𝑛𝒑₁(ap)
     n₂ = get𝑛𝒑₂(ap)
@@ -1362,6 +1399,7 @@ function set_memory_𝝭!(aps::Vector{T},ss::Symbol... = keys(aps[1].𝝭)...) w
     for s in ss
         aps[1].𝝭[s] = zeros(nₚ)
     end
+    T<:ReproducingKernel{SNode} ? (reindex!(aps);set_storage_𝝭!(aps,ss...)) : nothing
 end
 
 function set_memory_𝝭!(ap::T,ss::Symbol... = keys(ap.𝝭)...) where T<:ReproducingKernel
@@ -1380,7 +1418,7 @@ function set_storage_𝝭!(ap::T,ss::Symbol... = keys(ap.𝝭)...) where T<:Repr
     end
 end
 
-function reindex(aps::Vector{T}) where T<:ReproducingKernel{SNode}
+function reindex!(aps::Vector{T}) where T<:ReproducingKernel{SNode}
     n = 0
     ind = 0
     index = aps[1].𝓖[1].index
@@ -1394,6 +1432,7 @@ function reindex(aps::Vector{T}) where T<:ReproducingKernel{SNode}
         n += nᵢ
     end
 end
+
 ## get∇𝑢
 function get∇𝑢(ap::T,𝒙::NTuple{3,Float64},sp::S) where {T<:ReproducingKernel,S<:SpatialPartition}
     index = [sp(𝒙...)...]

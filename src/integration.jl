@@ -21,7 +21,6 @@ function set𝓖!(aps::Vector{T},s::Symbol) where T<:AbstractElement
         index = zeros(Int,nᵢ)
         nₜ = 0
         n = 0
-        𝗠 = Dict{Symbol,SymMat}()
         𝝭 = Dict{Symbol,Vector{Float64}}()
         for ap in aps
             empty!(ap.𝓖)
@@ -40,7 +39,7 @@ function set𝓖!(aps::Vector{T},s::Symbol) where T<:AbstractElement
             for ξ in 𝓖
                 n += 1
                 push!(ap.𝓖,Node(n,data))
-                set𝓖(n,data,ξ)
+                set𝓖(n,data,ξ,isrk)
             end
         end
     end
@@ -85,6 +84,7 @@ end
 function get𝓖(a::T,b::S) where {T<:AbstractElement{:Tri3},S<:AbstractElement{:Seg2}}
     i = findfirst(x->x.id==b.𝓒[1].id, a.𝓒)
     j = findfirst(x->x.id==b.𝓒[2].id, a.𝓒)
+    𝐿 = get𝐿(b)
     if i ≠ nothing && j ≠ nothing && i ≤ 3 && j ≤ 3
         x₁ = a.𝓒[1].x
         y₁ = a.𝓒[1].y
@@ -96,18 +96,24 @@ function get𝓖(a::T,b::S) where {T<:AbstractElement{:Tri3},S<:AbstractElement{
             if i == 1
                 ξ.ξ = (1.0-ξ.ξ)/2.0
                 ξ.η = 1.0-ξ.ξ
-                ξ.n₁ = y₂-y₁
-                ξ.n₂ = x₁-x₂
+                ξ.n₁ = (y₂-y₁)/𝐿
+                ξ.n₂ = (x₁-x₂)/𝐿
+                ξ.s₁ = (x₂-x₁)/𝐿
+                ξ.s₂ = (y₂-y₁)/𝐿
             elseif i == 2
                 ξ.η = (1.0-ξ.ξ)/2.0
                 ξ.ξ = 0.0
-                ξ.n₁ = y₃-y₂
-                ξ.n₂ = x₂-x₃
+                ξ.n₁ = (y₃-y₂)/𝐿
+                ξ.n₂ = (x₂-x₃)/𝐿
+                ξ.s₁ = (x₃-x₂)/𝐿
+                ξ.s₂ = (y₃-y₂)/𝐿
             else
                 ξ.ξ = (1.0+ξ.ξ)/2.0
                 ξ.η = 0.0
-                ξ.n₁ = y₁-y₃
-                ξ.n₂ = x₃-x₁
+                ξ.n₁ = (y₁-y₃)/𝐿
+                ξ.n₂ = (x₃-x₁)/𝐿
+                ξ.s₁ = (x₁-x₃)/𝐿
+                ξ.s₂ = (y₁-y₃)/𝐿
             end
             ξ.w *= 0.5
         end

@@ -8,11 +8,13 @@ abstract type AbstractElement{T} end
 abstract type SpatialPartition end
 
 include("node.jl")
+include("snode.jl")
 include("approximation.jl")
-include("meshfree.jl")
+include("approximation_mf.jl")
 include("integration.jl")
 include("operation.jl")
-include("rkgradientsmoothing.jl")
+include("operation_thin_plate.jl")
+include("approximation_rk.jl")
 include("import.jl")
 
 export Node, Element, SNode, ReproducingKernel, getnₚ
@@ -20,7 +22,7 @@ export importmsh
 export RegularGrid
 export Operator, prescribe!, issubset, intersect
 export set𝓖!
-export set𝝭!, set∇𝝭!, set∇²𝝭!, set∇³𝝭!, set∇̃𝝭!, set∇̃²𝝭!, set∇∇̃²𝝭!, set∇̄𝝭!, set𝒏!, set∇𝑢!, get∇𝑢, get𝝐, set_memory_𝗠!, set_memory_𝝭!
+export set𝝭!, set∇𝝭!, set∇²𝝭!, set∇³𝝭!, set∇̃𝝭!, set∇̃²𝝭!, set∇∇̃²𝝭!, set∇̄𝝭!, set𝒏!, set∇𝑢!, get∇𝑢, get𝝐, set_memory_𝝭!
 
 #debug
 include("littletools.jl")

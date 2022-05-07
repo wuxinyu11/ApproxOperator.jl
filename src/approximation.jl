@@ -350,10 +350,7 @@ function intersect(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement,S<:Abs
     for b in bs
         for a in as
             ap = a∩b
-            # ap ≠ nothing ? push!(aps,ap) : nothing
-            if ap ≠ nothing
-                push!(aps,ap)
-            end
+            ap ≠ nothing ? push!(aps,ap) : nothing
         end
     end
     return aps

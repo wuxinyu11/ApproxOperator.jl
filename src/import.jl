@@ -85,7 +85,7 @@ function importmsh(filename::String,config::Dict{Any,Any})
         if haskey(cfg,"𝓖")
             QType = Meta.parse(cfg["𝓖"]["type"])
             if haskey(cfg["𝓖"],"tag")
-                elms_𝓖 = elms[cfg["𝓖"]["tag"]]
+                elms_𝓖 = Type<:ReproducingKernel{SNode} ? ReproducingKernel{SNode,:Linear1D,:□,:CubicSpline}(elms[cfg["𝓖"]["tag"]]) : elms[cfg["𝓖"]["tag"]]
                 elms_𝓒 = elms[cfg["𝓒"]["tag"]]∩elms_𝓖
                 set𝓖!(elms_𝓖,QType)
                 elems = Type(elms_𝓒,elms_𝓖)
@@ -104,13 +104,11 @@ function importmsh(filename::String,config::Dict{Any,Any})
             elements[name] = Type(elms[cfg["𝓒"]["tag"]])
         end
         if haskey(cfg,"𝗠")
-            ss = cfg["𝗠"]
-            ss = [Meta.parse(s) for s in ss]
+            ss = Meta.parse.(cfg["𝗠"])
             set_memory_𝗠!(elements[name],ss...)
         end
         if haskey(cfg,"𝝭")
-            ss = cfg["𝝭"]
-            ss = [Meta.parse(s) for s in ss]
+            ss = Meta.parse.(cfg["𝝭"])
             set_memory_𝝭!(elements[name],ss...)
         end
     end
