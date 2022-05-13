@@ -8,6 +8,7 @@ struct SNode<:AbstractNode
 end
 
 ## convert
+Node(ξ::SNode) = Node(ξ.id,ξ.data)
 SNode(ξ::T,η::SNode) where T<:AbstractNode = SNode(ξ.id,ξ.data,η.index,η.𝝭)
 function (η::SNode)(ξ::SNode)
     ξ.index[ξ.id] = η.index[η.id]

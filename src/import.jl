@@ -95,11 +95,11 @@ function importmsh(filename::String,config::Dict{Any,Any})
                 set𝓖!(elems,QType)
                 elements[name] = elems
             end
-            if haskey(cfg["𝓖"],"𝝭")
-                ss = cfg["𝓖"]["𝝭"]
-                ss = [Meta.parse(s) for s in ss]
-                set_storage_𝝭!(elements[name],ss...)
-            end
+            # if haskey(cfg["𝓖"],"𝝭")
+            #     ss = cfg["𝓖"]["𝝭"]
+            #     ss = [Meta.parse(s) for s in ss]
+            #     set_storage_𝝭!(elements[name],ss...)
+            # end
         else
             elements[name] = Type(elms[cfg["𝓒"]["tag"]])
         end

@@ -414,9 +414,10 @@ end
 
 @inline get𝑛𝒑₂(::ReproducingKernel{𝝃,:Cubic2D}) where 𝝃 = 3
 @inline get𝒑₂(ap::ReproducingKernel{𝝃,:Cubic2D},ξ::𝝃) where 𝝃<:AbstractNode = get𝒑₂(ap,ξ.ξ,ξ.η)
+@inline get𝒑₂(ap::ReproducingKernel{𝝃,:Cubic2D},ξ::NTuple{3,Float64}) where 𝝃<:AbstractNode = get𝒑₂(ap,ξ[1],ξ[2])
 @inline get𝒑₂(::ReproducingKernel{𝝃,:Cubic2D},ξ::Float64,η::Float64) where 𝝃<:AbstractNode = (1.,ξ,η)
-@inline get∂𝒑₂∂ξ(ap::ReproducingKernel{𝝃,:Cubic2D},ξ::𝝃) where 𝝃<:AbstractNode = (0.,1.,0.)
-@inline get∂𝒑₂∂η(ap::ReproducingKernel{𝝃,:Cubic2D},ξ::𝝃) where 𝝃<:AbstractNode = (0.,0.,1.)
+@inline get∂𝒑₂∂ξ(ap::ReproducingKernel{𝝃,:Cubic2D},ξ::Any) where 𝝃<:AbstractNode = (0.,1.,0.)
+@inline get∂𝒑₂∂η(ap::ReproducingKernel{𝝃,:Cubic2D},ξ::Any) where 𝝃<:AbstractNode = (0.,0.,1.)
 @inline get∂²𝒑₂∂ξ²(ap::ReproducingKernel{𝝃,:Cubic2D},ξ::Any) where 𝝃<:AbstractNode = (0.,0.,0.)
 @inline get∂²𝒑₂∂ξ∂η(ap::ReproducingKernel{𝝃,:Cubic2D},ξ::Any) where 𝝃<:AbstractNode = (0.,0.,0.)
 @inline get∂²𝒑₂∂η²(ap::ReproducingKernel{𝝃,:Cubic2D},ξ::Any) where 𝝃<:AbstractNode = (0.,0.,0.)
@@ -1383,7 +1384,7 @@ function set_memory_𝗠!(ap::T,ss::Symbol... = keys(ap[1].𝗠)...) where T<:Re
     for s in ss
         if s == :∇̃
             ap.𝗠[s] = SymMat(n₁)
-        elseif s == :∇̃²
+        elseif s ∈ (:∇̃²,:∂∇̃²∂ξ,:∂∇̃²∂η)
             ap.𝗠[s] = SymMat(n₂)
         else
             ap.𝗠[s] = SymMat(n)

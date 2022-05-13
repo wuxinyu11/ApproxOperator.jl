@@ -28,6 +28,3 @@ struct Node<:AbstractNode
     id::Int
     data::Dict{Symbol,Vector{Float64}}
 end
-
-## convert
-Node(ξ::SNode) = Node(ξ.id,ξ.data)

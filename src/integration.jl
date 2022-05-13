@@ -81,11 +81,70 @@ function get𝓖(a::T,b::S) where {T<:AbstractElement{:Seg2},S<:AbstractElement{
     end
 end
 
+function get𝓖(a::T,b::S) where {T<:AbstractElement{:Tri3},S<:AbstractElement{:Poi1}}
+    i = findfirst(x->x.id==b.𝓒[1].id, a.𝓒)
+    if i ≠ nothing
+        x₁ = a.𝓒[1].x
+        y₁ = a.𝓒[1].y
+        x₂ = a.𝓒[2].x
+        y₂ = a.𝓒[2].y
+        x₃ = a.𝓒[3].x
+        y₃ = a.𝓒[3].y
+        n₁₁ = y₃-y₂;n₂₁ = y₁-y₃;n₃₁ = y₂-y₁
+        n₁₂ = x₂-x₃;n₂₂ = x₃-x₁;n₃₂ = x₁-x₂
+        s₁₁ = -n₁₂;s₂₁ = -n₂₂;s₃₁ = -n₃₂
+        s₁₂ =  n₁₁;s₂₂ =  n₂₁;s₃₂ =  n₃₁
+        𝐿₁² = n₁₁^2+n₁₂^2
+        𝐿₂² = n₂₁^2+n₂₂^2
+        𝐿₃² = n₃₁^2+n₃₂^2
+        if haskey(b.𝓖[1].data,:η)
+            ξ₀ = b.𝓖[1]
+            n = ξ₀.id
+            data = ξ₀.data
+            if isa(ξ₀,SNode)
+                index = ξ₀.index
+                𝝭 = ξ₀.𝝭
+                push!(index,0)
+                for (s,v) in data
+                    push!(v,0.0)
+                end
+                ξ = SNode(n+1,data,index,𝝭)
+            else
+                ξ = Node(n+1,data)
+            end
+        else
+            ξ = b.𝓖[1]
+        end
+        if i == 1
+            ξ.ξ = 1.0
+            ξ.η = 0.0
+            ξ.Δn₁s₁ = n₂₁*s₂₁/𝐿₂² - n₃₁*s₃₁/𝐿₃²
+            ξ.Δn₁s₂n₂s₁ = n₂₁*s₂₂/𝐿₂² + n₂₂*s₂₁/𝐿₂² - n₃₁*s₃₂/𝐿₃² - n₃₂*s₃₁/𝐿₃²
+            ξ.Δn₂s₂ = n₂₂*s₂₂/𝐿₂² - n₃₂*s₃₂/𝐿₃²
+        elseif i == 2
+            ξ.ξ = 0.0
+            ξ.η = 1.0
+            ξ.Δn₁s₁ = n₃₁*s₃₁/𝐿₃² - n₁₁*s₁₁/𝐿₁²
+            ξ.Δn₁s₂n₂s₁ = n₃₁*s₃₂/𝐿₃² + n₃₂*s₃₁/𝐿₃² - n₁₁*s₁₂/𝐿₁² - n₁₂*s₁₁/𝐿₁²
+            ξ.Δn₂s₂ = n₃₂*s₃₂/𝐿₃² - n₁₂*s₁₂/𝐿₁²
+        else
+            ξ.ξ = 0.0
+            ξ.η = 0.0
+            ξ.Δn₁s₁ = n₁₁*s₁₁/𝐿₁² - n₂₁*s₂₁/𝐿₂²
+            ξ.Δn₁s₂n₂s₁ = n₁₁*s₁₂/𝐿₁² + n₁₂*s₁₁/𝐿₁² - n₂₁*s₂₂/𝐿₂² - n₂₂*s₂₁/𝐿₂²
+            ξ.Δn₂s₂ = n₁₂*s₁₂/𝐿₁² - n₂₂*s₂₂/𝐿₂²
+        end
+        return [ξ]
+    else
+        return nothing
+    end
+end
+
 function get𝓖(a::T,b::S) where {T<:AbstractElement{:Tri3},S<:AbstractElement{:Seg2}}
     i = findfirst(x->x.id==b.𝓒[1].id, a.𝓒)
     j = findfirst(x->x.id==b.𝓒[2].id, a.𝓒)
-    𝐿 = get𝐿(b)
     if i ≠ nothing && j ≠ nothing && i ≤ 3 && j ≤ 3
+        𝐿 = get𝐿(b)
         x₁ = a.𝓒[1].x
         y₁ = a.𝓒[1].y
         x₂ = a.𝓒[2].x
@@ -116,10 +175,24 @@ function get𝓖(a::T,b::S) where {T<:AbstractElement{:Tri3},S<:AbstractElement{
                 ξ.s₂ = (y₁-y₃)/𝐿
             end
             ξ.w *= 0.5
+            ξ.𝑤 = ξ.w*𝐿
         end
         return b.𝓖
     else
         return nothing
+    end
+end
+
+## coordinate convertion
+@inline getξ(a::T,b::T,ξ::N) where {T<:AbstractElement{:Tri3},N<:AbstractNode} = ξ
+function getξ(a::T,b::S,ξ::N) where {T<:AbstractElement{:Tri3},S<:AbstractElement{:Seg2},N<:AbstractNode}
+    i = findfirst(x->x.id==b.𝓒[1].id, a.𝓒)
+    if i == 1
+        return ((1.0-ξ.ξ)/2.0,(1.0+ξ.ξ)/2.0,0.0)
+    elseif i == 2
+        return ((1.0-ξ.ξ)/2.0,0.0,0.0)
+    else
+        return ((1.0+ξ.ξ)/2.0,0.0,0.0)
     end
 end
 

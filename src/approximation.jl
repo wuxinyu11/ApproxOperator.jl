@@ -340,6 +340,10 @@ end
     i = findfirst(x->x==b.𝓒[1],a.𝓒)
     return i ≠ nothing && i ≤ 2 ? a : nothing
 end
+@inline function intersect(a::T,b::S) where {T<:AbstractElement{:Tri3},S<:AbstractElement{:Poi1}}
+    i = findfirst(x->x==b.𝓒[1],a.𝓒)
+    return i ≠ nothing && i ≤ 3 ? a : nothing
+end
 @inline function intersect(a::T,b::S) where {T<:AbstractElement{:Tri3},S<:AbstractElement{:Seg2}}
     i = findfirst(x->x==b.𝓒[1],a.𝓒)
     j = findfirst(x->x==b.𝓒[2],a.𝓒)
