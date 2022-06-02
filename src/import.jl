@@ -86,7 +86,7 @@ function importmsh(filename::String,config::Dict{Any,Any})
             QType = Meta.parse(cfg["𝓖"]["type"])
             if haskey(cfg["𝓖"],"tag")
                 elms_𝓖 = Type<:ReproducingKernel{SNode} ? ReproducingKernel{SNode,:Linear1D,:□,:CubicSpline}(elms[cfg["𝓖"]["tag"]]) : elms[cfg["𝓖"]["tag"]]
-                elms_𝓒 = elms[cfg["𝓒"]["tag"]]∩elms_𝓖
+                elms_𝓒 = elms[cfg["𝓒"]["tag"]]
                 set𝓖!(elms_𝓖,QType)
                 elems = Type(elms_𝓒,elms_𝓖)
                 elements[name] = elems
