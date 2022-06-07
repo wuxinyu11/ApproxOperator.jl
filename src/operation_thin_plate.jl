@@ -145,7 +145,6 @@ function (op::Operator{:∫M̃ₙₙθdΓ})(ap::T,k::AbstractMatrix{Float64},f::
     n₂ = 𝓖[1].n₂
     s₁ = 𝓖[1].s₁
     s₂ = 𝓖[1].s₂
-    # α = op.α
     D = op.D
     ν = op.ν
     D₁₁ = -D*(n₁^2+ν*n₂^2)
@@ -177,7 +176,6 @@ function (op::Operator{:∫ṼgdΓ})(ap::T,k::AbstractMatrix{Float64},f::Abstrac
     n₂ = 𝓖[1].n₂
     s₁ = 𝓖[1].s₁
     s₂ = 𝓖[1].s₂
-    # α = op.α
     D = op.D
     ν = op.ν
     D₁₁₁ = -D*(n₁ + n₁*s₁*s₁ + ν*n₂*s₁*s₂)
@@ -240,7 +238,6 @@ function (op::Operator{:ΔM̃ₙₛg})(ap::T,k::AbstractMatrix{Float64},f::Abstr
     𝓒 = ap.𝓒; ξ = ap.𝓖[1]
     D = op.D
     ν = op.ν
-    # α = op.α
     Δn₁s₁ = ξ.Δn₁s₁
     Δn₁s₂n₂s₁ = ξ.Δn₁s₂n₂s₁
     Δn₂s₂ = ξ.Δn₂s₂
@@ -257,7 +254,6 @@ function (op::Operator{:ΔM̃ₙₛg})(ap::T,k::AbstractMatrix{Float64},f::Abstr
             J = xⱼ.id
             ΔMₙₛⱼ = D₁₁*B₁₁[j] + D₁₂*B₁₂[j] + D₂₂*B₂₂[j]
             k[I,J] += ΔMₙₛᵢ*N[j] + N[i]*ΔMₙₛⱼ + ΔM̄ₙₛᵢ*N[j]
-            # k[I,J] += ΔM̄ₙₛᵢ*N[j]
         end
         f[I] += (ΔMₙₛᵢ + ΔM̄ₙₛᵢ)*ξ.g
     end
