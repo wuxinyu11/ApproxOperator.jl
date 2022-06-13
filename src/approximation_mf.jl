@@ -5,6 +5,8 @@ struct SymMat
     m::Vector{Float64}
 end
 SymMat(n::Int) = SymMat(n,zeros(Int(n*(n+1)/2)))
+size(A::SymMat) = A.n,A.n
+strides(A::SymMat) = 1,A.n
 
 @inline function getindex(A::SymMat,i::Int,j::Int)
     i > j ? A.m[Int(j+i*(i-1)/2)] : A.m[Int(i+j*(j-1)/2)]
@@ -42,7 +44,7 @@ function inverse!(A::SymMat)
     return A
 end
 
-function UUᵀ!(A::SymMat)
+function LLᵀ!(A::SymMat)
     n = A.n
     for i in 1:n
         A[i,i] = sum(A[i,k]*A[i,k] for k in i:n)
@@ -53,14 +55,16 @@ function UUᵀ!(A::SymMat)
     return A
 end
 
-function UᵀAU!(A::SymMat,U::SymMat)
+
+function LᵀAL!(A::SymMat,L::SymMat)
     n = A.n
     for i in n:-1:1
         for j in n:-1:i
-            A[i,j] = sum(U[k,i]*A[k,l]*U[l,j] for k in 1:i for l in 1:j)
+            A[i,j] = sum(L[k,i]*A[k,l]*L[l,j] for k in 1:i for l in 1:j)
         end
     end
 end
+
 function UᵀAU!(B::SymMat,A::SymMat,U::SymMat)
     n = A.n
     for i in n:-1:1
@@ -218,7 +222,7 @@ end
 struct ReproducingKernel{𝝃,𝑝,𝑠,𝜙,T}<:AbstractElement{T}
     𝓒::Vector{Node}
     𝓖::Vector{𝝃}
-    𝗠::Dict{Symbol,SymMat}
+    𝗠::Dict{Symbol,Matrix{Float64}}
     𝝭::Dict{Symbol,Vector{Float64}}
 end
 
@@ -573,50 +577,25 @@ end
 function cal𝗠!(ap::ReproducingKernel,x::NTuple{3,Float64})
     𝓒 = ap.𝓒
     𝗠 = ap.𝗠[:∂1]
-    n = length(get𝒑(ap,(0.0,0.0,0.0)))
+    n = get𝑛𝒑(ap)
     fill!(𝗠,0.)
     for xᵢ in 𝓒
         Δx = x - xᵢ
-        # print(Δx)
         𝒑 = get𝒑(ap,Δx)
         𝜙 = get𝜙(ap,xᵢ,Δx)
-        # print(𝜙)
         for I in 1:n
-            for J in I:n
-                𝗠[I,J] += 𝜙*𝒑[I]*𝒑[J]
+            𝗠[I,I] += 𝜙*𝒑[I]*𝒑[J]
+            for J in I+1:n
+                𝜙𝒑𝒑 = 𝜙*𝒑[I]*𝒑[J]
+                𝗠[I,J] += 𝜙𝒑𝒑
+                𝗠[J,I] += 𝜙𝒑𝒑
             end
         end
     end
-    # print(𝗠.m[1:55])
     cholesky!(𝗠)
     U⁻¹ = inverse!(𝗠)
     𝗠⁻¹ = UUᵀ!(U⁻¹)
     return 𝗠⁻¹
-end
-
-function cal∂𝗠∂x!(ap::ReproducingKernel,x::NTuple{3,Float64})
-    𝓒 = ap.𝓒
-    𝗠 = ap.𝗠[:∂1]
-    ∂𝗠∂x = ap.𝗠[:∂x]
-    n = length(get𝒑(ap,(0.0,0.0,0.0)))
-    fill!(𝗠,0.)
-    fill!(∂𝗠∂x,0.)
-    for xᵢ in 𝓒
-        Δx = x - xᵢ
-        𝒑, ∂𝒑∂x = get∂𝒑∂x(ap,Δx)
-        𝜙, ∂𝜙∂x = get∂𝜙∂x(ap,xᵢ,Δx)
-        for I in 1:n
-            for J in I:n
-                𝗠[I,J] += w*𝒑[I]*𝒑[J]
-                ∂𝗠∂x[I,J] += ∂𝜙∂x*𝒑[I]*𝒑[J] + 𝜙*∂𝒑∂x[I]*𝒑[J] + 𝜙*𝒑[I]*∂𝒑∂x[J]
-            end
-        end
-    end
-    cholesky!(𝗠)
-    U⁻¹ = inverse!(𝗠)
-    ∂𝗠⁻¹∂x = - UUᵀAUUᵀ!(∂𝗠∂x,U⁻¹)
-    𝗠⁻¹ = UUᵀ!(U⁻¹)
-    return 𝗠⁻¹, ∂𝗠⁻¹∂x
 end
 
 function cal∇𝗠!(ap::ReproducingKernel,x::NTuple{3,Float64})
@@ -793,7 +772,7 @@ function cal∇³𝗠!(ap::ReproducingKernel,x::NTuple{3,Float64})
         end
     end
     cholesky!(𝗠)
-    U⁻¹ = inverse!(𝗠)
+    L⁻¹ = inverse!(𝗠)
     ∂𝗠⁻¹∂x = - UUᵀAUUᵀ!(∂𝗠⁻¹∂x,∂𝗠∂x,U⁻¹)
     ∂𝗠⁻¹∂y = - UUᵀAUUᵀ!(∂𝗠⁻¹∂y,∂𝗠∂y,U⁻¹)
     ∂²𝗠⁻¹∂x² = UUᵀAUUᵀ!(∂²𝗠⁻¹∂x²,∂²𝗠∂x²,U⁻¹)
@@ -804,6 +783,7 @@ function cal∇³𝗠!(ap::ReproducingKernel,x::NTuple{3,Float64})
     ∂³𝗠⁻¹∂x∂y² = UUᵀAUUᵀ!(∂³𝗠∂x∂y²,U⁻¹)
     ∂³𝗠⁻¹∂y³ = UUᵀAUUᵀ!(∂³𝗠∂y³,U⁻¹)
     𝗠⁻¹ = UUᵀ!(U⁻¹)
+
     for i in 1:n
         for j in i:n
             for k in 1:n
@@ -1244,38 +1224,9 @@ function get∇³𝝭(ap::ReproducingKernel,ξ::SNode)
 end
 
 ## convert
-function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(a::ReproducingKernel{𝜼,𝒒}) where {𝝃<:AbstractNode,𝜼<:AbstractNode,𝒑,𝒒,𝑠,𝜙,T}
-    𝓒 = a.𝓒
-    𝓖 = 𝝃[]
-    𝗠 = a.𝗠
-    𝝭 = a.𝝭
-    b = ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(𝓒,𝓖,𝗠,𝝭)
-    if 𝒑 ≠ 𝒒
-        n = length(get𝒑(b,(0.0,0.0,0.0)))
-        for s in keys(𝗠)
-            𝗠[s] = SymMat(n)
-        end
-    end
-    return b
-end
-
-function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(as::Vector{S}) where {𝝃<:AbstractNode,𝒑,𝑠,𝜙,T,S<:ReproducingKernel}
+function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(as::Vector{S};renumbering::Bool=false) where {𝝃<:AbstractNode,𝒑,𝑠,𝜙,T,S<:AbstractElement}
     aps = ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}[]
-    for a in as
-        push!(aps,ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(a))
-    end
-    return aps
-end
-
-function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(a::Element{S},𝗠::Dict{Symbol,SymMat},𝝭::Dict{Symbol,Vector{Float64}}) where {𝝃<:AbstractNode,𝜼<:AbstractNode,𝒑,𝒒,𝑠,𝜙,T,S}
-    𝓒 = a.𝓒
-    𝓖 = 𝝃[]
-    return ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(𝓒,𝓖,𝗠,𝝭)
-end
-
-function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(as::Vector{Element{S}},sp::Union{Nothing,SpatialPartition}=nothing;renumbering::Bool=false) where {𝝃<:AbstractNode,𝒑,𝑠,𝜙,T,S}
-    aps = ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}[]
-    𝗠 = Dict{Symbol,SymMat}()
+    𝗠 = Dict{Symbol,Matrix{Float64}}()
     𝝭 = Dict{Symbol,Vector{Float64}}()
     if renumbering
         index, data = renumber(aps)
@@ -1288,87 +1239,27 @@ function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(as::Vector{Element{S}},sp::Uni
         end
     else
         for a in as
-            ap = ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(a,𝗠,𝝭)
-            sp ≠ nothing ? sp(ap) : nothing
-            push!(aps,ap)
-        end
-    end
-    return aps
-end
-
-function ReproducingKernel{𝝃,𝒑,𝑠,𝜙}(as::Vector{Element{T}},sp::Union{Nothing,SpatialPartition}=nothing;renumbering::Bool=false) where {𝝃<:AbstractNode,𝒑,𝑠,𝜙,T}
-    aps = ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}[]
-    𝗠 = Dict{Symbol,SymMat}()
-    𝝭 = Dict{Symbol,Vector{Float64}}()
-    if renumbering
-        index, data = renumber(aps)
-        for a in as
-            𝓒 = [Node(index[x.id],data) for x in a.𝓒]
-            𝓖 = Node[]
+            𝓒 = a.𝓒
+            𝓖 = 𝝃[]
             ap = ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(𝓒,𝓖,𝗠,𝝭)
-            sp ≠ nothing ? sp(ap) : nothing
-            push!(aps,ap)
-        end
-    else
-        for a in as
-            ap = ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(a,𝗠,𝝭)
-            sp ≠ nothing ? sp(ap) : nothing
             push!(aps,ap)
         end
     end
     return aps
-end
-
-function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(a::A,b::B,sp::Union{Nothing,SpatialPartition}=nothing) where {A<:ReproducingKernel,B<:ReproducingKernel,𝝃<:AbstractNode,𝒑,𝑠,𝜙,T}
-    𝓒 = a.𝓒
-    𝓖 = get𝓖(a,b)
-    if 𝓖 ≠ nothing
-        if 𝝃 == SNode
-            n = length(a.𝓒)-length(b.𝓒)
-            nₜ = length(𝓖)*n
-            index = 𝓖[1].index
-            𝝭 = 𝓖[1].𝝭
-            for s in keys(𝝭)
-                append!(𝝭[s],zeros(nₜ))
-            end
-            for ξ in 𝓖
-                for i in 1:length(index)-ξ.id
-                    index[ξ.id+i] += n
-                end
-            end
-        end
-        𝗠 = a.𝗠
-        𝝭 = a.𝝭
-        ap = ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(𝓒,𝓖,𝗠,𝝭)
-        sp ≠ nothing ? sp(ap) : nothing
-        return ap
-    else
-        return nothing
-    end
 end
 
 function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(as::Vector{A},bs::Vector{B}) where {𝝃<:AbstractNode,𝒑,𝑠,𝜙,T,A<:AbstractElement,B<:AbstractElement}
     aps = ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}[]
-    𝗠 = Dict{Symbol,SymMat}()
+    𝗠 = Dict{Symbol,Matrix{Float64}}()
     𝝭 = Dict{Symbol,Vector{Float64}}()
     for b in bs
         for a in as
-            ap = ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(a,b,𝗠,𝝭)
-            ap ≠ nothing ? push!(aps,ap) : nothing
+            𝓒 = a.𝓒
+            𝓖 = get𝓖(a,b)
+            𝓖 ≠ nothing ? push!(aps,ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(𝓒,𝓖,𝗠,𝝭)) : nothing
         end
     end
     return aps
-end
-
-function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(a::A,b::B,𝗠::Dict{Symbol,SymMat},𝝭::Dict{Symbol,Vector{Float64}}) where {A<:AbstractElement,B<:AbstractElement,𝝃,𝒑,𝑠,𝜙,T}
-    𝓒 = a.𝓒
-    𝓖 = get𝓖(a,b)
-    if 𝓖 ≠ nothing
-        ap = ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(𝓒,𝓖,𝗠,𝝭)
-        return ap
-    else
-        return nothing
-    end
 end
 
 ## set memory
@@ -1383,11 +1274,11 @@ function set_memory_𝗠!(ap::T,ss::Symbol... = keys(ap[1].𝗠)...) where T<:Re
     empty!(ap.𝗠)
     for s in ss
         if s == :∇̃
-            ap.𝗠[s] = SymMat(n₁)
+            ap.𝗠[s] = zeros(n₁,n₁)
         elseif s ∈ (:∇̃²,:∂∇̃²∂ξ,:∂∇̃²∂η)
-            ap.𝗠[s] = SymMat(n₂)
+            ap.𝗠[s] = zeros(n₂,n₂)
         else
-            ap.𝗠[s] = SymMat(n)
+            ap.𝗠[s] = zeros(n,n)
         end
     end
 end
@@ -1432,41 +1323,4 @@ function reindex!(aps::Vector{T}) where T<:ReproducingKernel{SNode}
         end
         n += nᵢ
     end
-end
-
-## get∇𝑢
-function get∇𝑢(ap::T,𝒙::NTuple{3,Float64},sp::S) where {T<:ReproducingKernel,S<:SpatialPartition}
-    index = [sp(𝒙...)...]
-    N,B₁,B₂,B₃ = get∇𝝭(ap,𝒙,index)
-    u = 0.0
-    ∂u∂x = 0.0
-    ∂u∂y = 0.0
-    ∂u∂z = 0.0
-    for i in 1:length(index)
-        id = index[i]
-        x = ap.𝓒[id]
-        u += N[i]*x.d
-        ∂u∂x += B₁[i]*x.d
-        ∂u∂y += B₂[i]*x.d
-        ∂u∂z += B₃[i]*x.d
-    end
-    return u,∂u∂x,∂u∂y,∂u∂z
-end
-
-function get𝝐(ap::T,𝒙::NTuple{3,Float64},sp::S) where {T<:ReproducingKernel,S<:SpatialPartition}
-    index = [sp(𝒙...)...]
-    N,B₁,B₂ = get∇𝝭(ap,𝒙,index)
-    u = 0.0
-    ε₁₁ = 0.0
-    ε₂₂ = 0.0
-    ε₁₂ = 0.0
-    for i in 1:length(index)
-        id = index[i]
-        x = ap.𝓒[id]
-        u += N[i]*x.d
-        ε₁₁ += B₁[i]*x.d₁
-        ε₂₂ += B₂[i]*x.d₂
-        ε₁₂ += B₁[i]*x.d₂ + B₂[i]*x.d₁
-    end
-    return u,ε₁₁,ε₂₂,ε₁₂
 end
