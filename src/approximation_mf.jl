@@ -576,25 +576,28 @@ end
 ## calulate shape functions
 function cal𝗠!(ap::ReproducingKernel,x::NTuple{3,Float64})
     𝓒 = ap.𝓒
-    𝗠 = ap.𝗠[:∂1]
+    𝗠⁻¹ = ap.𝗠[:∂1]
     n = get𝑛𝒑(ap)
     fill!(𝗠,0.)
-    for xᵢ in 𝓒
-        Δx = x - xᵢ
-        𝒑 = get𝒑(ap,Δx)
-        𝜙 = get𝜙(ap,xᵢ,Δx)
-        for I in 1:n
-            𝗠[I,I] += 𝜙*𝒑[I]*𝒑[J]
-            for J in I+1:n
-                𝜙𝒑𝒑 = 𝜙*𝒑[I]*𝒑[J]
-                𝗠[I,J] += 𝜙𝒑𝒑
-                𝗠[J,I] += 𝜙𝒑𝒑
+    for k in 1:n
+        for xᵢ in 𝓒
+            Δx = x - xᵢ
+            𝒑 = get𝒑(ap,Δx)
+            𝜙 = get𝜙(ap,xᵢ,Δx)
+            for i in 1:k
+                𝗠⁻¹[i,k] += 𝒑[i]*𝒑[k]*𝜙
+            end
+        end
+        𝗠⁻¹[k,k] = 1.0/(𝗠⁻¹[k,k] - sum(𝗠⁻¹[i,k]*𝗠⁻¹[i,j]*𝗠⁻¹[j,k] for i in 1:k-1 for j in 1:k-1))
+        for i in 1:k-1
+            𝗠⁻¹[i,k] = - sum(𝗠⁻¹[i,j]*𝗠⁻¹[j,k] for j in 1:k-1)
+        end
+        for i in 1:k-1
+            for j in i:k-1
+                𝗠⁻¹[i,j] += 𝗠⁻¹[i,k]*𝗠⁻¹[j,k]*𝗠⁻¹[k,k]
             end
         end
     end
-    cholesky!(𝗠)
-    U⁻¹ = inverse!(𝗠)
-    𝗠⁻¹ = UUᵀ!(U⁻¹)
     return 𝗠⁻¹
 end
 
