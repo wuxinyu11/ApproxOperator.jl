@@ -1,5 +1,5 @@
 
-using Revise, ApproxOperator
+using Revise, ApproxOperator, BenchmarkTools
 
 # elements, nodes = importmsh("./msh/bar.msh")
 elements, nodes = importmsh("./msh/patchtest.msh")
@@ -9,18 +9,19 @@ nₚ = length(nodes[:x])
 # type = (SNode,:Quadratic2D,:□,:QuinticSpline)
 type = (SNode,:Cubic2D,:□,:QuinticSpline)
 # s = 2.5/20*ones(nₚ)
-s = 3.5/20*ones(nₚ)
-push!(nodes,:s₁=>s,:s₂=>s,:s₃=>s)
+s = 3.1/20*ones(nₚ)
+push!(nodes,:s₁=>s,:s₂=>s,:s₃=>s,:s=>s)
 
-sp = RegularGrid(nodes[:x],nodes[:y],nodes[:z],n = 3,γ = 5)
-elements["Ω"] = ReproducingKernel{type...,:Tri3}(elements["Ω"],sp)
+sp = RegularGrid(nodes[:x],nodes[:y],nodes[:z],n = 2,γ = 5)
+elements["Ω"] = ReproducingKernel{type...,:Tri3}(elements["Ω"])
 set𝓖!(elements["Ω"],:TriRK6)
 set_memory_𝗠!(elements["Ω"],:∂1,:∂x,:∂y,:∂z,:∇̃)
 set_memory_𝝭!(elements["Ω"],:∂1,:∂x,:∂y,:∂z,:∂x²,:∂x∂y,:∂y²,:∂x∂z,:∂y∂z,:∂z²)
+sp(elements["Ω"])
 # set𝓖!(elements["Ω"],:TriGI13,:∂1,:∂x,:∂y,:∂z,:∂x²,:∂x∂y,:∂y²,:∂z²,:∂x∂z,:∂y∂z,:∂x³,:∂x²∂y,:∂x∂y²,:∂y³)
 
-set𝝭!(elements["Ω"])
-# set∇𝝭!(elements["Ω"])
+@btime set𝝭!(elements["Ω"])
+# @btime set∇𝝭!(elements["Ω"])
 # set∇̃𝝭!(elements["Ω"])
 # set∇̃²𝝭!(elements["Ω"])
 # set∇²𝝭!(elements["Ω"])

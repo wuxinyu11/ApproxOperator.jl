@@ -3,17 +3,16 @@
 struct SymMat
     n::Int
     m::Vector{Float64}
+    p::Vector{Int}
 end
-SymMat(n::Int) = SymMat(n,zeros(Int(n*(n+1)/2)))
-size(A::SymMat) = A.n,A.n
-strides(A::SymMat) = 1,A.n
+SymMat(n::Int) = SymMat(n,zeros(Int(n*(n+1)/2)),zeros(Int,n))
 
 @inline function getindex(A::SymMat,i::Int,j::Int)
     i > j ? A.m[Int(j+i*(i-1)/2)] : A.m[Int(i+j*(j-1)/2)]
 end
 
 @inline function setindex!(A::SymMat,val::Float64,i::Int,j::Int)
-    A.m[Int(i+j*(j-1)/2)] = val
+    i > j ? A.m[Int(j+i*(i-1)/2)] = val : A.m[Int(i+j*(j-1)/2)] = val
 end
 @inline function setindex!(A::SymMat,val::Float64,i::Int)
     A.m[i] = val
@@ -46,10 +45,19 @@ end
 
 function LLᵀ!(A::SymMat)
     n = A.n
+    for i in n:-1:1
+        for j in i:-1:1
+            A[i,j] = sum(A[i,k]*A[k,j] for k in 1:j)
+        end
+    end
+    return A
+end
+
+function UUᵀ!(A::SymMat)
+    n = A.n
     for i in 1:n
-        A[i,i] = sum(A[i,k]*A[i,k] for k in i:n)
-        for j in i+1:n
-            A[i,j] = sum(A[i,k]*A[j,k] for k in j:n)
+        for j in 1:i
+            A[i,j] = sum(A[i,k]*A[k,j] for k in i:n)
         end
     end
     return A
@@ -65,20 +73,20 @@ function LᵀAL!(A::SymMat,L::SymMat)
     end
 end
 
-function UᵀAU!(B::SymMat,A::SymMat,U::SymMat)
+function LᵀAL!(B::SymMat,A::SymMat,L::SymMat)
     n = A.n
     for i in n:-1:1
         for j in n:-1:i
-            B[i,j] = sum(U[k,i]*A[k,l]*U[l,j] for k in 1:i for l in 1:j)
+            B[i,j] = sum(L[k,i]*A[k,l]*L[l,j] for k in 1:i for l in 1:j)
         end
     end
 end
 
-function UAUᵀ!(A::SymMat,U::SymMat)
+function LALᵀ!(A::SymMat,L::SymMat)
     n = A.n
     for i in 1:n
         for j in i:n
-            A[i,j] = sum(U[i,k]*A[k,l]*U[j,l] for k in i:n for l in j:n)
+            A[i,j] = sum(L[i,k]*A[k,l]*L[j,l] for k in i:n for l in j:n)
         end
     end
 end
@@ -90,12 +98,22 @@ function UUᵀAUUᵀ!(A::SymMat,U::SymMat)
 end
 
 function UUᵀAUUᵀ!(B::SymMat,A::SymMat,U::SymMat)
-    UᵀAU!(B,A,U)
-    UAUᵀ!(B,U)
+    UᵀAU!(B,A,L)
+    UAUᵀ!(B,L)
     return B
 end
 
-function cholesky!(A::SymMat)
+function LL!(Ll::SymMat,Lr::SymMat)
+    n = Ll.n
+    for i in 1:n
+        for j in 1:i
+            Ll[i,j] = sum(L[i,k]*L[k,j] for k in j:i)
+        end
+    end
+    return Ll
+end
+
+function cholesky_Gaxpy!(A::SymMat)
     n = A.n
     for i in 1:n
         for k in 1:i-1
@@ -111,6 +129,72 @@ function cholesky!(A::SymMat)
     end
     return nothing
 end
+
+function cholesky!(A::SymMat)
+    n = A.n
+    p = A.p
+    for i in 1:n
+        q = i
+        for j in i+1:n
+            A[q,q] < A[j,j] ? q = j : nothing
+        end
+        if A[q,q] > 0
+            p[i] = q
+            permute!(A,i,q)
+            A[i,i] = A[i,i]^0.5
+            for j in i+1:n
+                A[j,i] = A[j,i]/A[i,i]
+            end
+            for j in i+1:n
+                for k in j:n
+                    A[k,j] = A[k,j] - A[k,i]A[j,i]
+                end
+            end
+        else
+            return nothing
+        end
+    end
+    return nothing
+end
+
+function permute!(A::SymMat,i::Int,j::Int)
+    if i ≠ j
+        n = A.n
+        for k in 1:i-1
+            Aᵢₖ = A[i,k]
+            A[i,k] = A[j,k]
+            A[j,k] = Aᵢₖ
+        end
+        for k in i+1:j-1
+            Aᵢₖ = A[i,k]
+            A[i,k] = A[j,k]
+            A[j,k] = Aᵢₖ
+        end
+        for k in j+1:n
+            Aᵢₖ = A[i,k]
+            A[i,k] = A[j,k]
+            A[j,k] = Aᵢₖ
+        end
+
+        Aᵢᵢ = A[i,i]
+        A[i,i] = A[j,j]
+        A[j,j] = Aᵢᵢ
+    end
+end
+
+function permute!(A::SymMat)
+    n = A.n
+    p = A.p
+    for i in 1:n
+        p[i] == 0 ? (return nothing) : nothing
+        if p[i] ≠ i
+            q = p[i]
+            permute!(A,i,q)
+        end
+    end
+end
+
+
 
 ## Spatial Partition
 # -------------- RegularGrid ------------------
@@ -222,7 +306,7 @@ end
 struct ReproducingKernel{𝝃,𝑝,𝑠,𝜙,T}<:AbstractElement{T}
     𝓒::Vector{Node}
     𝓖::Vector{𝝃}
-    𝗠::Dict{Symbol,Matrix{Float64}}
+    𝗠::Dict{Symbol,SymMat}
     𝝭::Dict{Symbol,Vector{Float64}}
 end
 
@@ -437,14 +521,6 @@ function get𝜙(ap::ReproducingKernel{𝝃,𝒑,:□,𝜙},x::Node,Δx::NTuple{
     return wx*wy*wz
 end
 
-function get∂𝜙∂x(ap::ReproducingKernel{𝝃,𝒑,:□,𝜙},x::Node,Δx::NTuple{3,Float64}) where {𝝃,𝒑,𝜙}
-    rx = abs(Δx[1])/x.s₁
-    ∂rx = sign(Δx[1])/x.s₁
-    wx = get𝜙ᵣ(ap,rx)
-    ∂wx = get∂𝜙∂r(ap,rx)*∂rx
-    return wx, ∂wx
-end
-
 function get∇𝜙(ap::ReproducingKernel{𝝃,𝒑,:□,𝜙},x::Node,Δx::NTuple{3,Float64}) where {𝝃,𝒑,𝜙}
     rx = abs(Δx[1])/x.s₁
     ry = abs(Δx[2])/x.s₂
@@ -576,28 +652,28 @@ end
 ## calulate shape functions
 function cal𝗠!(ap::ReproducingKernel,x::NTuple{3,Float64})
     𝓒 = ap.𝓒
-    𝗠⁻¹ = ap.𝗠[:∂1]
+    𝗠 = ap.𝗠[:∂1]
     n = get𝑛𝒑(ap)
     fill!(𝗠,0.)
-    for k in 1:n
-        for xᵢ in 𝓒
-            Δx = x - xᵢ
-            𝒑 = get𝒑(ap,Δx)
-            𝜙 = get𝜙(ap,xᵢ,Δx)
-            for i in 1:k
-                𝗠⁻¹[i,k] += 𝒑[i]*𝒑[k]*𝜙
-            end
-        end
-        𝗠⁻¹[k,k] = 1.0/(𝗠⁻¹[k,k] - sum(𝗠⁻¹[i,k]*𝗠⁻¹[i,j]*𝗠⁻¹[j,k] for i in 1:k-1 for j in 1:k-1))
-        for i in 1:k-1
-            𝗠⁻¹[i,k] = - sum(𝗠⁻¹[i,j]*𝗠⁻¹[j,k] for j in 1:k-1)
-        end
-        for i in 1:k-1
-            for j in i:k-1
-                𝗠⁻¹[i,j] += 𝗠⁻¹[i,k]*𝗠⁻¹[j,k]*𝗠⁻¹[k,k]
+    for xᵢ in 𝓒
+        s = xᵢ.s
+        Δx = x - xᵢ
+        𝒑 = get𝒑(ap,Δx/s)
+        𝜙 = get𝜙(ap,xᵢ,Δx)
+        for I in 1:n
+            for J in I:n
+                𝗠[I,J] += 𝜙*𝒑[I]*𝒑[J]
             end
         end
     end
+    # cholesky_Gaxpy!(𝗠)
+    # U = inverse!(𝗠)
+    # 𝗠⁻¹ = UUᵀ!(U)
+
+    cholesky!(𝗠)
+    U = inverse!(𝗠)
+    𝗠⁻¹ = UUᵀ!(U)
+    permute!(𝗠⁻¹)
     return 𝗠⁻¹
 end
 
@@ -607,14 +683,15 @@ function cal∇𝗠!(ap::ReproducingKernel,x::NTuple{3,Float64})
     ∂𝗠∂x = ap.𝗠[:∂x]
     ∂𝗠∂y = ap.𝗠[:∂y]
     ∂𝗠∂z = ap.𝗠[:∂z]
-    n = length(get𝒑(ap,(0.0,0.0,0.0)))
+    n = get𝑛𝒑(ap)
     fill!(𝗠,0.)
     fill!(∂𝗠∂x,0.)
     fill!(∂𝗠∂y,0.)
     fill!(∂𝗠∂z,0.)
     for xᵢ in 𝓒
+        s = xᵢ.s
         Δx = x - xᵢ
-        𝒑, ∂𝒑∂x, ∂𝒑∂y, ∂𝒑∂z = get∇𝒑(ap,Δx)
+        𝒑, ∂𝒑∂x, ∂𝒑∂y, ∂𝒑∂z = get∇𝒑(ap,Δx/s)
         𝜙, ∂𝜙∂x, ∂𝜙∂y, ∂𝜙∂z = get∇𝜙(ap,xᵢ,Δx)
         for I in 1:n
             for J in I:n
@@ -626,11 +703,20 @@ function cal∇𝗠!(ap::ReproducingKernel,x::NTuple{3,Float64})
         end
     end
     cholesky!(𝗠)
-    U⁻¹ = inverse!(𝗠)
-    ∂𝗠⁻¹∂x = - UUᵀAUUᵀ!(∂𝗠∂x,U⁻¹)
-    ∂𝗠⁻¹∂y = - UUᵀAUUᵀ!(∂𝗠∂y,U⁻¹)
-    ∂𝗠⁻¹∂z = - UUᵀAUUᵀ!(∂𝗠∂z,U⁻¹)
-    𝗠⁻¹ = UUᵀ!(U⁻¹)
+    cholesky!(∂𝗠∂x)
+    cholesky!(∂𝗠∂y)
+    cholesky!(∂𝗠∂z)
+    L⁻¹ = inverse!(𝗠)
+    ∂L∂xL⁻¹ = LL!(∂𝗠∂x,L⁻¹)
+    ∂L∂yL⁻¹ = LL!(∂𝗠∂y,L⁻¹)
+    ∂L∂zL⁻¹ = LL!(∂𝗠∂z,L⁻¹)
+    # ∂𝗠⁻¹∂x = - LLᵀALLᵀ!(∂𝗠∂x,L⁻¹)
+    # ∂𝗠⁻¹∂y = - LLᵀALLᵀ!(∂𝗠∂y,L⁻¹)
+    # ∂𝗠⁻¹∂z = - LLᵀALLᵀ!(∂𝗠∂z,L⁻¹)
+    𝗠⁻¹ = LLᵀ!(L⁻¹)
+    ∂𝗠⁻¹∂x = - LLᵀ!(∂L∂xL⁻¹)
+    ∂𝗠⁻¹∂y = - LLᵀ!(∂L∂yL⁻¹)
+    ∂𝗠⁻¹∂z = - LLᵀ!(∂L∂zL⁻¹)
     return 𝗠⁻¹, ∂𝗠⁻¹∂x, ∂𝗠⁻¹∂y, ∂𝗠⁻¹∂z
 end
 
@@ -661,8 +747,9 @@ function cal∇²𝗠!(ap::ReproducingKernel,x::NTuple{3,Float64})
     fill!(∂²𝗠∂x∂z,0.)
     fill!(∂²𝗠∂y∂z,0.)
     for xᵢ in 𝓒
+        s = xᵢ.s
         Δx = x - xᵢ
-        𝒑, ∂𝒑∂x, ∂𝒑∂y, ∂²𝒑∂x², ∂²𝒑∂x∂y, ∂²𝒑∂y², ∂𝒑∂z, ∂²𝒑∂x∂z, ∂²𝒑∂y∂z, ∂²𝒑∂z² = get∇²𝒑(ap,Δx)
+        𝒑, ∂𝒑∂x, ∂𝒑∂y, ∂²𝒑∂x², ∂²𝒑∂x∂y, ∂²𝒑∂y², ∂𝒑∂z, ∂²𝒑∂x∂z, ∂²𝒑∂y∂z, ∂²𝒑∂z² = get∇²𝒑(ap,Δx/s)
         𝜙, ∂𝜙∂x, ∂𝜙∂y, ∂²𝜙∂x², ∂²𝜙∂x∂y, ∂²𝜙∂y², ∂𝜙∂z, ∂²𝜙∂x∂z, ∂²𝜙∂y∂z, ∂²𝜙∂z² = get∇²𝜙(ap,xᵢ,Δx)
         for I in 1:n
             for J in I:n
@@ -686,17 +773,26 @@ function cal∇²𝗠!(ap::ReproducingKernel,x::NTuple{3,Float64})
         end
     end
     cholesky!(𝗠)
-    U⁻¹ = inverse!(𝗠)
-    ∂𝗠⁻¹∂x = - UUᵀAUUᵀ!(∂𝗠⁻¹∂x,∂𝗠∂x,U⁻¹)
-    ∂𝗠⁻¹∂y = - UUᵀAUUᵀ!(∂𝗠⁻¹∂y,∂𝗠∂y,U⁻¹)
-    ∂𝗠⁻¹∂z = - UUᵀAUUᵀ!(∂𝗠⁻¹∂z,∂𝗠∂z,U⁻¹)
-    ∂²𝗠⁻¹∂x² = UUᵀAUUᵀ!(∂²𝗠∂x²,U⁻¹)
-    ∂²𝗠⁻¹∂y² = UUᵀAUUᵀ!(∂²𝗠∂y²,U⁻¹)
-    ∂²𝗠⁻¹∂z² = UUᵀAUUᵀ!(∂²𝗠∂z²,U⁻¹)
-    ∂²𝗠⁻¹∂x∂y = UUᵀAUUᵀ!(∂²𝗠∂x∂y,U⁻¹)
-    ∂²𝗠⁻¹∂x∂z = UUᵀAUUᵀ!(∂²𝗠∂x∂z,U⁻¹)
-    ∂²𝗠⁻¹∂y∂z = UUᵀAUUᵀ!(∂²𝗠∂y∂z,U⁻¹)
-    𝗠⁻¹ = UUᵀ!(U⁻¹)
+    cholesky!(∂𝗠∂x)
+    cholesky!(∂𝗠∂y)
+    cholesky!(∂𝗠∂z)
+    cholesky!(∂²𝗠∂x²)
+    cholesky!(∂²𝗠∂y²)
+    cholesky!(∂²𝗠∂z²)
+    cholesky!(∂²𝗠∂x∂y)
+    cholesky!(∂²𝗠∂x∂z)
+    cholesky!(∂²𝗠∂y∂z)
+    L⁻¹ = inverse!(𝗠)
+    ∂L∂xL⁻¹ = LL!(∂𝗠∂x,L⁻¹)
+    ∂L∂yL⁻¹ = LL!(∂𝗠∂y,L⁻¹)
+    ∂L∂zL⁻¹ = LL!(∂𝗠∂z,L⁻¹)
+    ∂²𝗠⁻¹∂x² = LLᵀALLᵀ!(∂²𝗠∂x²,L⁻¹)
+    ∂²𝗠⁻¹∂y² = LLᵀALLᵀ!(∂²𝗠∂y²,L⁻¹)
+    ∂²𝗠⁻¹∂z² = LLᵀALLᵀ!(∂²𝗠∂z²,L⁻¹)
+    ∂²𝗠⁻¹∂x∂y = LLᵀALLᵀ!(∂²𝗠∂x∂y,L⁻¹)
+    ∂²𝗠⁻¹∂x∂z = LLᵀALLᵀ!(∂²𝗠∂x∂z,L⁻¹)
+    ∂²𝗠⁻¹∂y∂z = LLᵀALLᵀ!(∂²𝗠∂y∂z,L⁻¹)
+    𝗠⁻¹ = LLᵀ!(L⁻¹)
     for i in 1:n
         for j in i:n
             for k in 1:n
@@ -842,10 +938,10 @@ function get𝝭(ap::ReproducingKernel,𝒙::NTuple{3,Float64})
     𝓒 = ap.𝓒
     𝝭 = ap.𝝭[:∂1]
     𝒑₀ᵀ𝗠⁻¹ = cal𝗠!(ap,𝒙)
-    for i in 1:length(𝓒)
-        𝒙ᵢ = 𝓒[i]
+    for (i,𝒙ᵢ) in enumerate(𝓒)
+        s = 𝒙ᵢ.s
         Δ𝒙 = 𝒙 - 𝒙ᵢ
-        𝒑 = get𝒑(ap,Δ𝒙)
+        𝒑= get𝒑(ap,Δ𝒙/s)
         𝜙 = get𝜙(ap,𝒙ᵢ,Δ𝒙)
         𝝭[i] = 𝒑₀ᵀ𝗠⁻¹*𝒑*𝜙
     end
@@ -859,10 +955,10 @@ function get∇𝝭(ap::ReproducingKernel,𝒙::NTuple{3,Float64})
     ∂𝝭∂y = ap.𝝭[:∂y]
     ∂𝝭∂z = ap.𝝭[:∂z]
     𝒑₀ᵀ𝗠⁻¹, 𝒑₀ᵀ∂𝗠⁻¹∂x, 𝒑₀ᵀ∂𝗠⁻¹∂y, 𝒑₀ᵀ∂𝗠⁻¹∂z= cal∇𝗠!(ap,𝒙)
-    for i in 1:length(𝓒)
-        𝒙ᵢ = 𝓒[i]
+    for (i,𝒙ᵢ) in enumerate(𝓒)
+        s = 𝒙ᵢ.s
         Δ𝒙 = 𝒙 - 𝒙ᵢ
-        𝒑, ∂𝒑∂x, ∂𝒑∂y, ∂𝒑∂z = get∇𝒑(ap,Δ𝒙)
+        𝒑, ∂𝒑∂x, ∂𝒑∂y, ∂𝒑∂z = get∇𝒑(ap,Δ𝒙/s)
         𝜙, ∂𝜙∂x, ∂𝜙∂y, ∂𝜙∂z = get∇𝜙(ap,𝒙ᵢ,Δ𝒙)
         𝝭[i] = 𝒑₀ᵀ𝗠⁻¹*𝒑*𝜙
         ∂𝝭∂x[i] = 𝒑₀ᵀ∂𝗠⁻¹∂x*𝒑*𝜙 + 𝒑₀ᵀ𝗠⁻¹*∂𝒑∂x*𝜙 + 𝒑₀ᵀ𝗠⁻¹*𝒑*∂𝜙∂x
@@ -1229,7 +1325,7 @@ end
 ## convert
 function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(as::Vector{S};renumbering::Bool=false) where {𝝃<:AbstractNode,𝒑,𝑠,𝜙,T,S<:AbstractElement}
     aps = ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}[]
-    𝗠 = Dict{Symbol,Matrix{Float64}}()
+    𝗠 = Dict{Symbol,SymMat}()
     𝝭 = Dict{Symbol,Vector{Float64}}()
     if renumbering
         index, data = renumber(aps)
@@ -1253,7 +1349,7 @@ end
 
 function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(as::Vector{A},bs::Vector{B}) where {𝝃<:AbstractNode,𝒑,𝑠,𝜙,T,A<:AbstractElement,B<:AbstractElement}
     aps = ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}[]
-    𝗠 = Dict{Symbol,Matrix{Float64}}()
+    𝗠 = Dict{Symbol,SymMat}()
     𝝭 = Dict{Symbol,Vector{Float64}}()
     for b in bs
         for a in as
@@ -1277,11 +1373,11 @@ function set_memory_𝗠!(ap::T,ss::Symbol... = keys(ap[1].𝗠)...) where T<:Re
     empty!(ap.𝗠)
     for s in ss
         if s == :∇̃
-            ap.𝗠[s] = zeros(n₁,n₁)
+            ap.𝗠[s] = SymMat(n₁)
         elseif s ∈ (:∇̃²,:∂∇̃²∂ξ,:∂∇̃²∂η)
-            ap.𝗠[s] = zeros(n₂,n₂)
+            ap.𝗠[s] = SymMat(n₂)
         else
-            ap.𝗠[s] = zeros(n,n)
+            ap.𝗠[s] = SymMat(n)
         end
     end
 end

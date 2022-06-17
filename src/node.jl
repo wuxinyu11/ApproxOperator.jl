@@ -22,6 +22,7 @@ end
 @inline +(n::T,x::NTuple{3,Float64}) where T<:AbstractNode = (n.x+x[1],n.y+x[2],n.z+x[3])
 @inline +(x::NTuple{3,Float64},n::T) where T<:AbstractNode = (x[1]+n.x,x[2]+n.y,x[3]+n.z)
 @inline *(x::NTuple{N,Float64},y::NTuple{N,Float64}) where N = sum(x[i]*y[i] for i in 1:N)
+@inline /(x::NTuple{3,Float64},c::Float64) = (x[1]/c,x[2]/c,x[3]/c)
 
 ## ----------------- Node ------------------
 struct Node<:AbstractNode
