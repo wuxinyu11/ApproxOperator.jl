@@ -3,9 +3,9 @@
 struct SymMat
     n::Int
     m::Vector{Float64}
-    p::Vector{Int}
 end
-SymMat(n::Int) = SymMat(n,zeros(Int(n*(n+1)/2)),zeros(Int,n))
+SymMat(n::Int) = SymMat(n,zeros(Int(n*(n+1)/2)))
+# SymMat(n::Int) = SymMat(n,zeros(Int(n*(n+1)/2)),zeros(Int,n),zeros(n))
 
 @inline function getindex(A::SymMat,i::Int,j::Int)
     i > j ? A.m[Int(j+i*(i-1)/2)] : A.m[Int(i+j*(j-1)/2)]
@@ -130,9 +130,10 @@ function cholesky_Gaxpy!(A::SymMat)
     return nothing
 end
 
-function cholesky!(A::SymMat)
+function cholesky_pivoted!(A::SymMat)
     n = A.n
     p = A.p
+    fill!(p,0)
     for i in 1:n
         q = i
         for j in i+1:n
@@ -156,6 +157,41 @@ function cholesky!(A::SymMat)
     end
     return nothing
 end
+
+function cholesky!(A::SymMat)
+    n = A.n
+    d = A.d
+    p = A.p
+    fill!(d,0.0)
+    fill!(p,0)
+    for j in 1:n
+        if j > 1
+            for i in j:n
+                d[i] += A[i,j-1]^2
+            end
+        end
+        q = j
+        for i in j+1:n
+            A[q,q] - d[q] < A[i,i] - d[i] ? q = i : nothing
+        end
+    end
+end
+
+function LDL!(A::SymMat)
+    n = A.n
+    for j in 1:n
+        for k in 1:j-1
+            A[j,j] -= A[j,k]^2*A[k,k]
+        end
+        for i in j+1:n
+            for k in 1:j-1
+                A[i,j] -= A[i,k]*A[j,k]*A[k,k]
+            end
+            A[i,j]/= A[j,j]
+        end
+    end
+end
+
 
 function permute!(A::SymMat,i::Int,j::Int)
     if i ≠ j
@@ -702,7 +738,8 @@ function cal∇𝗠!(ap::ReproducingKernel,x::NTuple{3,Float64})
             end
         end
     end
-    cholesky!(𝗠)
+    # cholesky!(𝗠)
+    LDL!(∂𝗠∂x)
     cholesky!(∂𝗠∂x)
     cholesky!(∂𝗠∂y)
     cholesky!(∂𝗠∂z)

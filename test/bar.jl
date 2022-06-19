@@ -8,7 +8,7 @@ using Revise, ApproxOperator, BenchmarkTools
 A = ApproxOperator.SymMat(4)
 A.m .= [6,12,-8,3,-13,-7,-6,4,1,6]
 # @allocated ApproxOperator.cholesky_Gaxpy!(A)
-ApproxOperator.cholesky!(A)
+ApproxOperator.cholesky_pivoted!(A)
 # ApproxOperator.inverse!(A)
 # @btime ApproxOperator.permute!($A,1,3)
 # A.m .= permute!(A.m,[3,2,1])

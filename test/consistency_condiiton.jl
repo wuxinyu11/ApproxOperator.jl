@@ -20,8 +20,9 @@ set_memory_𝝭!(elements["Ω"],:∂1,:∂x,:∂y,:∂z,:∂x²,:∂x∂y,:∂y�
 sp(elements["Ω"])
 # set𝓖!(elements["Ω"],:TriGI13,:∂1,:∂x,:∂y,:∂z,:∂x²,:∂x∂y,:∂y²,:∂z²,:∂x∂z,:∂y∂z,:∂x³,:∂x²∂y,:∂x∂y²,:∂y³)
 
-@btime set𝝭!(elements["Ω"])
+# @btime set𝝭!(elements["Ω"])
 # @btime set∇𝝭!(elements["Ω"])
+set∇𝝭!(elements["Ω"])
 # set∇̃𝝭!(elements["Ω"])
 # set∇̃²𝝭!(elements["Ω"])
 # set∇²𝝭!(elements["Ω"])
