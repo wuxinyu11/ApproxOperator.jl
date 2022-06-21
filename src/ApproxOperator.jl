@@ -1,9 +1,7 @@
 module ApproxOperator
 
-import Base: +, -, *, /, getindex, setindex!, getproperty, setproperty!, length, push!, fill!, issubset, intersect,permute!
+import Base: +, -, *, /, getindex, setindex!, getproperty, setproperty!, length, push!, fill!, issubset, intersect
 import InteractiveUtils: subtypes
-# import Base: AbstractMatrix, size, strides
-import LinearAlgebra.LAPACK: potrf!, potri!, sytrf!, sytri!, ldlt!
 
 abstract type AbstractNode end
 abstract type AbstractElement{T} end
@@ -24,7 +22,7 @@ export importmsh
 export RegularGrid
 export Operator, prescribe!, issubset, intersect
 export set𝓖!
-export set𝝭!, set∇𝝭!, set∇²𝝭!, set∇³𝝭!, set∇̃𝝭!, set∇̃²𝝭!, set∇∇̃²𝝭!, set∇̄𝝭!, set∇̄²𝝭!, set∇∇̄²𝝭!, set𝒏!, set∇𝑢!, get∇𝑢, get𝝐, set_memory_𝗠!, set_memory_𝝭!
+export set𝝭!, set∇𝝭!, set∇²𝝭!, set∇³𝝭!, set∇̃𝝭!, set∇̃²𝝭!, set∇∇̃²𝝭!, set∇̄𝝭!, set∇̄²𝝭!, set∇∇̄²𝝭!, set∇̂³𝝭!, set𝒏!, set∇𝑢!, get∇𝑢, get𝝐, set_memory_𝗠!, set_memory_𝝭!
 
 #debug
 include("littletools.jl")
