@@ -3,7 +3,7 @@ module ApproxOperator
 import Base: +, -, *, /, getindex, setindex!, getproperty, setproperty!, length, push!, fill!, issubset, intersect,permute!
 import InteractiveUtils: subtypes
 # import Base: AbstractMatrix, size, strides
-# import LinearAlgebra.LAPACK: potrf!, potri!, sytrf!, sytri!, ldlt!
+import LinearAlgebra.LAPACK: potrf!, potri!, sytrf!, sytri!, ldlt!
 
 abstract type AbstractNode end
 abstract type AbstractElement{T} end
