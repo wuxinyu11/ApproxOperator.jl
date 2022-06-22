@@ -1273,7 +1273,37 @@ function get∇³𝝭(ap::ReproducingKernel,ξ::SNode)
 end
 
 ## convert
-function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(as::Vector{S};renumbering::Bool=false) where {𝝃<:AbstractNode,𝒑,𝑠,𝜙,T,S<:AbstractElement}
+## convert
+function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(a::ReproducingKernel{𝜼,𝒒}) where {𝝃<:AbstractNode,𝜼<:AbstractNode,𝒑,𝒒,𝑠,𝜙,T}
+    𝓒 = a.𝓒
+    𝓖 = 𝝃[]
+    𝗠 = a.𝗠
+    𝝭 = a.𝝭
+    b = ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(𝓒,𝓖,𝗠,𝝭)
+    if 𝒑 ≠ 𝒒
+        n = length(get𝒑(b,(0.0,0.0,0.0)))
+        for s in keys(𝗠)
+            𝗠[s] = SymMat(n)
+        end
+    end
+    return b
+end
+
+function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(as::Vector{S}) where {𝝃<:AbstractNode,𝒑,𝑠,𝜙,T,S<:ReproducingKernel}
+    aps = ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}[]
+    for a in as
+        push!(aps,ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(a))
+    end
+    return aps
+end
+
+function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(a::Element{S},𝗠::Dict{Symbol,SymMat},𝝭::Dict{Symbol,Vector{Float64}}) where {𝝃<:AbstractNode,𝜼<:AbstractNode,𝒑,𝒒,𝑠,𝜙,T,S}
+    𝓒 = a.𝓒
+    𝓖 = 𝝃[]
+    return ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(𝓒,𝓖,𝗠,𝝭)
+end
+
+function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(as::Vector{Element{S}},sp::Union{Nothing,SpatialPartition}=nothing;renumbering::Bool=false) where {𝝃<:AbstractNode,𝒑,𝑠,𝜙,T,S}
     aps = ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}[]
     𝗠 = Dict{Symbol,SymMat}()
     𝝭 = Dict{Symbol,Vector{Float64}}()
@@ -1288,13 +1318,63 @@ function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(as::Vector{S};renumbering::Boo
         end
     else
         for a in as
-            𝓒 = a.𝓒
-            𝓖 = 𝝃[]
-            ap = ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(𝓒,𝓖,𝗠,𝝭)
+            ap = ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(a,𝗠,𝝭)
+            sp ≠ nothing ? sp(ap) : nothing
             push!(aps,ap)
         end
     end
     return aps
+end
+
+function ReproducingKernel{𝝃,𝒑,𝑠,𝜙}(as::Vector{Element{T}},sp::Union{Nothing,SpatialPartition}=nothing;renumbering::Bool=false) where {𝝃<:AbstractNode,𝒑,𝑠,𝜙,T}
+    aps = ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}[]
+    𝗠 = Dict{Symbol,SymMat}()
+    𝝭 = Dict{Symbol,Vector{Float64}}()
+    if renumbering
+        index, data = renumber(aps)
+        for a in as
+            𝓒 = [Node(index[x.id],data) for x in a.𝓒]
+            𝓖 = Node[]
+            ap = ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(𝓒,𝓖,𝗠,𝝭)
+            sp ≠ nothing ? sp(ap) : nothing
+            push!(aps,ap)
+        end
+    else
+        for a in as
+            ap = ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(a,𝗠,𝝭)
+            sp ≠ nothing ? sp(ap) : nothing
+            push!(aps,ap)
+        end
+    end
+    return aps
+end
+
+function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(a::A,b::B,sp::Union{Nothing,SpatialPartition}=nothing) where {A<:ReproducingKernel,B<:ReproducingKernel,𝝃<:AbstractNode,𝒑,𝑠,𝜙,T}
+    𝓒 = a.𝓒
+    𝓖 = get𝓖(a,b)
+    if 𝓖 ≠ nothing
+        if 𝝃 == SNode
+            n = length(a.𝓒)-length(b.𝓒)
+            nₜ = length(𝓖)*n
+            index = 𝓖[1].index
+            𝝭 = 𝓖[1].𝝭
+            for s in keys(𝝭)
+                append!(𝝭[s],zeros(nₜ))
+            end
+            for ξ in 𝓖
+                for i in 1:length(index)-ξ.id
+                    index[ξ.id+i] += n
+                end
+            end
+        end
+        𝗠 = a.𝗠
+        𝝭 = a.𝝭
+        ap = ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(𝓒,𝓖,𝗠,𝝭)
+        sp ≠ nothing ? sp(ap) : nothing
+        return ap
+    else
+        return nothing
+    end
 end
 
 function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(as::Vector{A},bs::Vector{B}) where {𝝃<:AbstractNode,𝒑,𝑠,𝜙,T,A<:AbstractElement,B<:AbstractElement}
@@ -1303,12 +1383,22 @@ function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(as::Vector{A},bs::Vector{B}) w
     𝝭 = Dict{Symbol,Vector{Float64}}()
     for b in bs
         for a in as
-            𝓒 = a.𝓒
-            𝓖 = get𝓖(a,b)
-            𝓖 ≠ nothing ? push!(aps,ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(𝓒,𝓖,𝗠,𝝭)) : nothing
+            ap = ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(a,b,𝗠,𝝭)
+            ap ≠ nothing ? push!(aps,ap) : nothing
         end
     end
     return aps
+end
+
+function ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(a::A,b::B,𝗠::Dict{Symbol,SymMat},𝝭::Dict{Symbol,Vector{Float64}}) where {A<:AbstractElement,B<:AbstractElement,𝝃,𝒑,𝑠,𝜙,T}
+    𝓒 = a.𝓒
+    𝓖 = get𝓖(a,b)
+    if 𝓖 ≠ nothing
+        ap = ReproducingKernel{𝝃,𝒑,𝑠,𝜙,T}(𝓒,𝓖,𝗠,𝝭)
+        return ap
+    else
+        return nothing
+    end
 end
 
 ## set memory
