@@ -1,7 +1,7 @@
 
-struct Element{T,N₁,N₂}<:AbstractElement{T}
-    𝓒::Vector{Node{N₁}}
-    𝓖::Vector{Node{N₂}}
+struct Element{T}<:AbstractElement{T}
+    𝓒::Vector{Node{1}}
+    𝓖::Vector{Node{3}}
 end
 
 # Element{T}(a::S) where {T,S<:AbstractElement} = Element{T}(a.𝓒)
@@ -361,3 +361,18 @@ end
 # getnₚ(as::Vector{T}) where T<:AbstractElement = getnₚ(as[1])
 
 ## set𝝭
+function set𝓖!(aps::Vector{Element{T}},q::Symbol;index::Int=1) where T
+    data = Dict([s=>(index,v) for (s,v) in getquadrature(Val(q))])
+    n = length(data[:w][2])
+    m = length(aps[1].𝓒)
+    G = 0
+    j = 0
+    for ap in aps
+        for i in 1:n
+            G += 1
+            push!(ap.𝓖,Node((i,G,j),data))
+            j += m
+        end
+    end
+end
+    
