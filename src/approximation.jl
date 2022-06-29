@@ -1,7 +1,7 @@
 
-struct Element{T}<:AbstractElement{T}
-    𝓒::Vector{Node{1}}
-    𝓖::Vector{Node{3}}
+struct Element{T,Nc,Ng}<:AbstractElement{T}
+    𝓒::NTuple{Nc,PhysicalNode}
+    𝓖::NTuple{Ng,QuadratureNode}
 end
 
 # Element{T}(a::S) where {T,S<:AbstractElement} = Element{T}(a.𝓒)

@@ -10,7 +10,7 @@ abstract type AbstractElement{T} end
 
 include("node.jl")
 # include("snode.jl")
-include("approximation.jl")
+# include("approximation.jl")
 # include("approximation_mf.jl")
 # include("integration.jl")
 # include("operation.jl")
@@ -18,7 +18,8 @@ include("approximation.jl")
 # include("approximation_rk.jl")
 # include("import.jl")
 
-export Node, Element
+export Node
+export test
 # export Node, Element, SNode, ReproducingKernel, getnₚ
 # export importmsh
 # export RegularGrid
