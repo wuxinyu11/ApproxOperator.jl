@@ -200,12 +200,12 @@ for t in subtypes(SpatialPartition)
     end
 end
 
-```
+"""
 ReproducingKernel
-```
-struct ReproducingKernel{𝑝,𝑠,𝜙,T,N₁,N₂}<:AbstractElement{T}
-    𝓒::Vector{Node{N₁}}
-    𝓖::Vector{Node{N₂}}
+"""
+struct ReproducingKernel{𝑝,𝑠,𝜙,T}<:AbstractElement{T}
+    𝓒::Vector{Node}
+    𝓖::Vector{SNode}
     𝗠::Dict{Symbol,SymMat}
 end
 

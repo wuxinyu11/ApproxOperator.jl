@@ -1,8 +1,10 @@
 
-struct Element{T,Nc,Ng}<:AbstractElement{T}
-    𝓒::NTuple{Nc,PhysicalNode}
-    𝓖::NTuple{Ng,QuadratureNode}
+struct Element{T}<:AbstractElement{T}
+    𝓒::Vector{Node}
+    𝓖::Vector{SNode}
 end
+
+Element{T}(𝓒::Vector{Node}) where T = Element{T}(𝓒,SNode[])
 
 # Element{T}(a::S) where {T,S<:AbstractElement} = Element{T}(a.𝓒)
 # function Element{T}(as::Vector{S};renumbering::Bool=false) where {T,S<:AbstractElement}
@@ -356,23 +358,3 @@ end
 #     return aps
 # end
 
-# ## getnₚ,getnₑ
-# getnₚ(a::T) where T<:AbstractElement = length(a.𝓒[1].data[:x])
-# getnₚ(as::Vector{T}) where T<:AbstractElement = getnₚ(as[1])
-
-## set𝝭
-function set𝓖!(aps::Vector{Element{T}},q::Symbol;index::Int=1) where T
-    data = Dict([s=>(index,v) for (s,v) in getquadrature(Val(q))])
-    n = length(data[:w][2])
-    m = length(aps[1].𝓒)
-    G = 0
-    j = 0
-    for ap in aps
-        for i in 1:n
-            G += 1
-            push!(ap.𝓖,Node((i,G,j),data))
-            j += m
-        end
-    end
-end
-    

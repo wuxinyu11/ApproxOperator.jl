@@ -23,7 +23,7 @@ function import_msh_4(fid::IO) end
 function import_msh_2(fid::IO)
     etype = Dict(1=>:Seg2,2=>:Tri3,3=>:Quad,15=>:Poi1)
     nodes = Dict{Symbol,Vector{Float64}}()
-    elements = Dict{String,Any}()
+    elements = Dict{String,Set{Tuple{Symbol,Vector{Int}}}}()
     physicalnames = Dict{Int,String}()
     for line in eachline(fid)
         if line == "\$PhysicalNames"
@@ -36,6 +36,7 @@ function import_msh_2(fid::IO)
                 physicalTag = parse(Int,p_)
                 name = strip(n_,'\"')
                 physicalnames[physicalTag] = name
+                elements[name] = Set{Tuple{Symbol,Vector{Int}}}()
             end
             readline(fid)
         elseif line == "\$Nodes"
@@ -70,7 +71,7 @@ function import_msh_2(fid::IO)
                 nodeList = parse.(Int,l_)
                 name = physicalnames[phyTag]
                 type = etype[elmType]
-                haskey(elements,name) ? push!(elements[name],Element{type}(nodes,nodeList...)) : elements[name]=Element{type}[Element{type}(nodes,nodeList...)]
+                push!(elements[name],(type,nodeList))
             end
             return elements, nodes
         end
@@ -81,7 +82,8 @@ function importmsh(filename::String,config::Dict{Any,Any})
     elms, nodes = importmsh(filename)
     elements = Dict{String,Any}()
     for (name,cfg) in config
-        Type = eval(Meta.parse(cfg["𝓒"]["type"]))
+        Type = eval(Meta.parse(cfg["type"]))
+        nodes = Node(nodes...)
         if haskey(cfg,"𝓖")
             QType = Meta.parse(cfg["𝓖"]["type"])
             if haskey(cfg["𝓖"],"tag")
@@ -96,16 +98,12 @@ function importmsh(filename::String,config::Dict{Any,Any})
                 elements[name] = elems
             end
         else
-            elements[name] = Type(elms[cfg["𝓒"]["tag"]])
+            elements[name] = [Type([nodes[i] for i in s[2]]) for s in elms[cfg["𝓒"]["tag"]]]
         end
         if haskey(cfg,"𝗠")
             ss = Meta.parse.(cfg["𝗠"])
             set_memory_𝗠!(elements[name],ss...)
         end
-        if haskey(cfg,"𝝭")
-            ss = Meta.parse.(cfg["𝝭"])
-            set_memory_𝝭!(elements[name],ss...)
-        end
     end
-    return elements,nodes
+    return elements
 end
