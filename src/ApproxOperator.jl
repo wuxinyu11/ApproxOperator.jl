@@ -1,16 +1,15 @@
 module ApproxOperator
 
 import Base: +, -, *, /, getindex, setindex!, getproperty, setproperty!, length, push!, fill!, issubset, intersect
-# import InteractiveUtils: subtypes
+import InteractiveUtils: subtypes
 
-# abstract type AbstractNode end
 abstract type AbstractElement{T} end
-# abstract type SpatialPartition end
+abstract type SpatialPartition end
 
 include("node.jl")
 include("element.jl")
-# include("approximation_mf.jl")
-# include("integration.jl")
+include("meshfree.jl")
+include("integration.jl")
 # include("operation.jl")
 # include("operation_thin_plate.jl")
 # include("approximation_rk.jl")

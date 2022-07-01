@@ -1,5 +1,5 @@
 
-using Revise,ApproxOperator,YAML
+using Revise,ApproxOperator,YAML, XLSX
 
 config = YAML.load_file("./fem.yml")
 elements = importmsh("./msh/cantilever.msh",config)

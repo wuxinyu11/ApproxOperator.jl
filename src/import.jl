@@ -81,9 +81,18 @@ end
 function importmsh(filename::String,config::Dict{Any,Any})
     elms, nodes = importmsh(filename)
     elements = Dict{String,Any}()
+    if haskey(config,"RegularGrid")
+        cfg = config["RegularGrid"]
+        sp = RegularGrid(nodes[:x],nodes[:y],nodes[:z];n=cfg["n"],γ=cfg["γ"])
+        delete!(config,"RegularGrid")
+    else
+        sp = nothing
+    end
+    nodes = Node(nodes...)
     for (name,cfg) in config
         Type = eval(Meta.parse(cfg["type"]))
-        nodes = Node(nodes...)
+        elements[name] = [Type([nodes[i] for i in s[2]]) for s in elms[cfg["𝓒"]["tag"]]]
+        sp ≠ nothing ? sp(elements[name]) : nothing
         if haskey(cfg,"𝓖")
             QType = Meta.parse(cfg["𝓖"]["type"])
             if haskey(cfg["𝓖"],"tag")
@@ -93,12 +102,8 @@ function importmsh(filename::String,config::Dict{Any,Any})
                 elems = Type(elms_𝓒,elms_𝓖)
                 elements[name] = elems
             else
-                elems = Type(elms[cfg["𝓒"]["tag"]])
-                set𝓖!(elems,QType)
-                elements[name] = elems
+                set𝓖!(elements[name],QType)
             end
-        else
-            elements[name] = [Type([nodes[i] for i in s[2]]) for s in elms[cfg["𝓒"]["tag"]]]
         end
         if haskey(cfg,"𝗠")
             ss = Meta.parse.(cfg["𝗠"])

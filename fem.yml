@@ -1,6 +1,11 @@
 
+RegularGrid:
+    n: 2
+    γ: 5
 
 Ω:
     type: Element{:Tri3}
     𝓒:
         tag: Ω
+    𝓖:
+        type: TriGI3
