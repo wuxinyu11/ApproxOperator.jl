@@ -1,3 +1,53 @@
+
+
+"""
+setgeometry!(ap::T) where T<:AbstractElement
+"""
+function setgeometry!(ap::T) where T<:AbstractElement
+    𝓖 = ap.𝓖
+    for x in 𝓖
+        𝒙 = get𝒙(ap,x)
+        𝑤 = get𝑤(ap,x)
+        x.x = 𝒙[1]
+        x.y = 𝒙[2]
+        x.z = 𝒙[3]
+        x.𝑤 = 𝑤
+    end
+end
+
+"""
+set_memory_𝝭!(ap::T,ss::Symbol...) where T<:AbstractElement
+"""
+function set_memory_𝝭!(aps::Vector{T},ss::Symbol...) where T<:AbstractElement
+    n = sum(length(ap.𝓒)*length(ap.𝓖) for ap in aps)
+    for s in ss
+        push!(getfield(aps[1].𝓖[1],:data),s=>(:s,zeros(n)))
+    end
+end
+
+"""
+set_memory_𝗠!(aps::Vector{T},ss::Symbol... = keys(aps[1].𝗠)...) where T<:ReproducingKernel
+"""
+function set_memory_𝗠!(aps::Vector{T},ss::Symbol... = keys(aps[1].𝗠)...) where T<:ReproducingKernel
+    set_memory_𝗠!(aps[1],ss...)
+end
+
+function set_memory_𝗠!(ap::T,ss::Symbol... = keys(ap[1].𝗠)...) where T<:ReproducingKernel
+    n = get𝑛𝒑(ap)
+    n₁ = get𝑛𝒑₁(ap)
+    n₂ = get𝑛𝒑₂(ap)
+    empty!(ap.𝗠)
+    for s in ss
+        if s == :∇̃
+            ap.𝗠[s] = SymMat(n₁)
+        elseif s ∈ (:∇̃²,:∂∇̃²∂ξ,:∂∇̃²∂η)
+            ap.𝗠[s] = SymMat(n₂)
+        else
+            ap.𝗠[s] = SymMat(n)
+        end
+    end
+end
+
 ## ---------------- msh ---------------
 function importmsh(filename::String)
     fid = open(filename,"r")
@@ -96,18 +146,22 @@ function importmsh(filename::String,config::Dict{Any,Any})
         if haskey(cfg,"𝓖")
             QType = Meta.parse(cfg["𝓖"]["type"])
             if haskey(cfg["𝓖"],"tag")
-                elms_𝓖 = Type<:ReproducingKernel{SNode} ? ReproducingKernel{SNode,:Linear1D,:□,:CubicSpline}(elms[cfg["𝓖"]["tag"]]) : elms[cfg["𝓖"]["tag"]]
-                elms_𝓒 = elms[cfg["𝓒"]["tag"]]
+                elms_𝓖 = [Element{s[1]}([nodes[i] for i in s[2]]) for s in elms[cfg["𝓖"]["tag"]]]
+                elms_𝓒 = elements[cfg["𝓒"]["tag"]]
                 set𝓖!(elms_𝓖,QType)
-                elems = Type(elms_𝓒,elms_𝓖)
-                elements[name] = elems
+                elements[name] = Type(elms_𝓒,elms_𝓖)
             else
                 set𝓖!(elements[name],QType)
             end
-        end
-        if haskey(cfg,"𝗠")
-            ss = Meta.parse.(cfg["𝗠"])
-            set_memory_𝗠!(elements[name],ss...)
+            nₑ = length(elements[name])
+            nᵢ = length(quadraturerule(QType)[:w])
+            push!(getfield(elements[name][1].𝓖[1],:data),:x=>(:G,zeros(nₑ*nᵢ)),:y=>(:G,zeros(nₑ*nᵢ)),:z=>(:G,zeros(nₑ*nᵢ)),:𝑤=>(:G,zeros(nₑ*nᵢ)))
+            setgeometry!.(elements[name])
+            if haskey(cfg["𝓖"],"𝝭")
+                ss = Meta.parse.(cfg["𝓖"]["𝝭"])
+                Type<:ReproducingKernel ? set_memory_𝗠!(elements[name],ss...) : nothing
+                set_memory_𝝭!(elements[name],ss...)
+            end
         end
     end
     return elements

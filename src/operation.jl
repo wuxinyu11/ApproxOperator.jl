@@ -74,11 +74,12 @@ end
 function (op::Operator{:𝑓𝑣})(ap::T,f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
-        𝑤 = get𝑤(ap,ξ)
-        N = get𝝭(ap,ξ)
+        𝑤 = ξ.𝑤
+        N = ξ.𝝭
+        u = ξ.u
         for (i,xᵢ) in enumerate(𝓒)
-            I = xᵢ.id
-            f[I] += N[i]*ξ.u*𝑤
+            I = xᵢ.I
+            f[I] += N[i]*u*𝑤
         end
     end
 end

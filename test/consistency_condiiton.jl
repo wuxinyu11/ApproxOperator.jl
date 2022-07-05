@@ -4,7 +4,8 @@ using Revise, ApproxOperator, BenchmarkTools, YAML
 config = YAML.load_file("./fem.yml")
 elements = importmsh("./msh/patchtest.msh",config)
 
-# @btime set𝝭!(elements["Ω"])
+# set𝝭!.(elements["Ω"])
+@btime set𝝭!($elements["Ω"][1])
 # @btime set∇𝝭!(elements["Ω"])
 # set∇𝝭!(elements["Ω"])
 # set∇̃𝝭!(elements["Ω"])

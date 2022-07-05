@@ -1011,26 +1011,3 @@ function cal∇³₂𝗠!(ap::ReproducingKernel,x::NTuple{3,Float64})
 
     return 𝗠⁻¹, ∂𝗠⁻¹∂x, ∂𝗠⁻¹∂y, ∂²𝗠⁻¹∂x², ∂²𝗠⁻¹∂x∂y, ∂²𝗠⁻¹∂y², ∂³𝗠⁻¹∂x³, ∂³𝗠⁻¹∂x²∂y, ∂³𝗠⁻¹∂x∂y², ∂³𝗠⁻¹∂y³
 end
-
-"""
-set_memory_𝗠!(aps::Vector{T},ss::Symbol... = keys(aps[1].𝗠)...) where T<:ReproducingKernel
-"""
-function set_memory_𝗠!(aps::Vector{T},ss::Symbol... = keys(aps[1].𝗠)...) where T<:ReproducingKernel
-    set_memory_𝗠!(aps[1],ss...)
-end
-
-function set_memory_𝗠!(ap::T,ss::Symbol... = keys(ap[1].𝗠)...) where T<:ReproducingKernel
-    n = get𝑛𝒑(ap)
-    n₁ = get𝑛𝒑₁(ap)
-    n₂ = get𝑛𝒑₂(ap)
-    empty!(ap.𝗠)
-    for s in ss
-        if s == :∇̃
-            ap.𝗠[s] = SymMat(n₁)
-        elseif s ∈ (:∇̃²,:∂∇̃²∂ξ,:∂∇̃²∂η)
-            ap.𝗠[s] = SymMat(n₂)
-        else
-            ap.𝗠[s] = SymMat(n)
-        end
-    end
-end
