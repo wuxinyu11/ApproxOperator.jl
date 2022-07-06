@@ -5,9 +5,9 @@ RegularGrid:
 
 Ω:
     # type: Element{:Tri3}
-    type: ReproducingKernel{:Linear2D,:□,:CubicSpline,:Tri3}
+    type: ReproducingKernel{:Quadratic2D,:□,:CubicSpline,:Tri3}
     𝓒:
         tag: Ω
     𝓖:
         type: TriGI3
-        𝝭: [𝝭]
+        𝝭: [𝝭,∂𝝭∂x,∂𝝭∂y,∂𝝭∂z,∂²𝝭∂x²,∂²𝝭∂y²,∂²𝝭∂z²,∂²𝝭∂x∂y,∂²𝝭∂x∂z,∂²𝝭∂y∂z,∂³𝝭∂x³,∂³𝝭∂x²∂y,∂³𝝭∂x∂y²,∂³𝝭∂y³]

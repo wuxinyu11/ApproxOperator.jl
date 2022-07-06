@@ -85,32 +85,38 @@ function checkConsistency(as::Vector{T}) where T<:ReproducingKernel
     return f.^0.5
 end
 
-function checkConsistency(a::T,f::Vector{Float64},𝒑ʰ::Vector{Float64}) where T<:ReproducingKernel
-    for ξ in (a.𝓖)
-        𝒙 = get𝒙(a,ξ)
-        𝝭 = ξ[:𝝭]
-        𝑤 = get𝑤(a,ξ)
-        𝒑 = get𝒑(a,𝒙)
-        fill!(𝒑ʰ,0.0)
-        for (i,node) in enumerate(a.𝓒)
-            𝒙ᵢ = (node.x,node.y,node.z)
-            𝒑ᵢ = get𝒑(a,𝒙ᵢ)
-            𝒑ʰ .+= 𝝭[i].*𝒑ᵢ
+for (𝝭,𝒑,list) in ((:𝝭,:𝒑,(:𝝭)),
+                   (:∇𝝭,:∇𝒑,(:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂𝝭∂z)))
+    @eval begin
+        function check$𝝭(a::T,f::Vector{Float64},𝒑ʰ::Vector{Float64}) where T<:AbstractElement
+            n = size(f,1)
+            for ξ in a.𝓖
+                𝒙 = get𝒙(a,ξ)
+                𝑤 = ξ.𝑤
+                𝒑 = get𝒑(a,𝒙)
+                fill!(𝒑ʰ,0.0)
+                for 𝒙ᵢ in a.𝓒
+                    𝒑ᵢ = get𝒑(a,𝒙ᵢ)
+                    for i in 1:n
+                        for (j,s) in list
+                            𝒑ʰ[i,j] += ξ[s]*𝒑ᵢ
+                end
+                f .+= (𝒑 .- 𝒑ʰ).^2 .* 𝑤
+            end
         end
-        f .+= (𝒑 .- 𝒑ʰ).^2 .* 𝑤
-    end
-end
 
-function checkConsistency(as::Vector{T},get𝝭_::F,get𝒑_::H) where {T<:ReproducingKernel,F<:Function,H<:Function}
-    nᵖ = get𝑛𝒑(as[1])
-    n = length(get𝒑_(as[1],(0.0,0.0,0.0)))
-    f = zeros(nᵖ,n)
-    𝒑 = zeros(nᵖ,n)
-    𝒑ʰ = zeros(nᵖ,n)
-    for a in as
-        checkConsistency(a,get𝝭_,get𝒑_,f,𝒑,𝒑ʰ)
+        function checkConsistency(as::Vector{T},get𝝭_::F,get𝒑_::H) where {T<:ReproducingKernel,F<:Function,H<:Function}
+            nᵖ = get𝑛𝒑(as[1])
+            n = length(get𝒑_(as[1],(0.0,0.0,0.0)))
+            f = zeros(nᵖ,n)
+            𝒑 = zeros(nᵖ,n)
+            𝒑ʰ = zeros(nᵖ,n)
+            for a in as
+                checkConsistency(a,get𝝭_,get𝒑_,f,𝒑,𝒑ʰ)
+            end
+            return f.^0.5
+        end
     end
-    return f.^0.5
 end
 
 function checkConsistency(a::T,get𝝭_::F,get𝒑_::H,f::Matrix{Float64},𝒑::Matrix{Float64},𝒑ʰ::Matrix{Float64}) where {T<:ReproducingKernel,F<:Function,H<:Function}
