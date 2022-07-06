@@ -4,11 +4,11 @@ function set𝓖!(aps::Vector{T},s::Symbol) where T<:AbstractElement
     n = length(data_[:w])
     G = 0
     s = 0
-    data = Dict([s=>(:g,v) for (s,v) in data_])
+    data = Dict([s=>(1,v) for (s,v) in data_])
     for ap in aps
         for g in 1:n
             G += 1
-            push!(ap.𝓖,SNode((g=g,G=G,s=s),data))
+            push!(ap.𝓖,SNode((g,G,s),data))
             s += length(ap.𝓒)
         end
     end

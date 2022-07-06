@@ -21,7 +21,7 @@ set_memory_𝝭!(ap::T,ss::Symbol...) where T<:AbstractElement
 function set_memory_𝝭!(aps::Vector{T},ss::Symbol...) where T<:AbstractElement
     n = sum(length(ap.𝓒)*length(ap.𝓖) for ap in aps)
     for s in ss
-        push!(getfield(aps[1].𝓖[1],:data),s=>(:s,zeros(n)))
+        push!(getfield(aps[1].𝓖[1],:data),s=>(3,zeros(n)))
     end
 end
 
@@ -141,7 +141,12 @@ function importmsh(filename::String,config::Dict{Any,Any})
     nodes = Node(nodes...)
     for (name,cfg) in config
         Type = eval(Meta.parse(cfg["type"]))
-        elements[name] = [Type([nodes[i] for i in s[2]]) for s in elms[cfg["𝓒"]["tag"]]]
+        if Type <: ReproducingKernel
+            𝗠 = Dict{Symbol,SymMat}()
+            elements[name] = [Type([nodes[i] for i in s[2]],𝗠) for s in elms[cfg["𝓒"]["tag"]]]
+        else
+            elements[name] = [Type([nodes[i] for i in s[2]]) for s in elms[cfg["𝓒"]["tag"]]]
+        end
         sp ≠ nothing ? sp(elements[name]) : nothing
         if haskey(cfg,"𝓖")
             QType = Meta.parse(cfg["𝓖"]["type"])
@@ -155,7 +160,7 @@ function importmsh(filename::String,config::Dict{Any,Any})
             end
             nₑ = length(elements[name])
             nᵢ = length(quadraturerule(QType)[:w])
-            push!(getfield(elements[name][1].𝓖[1],:data),:x=>(:G,zeros(nₑ*nᵢ)),:y=>(:G,zeros(nₑ*nᵢ)),:z=>(:G,zeros(nₑ*nᵢ)),:𝑤=>(:G,zeros(nₑ*nᵢ)))
+            push!(getfield(elements[name][1].𝓖[1],:data),:x=>(2,zeros(nₑ*nᵢ)),:y=>(2,zeros(nₑ*nᵢ)),:z=>(2,zeros(nₑ*nᵢ)),:𝑤=>(2,zeros(nₑ*nᵢ)))
             setgeometry!.(elements[name])
             if haskey(cfg["𝓖"],"𝝭")
                 ss = Meta.parse.(cfg["𝓖"]["𝝭"])

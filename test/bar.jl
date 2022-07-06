@@ -9,4 +9,5 @@ n = Node(2,data)
 @btime $n.x
 @btime $n.y
 @btime $n.I
+@btime $n[:x][1]
 # @btime ApproxOperator.RV(1,$x)

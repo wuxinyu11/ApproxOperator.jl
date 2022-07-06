@@ -1,4 +1,9 @@
 
+"""
+getnₚ
+"""
+getnₚ(ap::T) where T<:AbstractElement = length(getfield(ap.𝓒[1],:data)[:x][2])
+@inline getnₚ(aps::Vector{T}) where T<:AbstractElement = getnₚ(aps[1])
 struct Element{T}<:AbstractElement{T}
     𝓒::Vector{Node}
     𝓖::Vector{SNode}
@@ -68,9 +73,9 @@ get𝒙(ap::T,x::SNode) where T<:AbstractElement
 get𝒙(ap::T,ξ::Float64...) where T<:AbstractElement
 """
 @inline get𝒙(ap::T,::Any) where T<:AbstractElement{:Poi1} = (ap.𝓒[1].x,ap.𝓒[1].y,ap.𝓒[1].z)
-@inline get𝒙(ap::T,ξ::SNode) where T<:AbstractElement{:Seg2} = get𝒙(ap,ξ.ξ*1.0)
-@inline get𝒙(ap::T,ξ::SNode) where T<:AbstractElement{:Tri3} = get𝒙(ap,ξ.ξ*1.0,ξ.η*1.0)
-@inline get𝒙(ap::T,ξ::SNode) where T<:AbstractElement{:Quad} = get𝒙(ap,ξ.ξ*1.0,ξ.η*1.0)
+@inline get𝒙(ap::T,ξ::SNode) where T<:AbstractElement{:Seg2} = get𝒙(ap,ξ.ξ)
+@inline get𝒙(ap::T,ξ::SNode) where T<:AbstractElement{:Tri3} = get𝒙(ap,ξ.ξ,ξ.η)
+@inline get𝒙(ap::T,ξ::SNode) where T<:AbstractElement{:Quad} = get𝒙(ap,ξ.ξ,ξ.η)
 
 function get𝒙(ap::T,ξ::Float64) where T<:AbstractElement{:Seg2}
     x₁ = ap.𝓒[1].x
@@ -242,12 +247,22 @@ end
 # end
 
 ## shape functions
+"""
+set𝝭!
+"""
+function set𝝭!(aps::Vector{T}) where T<:AbstractElement
+    for ap in aps
+        set𝝭!(ap)
+    end
+end
+
 function set𝝭!(ap::Element{S}) where S
     𝓖 = ap.𝓖
     for ξ in 𝓖
         N = get𝝭(ap,ξ)
         for i in 1:length(ap.𝓒)
-            ξ.𝝭[i] = N[i]
+            𝝭 = ξ[:𝝭]
+            𝝭[i] = N[i]
         end
     end
 end
@@ -266,7 +281,7 @@ get𝝭(ap::Element,ξ::SNode)
 end
 
 # ------------- Tri3 ---------------
-@inline get𝝭(ap::Element{:Tri3},ξ::SNode) = (ξ.ξ*1.0,ξ.η*1.0,1.0-ξ.ξ-ξ.η)
+@inline get𝝭(ap::Element{:Tri3},ξ::SNode) = (ξ.ξ,ξ.η,1.0-ξ.ξ-ξ.η)
 @inline function get∂𝝭∂x(ap::Element{:Tri3},ξ::SNode)
     y₁ = ap.𝓒[1].y
     y₂ = ap.𝓒[2].y
@@ -283,9 +298,9 @@ end
 end
 
 # ------------- Quad ---------------
-@inline get𝝭(ap::Element{:Quad},ξ::SNode) = get𝝭(ap,ξ.ξ*1.0,ξ.η*1.0)
-@inline get∂𝝭∂ξ(ap::Element{:Quad},ξ::SNode) = get∂𝝭∂ξ(ap,ξ.η*1.0)
-@inline get∂𝝭∂η(ap::Element{:Quad},ξ::SNode) = get∂𝝭∂η(ap,ξ.ξ*1.0)
+@inline get𝝭(ap::Element{:Quad},ξ::SNode) = get𝝭(ap,ξ.ξ,ξ.η)
+@inline get∂𝝭∂ξ(ap::Element{:Quad},ξ::SNode) = get∂𝝭∂ξ(ap,ξ.η)
+@inline get∂𝝭∂η(ap::Element{:Quad},ξ::SNode) = get∂𝝭∂η(ap,ξ.ξ)
 
 function get𝝭(ap::Element{:Quad},ξ::Float64,η::Float64)
     N₁ = 0.25*(1.0-ξ)*(1.0-η)
@@ -370,3 +385,11 @@ end
 #     end
 #     return aps
 # end
+
+function push!(ap::T,svs::Pair{Symbol,Vector{Float64}}...) where T<:AbstractElement
+    for sv in svs
+        s,v = sv
+        push!(getfield(ap.𝓒[1],:data),s=>(1,v))
+    end
+end
+push!(aps::Vector{T},svs::Pair{Symbol,Vector{Float64}}...) where T<:AbstractElement = push!(aps[1],svs...)

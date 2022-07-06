@@ -185,7 +185,7 @@ for t in subtypes(SpatialPartition)
         for 𝒙 in 𝓒
             union!(indices,sp(𝒙.x*1.0,𝒙.y*1.0,𝒙.z*1.0))
         end
-        union!(𝓒,(Node((I=i,),getfield(𝓒[1],:data)) for i in indices))
+        union!(𝓒,(Node(i,getfield(𝓒[1],:data)) for i in indices))
     end
     function (sp::t)(aps::Vector{T}) where T<:AbstractElement
         for ap in aps
@@ -209,6 +209,7 @@ struct ReproducingKernel{𝑝,𝑠,𝜙,T}<:AbstractElement{T}
     𝗠::Dict{Symbol,SymMat}
 end
 
+ReproducingKernel{𝒑,𝑠,𝜙,T}(𝓒::Vector{Node},𝗠::Dict{Symbol,SymMat}) where {𝒑,𝑠,𝜙,T} = ReproducingKernel{𝒑,𝑠,𝜙,T}(𝓒,SNode[],𝗠)
 ## Basis Function
 @inline get∇₁𝒑(ap::ReproducingKernel,x::Any) = get𝒑(ap,x), get∂𝒑∂x(ap,x)
 @inline get∇₂𝒑(ap::ReproducingKernel,x::Any) = get𝒑(ap,x), get∂𝒑∂x(ap,x), get∂𝒑∂y(ap,x)
@@ -259,7 +260,7 @@ end
 @inline get∂³𝒑∂y³(::ReproducingKernel{:Quadratic1D},::Any) =(0.,0.,0.)
 
 @inline get𝑛𝒑₁(::ReproducingKernel{:Quadratic1D}) = 2
-@inline get𝒑₁(ap::ReproducingKernel{:Quadratic1D},ξ::GernelNode) = get𝒑₁(ap,ξ.ξ)
+@inline get𝒑₁(ap::ReproducingKernel{:Quadratic1D},ξ::SNode) = get𝒑₁(ap,ξ.ξ)
 @inline get𝒑₁(::ReproducingKernel{:Quadratic1D},ξ::Float64) = (1.0,0.5*(1.0-ξ))
 @inline get∂𝒑₁∂ξ(::ReproducingKernel{:Quadratic1D},::Any) = (0.0,1.0)
 
@@ -281,9 +282,9 @@ end
 @inline get∂³𝒑∂y³(::ReproducingKernel{:Cubic1D},x::NTuple{3,Float64}) = (0.,0.,0.,0.)
 
 @inline get𝑛𝒑₁(::ReproducingKernel{:Cubic1D}) = 3
-@inline get𝒑₁(ap::ReproducingKernel{:Cubic1D},ξ::GernelNode) = get𝒑₁(ap,ξ.ξ)
+@inline get𝒑₁(ap::ReproducingKernel{:Cubic1D},ξ::SNode) = get𝒑₁(ap,ξ.ξ)
 @inline get𝒑₁(::ReproducingKernel{:Cubic1D},ξ::Float64) = (1.0,0.5*(1.0-ξ),0.25*(1.0-ξ)^2)
-@inline get∂𝒑₁∂ξ(ap::ReproducingKernel{:Cubic1D},ξ::GernelNode) = get∂𝒑₁∂ξ(ap,ξ.ξ)
+@inline get∂𝒑₁∂ξ(ap::ReproducingKernel{:Cubic1D},ξ::SNode) = get∂𝒑₁∂ξ(ap,ξ.ξ)
 @inline get∂𝒑₁∂ξ(::ReproducingKernel{:Cubic1D},ξ::Float64) = (0.,1.0,(1.0-ξ))
 
 # ------------ Linear2D ---------------
@@ -294,13 +295,14 @@ end
 @inline get∂𝒑∂z(::ReproducingKernel{:Linear2D}, ::Any) = (0.,0.,0.)
 
 @inline get𝑛𝒑₁(::ReproducingKernel{:Linear2D}) = 1
-@inline get𝒑₁(ap::ReproducingKernel{:Linear2D},ξ::GernelNode) = get𝒑₁(ap,ξ.ξ,ξ.η)
+@inline get𝒑₁(ap::ReproducingKernel{:Linear2D},ξ::SNode) = get𝒑₁(ap,ξ.ξ,ξ.η)
 @inline get𝒑₁(::ReproducingKernel{:Linear2D},::Any,::Any) = (1.,)
-@inline get∂𝒑₁∂ξ(ap::ReproducingKernel{:Linear2D},ξ::GernelNode) = get∂𝒑₁∂ξ(ap,ξ.ξ,ξ.η)
+@inline get∂𝒑₁∂ξ(ap::ReproducingKernel{:Linear2D},ξ::SNode) = get∂𝒑₁∂ξ(ap,ξ.ξ,ξ.η)
 @inline get∂𝒑₁∂ξ(::ReproducingKernel{:Linear2D},::Any,::Any) = (0.,)
-@inline get∂𝒑₁∂η(ap::ReproducingKernel{:Linear2D},ξ::GernelNode) = get∂𝒑₁∂η(ap,ξ.ξ,ξ.η)
+@inline get∂𝒑₁∂η(ap::ReproducingKernel{:Linear2D},ξ::SNode) = get∂𝒑₁∂η(ap,ξ.ξ,ξ.η)
 @inline get∂𝒑₁∂η(::ReproducingKernel{:Linear2D},::Any,::Any) = (0.,)
 
+@inline get𝑛𝒑₂(::ReproducingKernel{:Linear2D}) = 0
 # ------------ Quadratic2D ---------------
 @inline get𝑛𝒑(::ReproducingKernel{:Quadratic2D}) = 6
 @inline get𝒑(::ReproducingKernel{:Quadratic2D},x::NTuple{3,Float64}) = (1.,x[1],x[2],x[1]^2,x[1]*x[2],x[2]^2)
@@ -319,7 +321,7 @@ end
 @inline get∂³𝒑∂y³(::ReproducingKernel{:Quadratic2D},x::NTuple{3,Float64}) = (0.,0.,0.,0.,0.,0.)
 
 @inline get𝑛𝒑₁(::ReproducingKernel{:Quadratic2D}) = 3
-@inline get𝒑₁(ap::ReproducingKernel{:Quadratic2D},ξ::GernelNode) = get𝒑₁(ap,ξ.ξ,ξ.η)
+@inline get𝒑₁(ap::ReproducingKernel{:Quadratic2D},ξ::SNode) = get𝒑₁(ap,ξ.ξ,ξ.η)
 @inline get𝒑₁(::ReproducingKernel{:Quadratic2D},ξ::Float64,η::Float64) = (1.,ξ,η)
 @inline get∂𝒑₁∂ξ(::ReproducingKernel{:Quadratic2D},::Any) = (0.,1.,0.)
 @inline get∂𝒑₁∂η(::ReproducingKernel{:Quadratic2D},::Any) = (0.,0.,1.)
@@ -396,15 +398,15 @@ end
 )
 
 @inline get𝑛𝒑₁(::ReproducingKernel{:Cubic2D}) = 6
-@inline get𝒑₁(ap::ReproducingKernel{:Cubic2D},ξ::GernelNode) = get𝒑₁(ap,ξ.ξ,ξ.η)
+@inline get𝒑₁(ap::ReproducingKernel{:Cubic2D},ξ::SNode) = get𝒑₁(ap,ξ.ξ,ξ.η)
 @inline get𝒑₁(::ReproducingKernel{:Cubic2D},ξ::Float64,η::Float64) = (1.,ξ,η,ξ^2,ξ*η,η^2)
-@inline get∂𝒑₁∂ξ(ap::ReproducingKernel{:Cubic2D},ξ::GernelNode) = get∂𝒑₁∂ξ(ap,ξ.ξ,ξ.η)
+@inline get∂𝒑₁∂ξ(ap::ReproducingKernel{:Cubic2D},ξ::SNode) = get∂𝒑₁∂ξ(ap,ξ.ξ,ξ.η)
 @inline get∂𝒑₁∂ξ(::ReproducingKernel{:Cubic2D},ξ::Float64,η::Float64) = (0.,1.,0.,2.0*ξ,η,0.)
-@inline get∂𝒑₁∂η(ap::ReproducingKernel{:Cubic2D},ξ::GernelNode) = get∂𝒑₁∂η(ap,ξ.ξ,ξ.η)
+@inline get∂𝒑₁∂η(ap::ReproducingKernel{:Cubic2D},ξ::SNode) = get∂𝒑₁∂η(ap,ξ.ξ,ξ.η)
 @inline get∂𝒑₁∂η(::ReproducingKernel{:Cubic2D},ξ::Float64,η::Float64) = (0.,0.,1.,0.,ξ,2.0*η)
 
 @inline get𝑛𝒑₂(::ReproducingKernel{:Cubic2D}) = 3
-@inline get𝒑₂(ap::ReproducingKernel{:Cubic2D},ξ::GernelNode) = get𝒑₂(ap,ξ.ξ,ξ.η)
+@inline get𝒑₂(ap::ReproducingKernel{:Cubic2D},ξ::SNode) = get𝒑₂(ap,ξ.ξ,ξ.η)
 @inline get𝒑₂(ap::ReproducingKernel{:Cubic2D},ξ::NTuple{3,Float64}) = get𝒑₂(ap,ξ[1],ξ[2])
 @inline get𝒑₂(::ReproducingKernel{:Cubic2D},ξ::Float64,η::Float64) = (1.,ξ,η)
 @inline get∂𝒑₂∂ξ(ap::ReproducingKernel{:Cubic2D},ξ::Any) = (0.,1.,0.)
@@ -414,7 +416,7 @@ end
 @inline get∂²𝒑₂∂η²(ap::ReproducingKernel{:Cubic2D},ξ::Any) = (0.,0.,0.)
 
 ## Kernel Function
-function get𝜙(ap::ReproducingKernel{𝒑,:□,𝜙},x::GernelNode,Δx::NTuple{3,Float64}) where {𝒑,𝜙}
+function get𝜙(ap::ReproducingKernel{𝒑,:□,𝜙},x::Node,Δx::NTuple{3,Float64}) where {𝒑,𝜙}
     rx = abs(Δx[1])/x.s₁
     ry = abs(Δx[2])/x.s₂
     rz = abs(Δx[3])/x.s₃
@@ -424,7 +426,7 @@ function get𝜙(ap::ReproducingKernel{𝒑,:□,𝜙},x::GernelNode,Δx::NTuple
     return wx*wy*wz
 end
 
-function get∇𝜙(ap::ReproducingKernel{𝒑,:□,𝜙},x::GernelNode,Δx::NTuple{3,Float64}) where {𝒑,𝜙}
+function get∇𝜙(ap::ReproducingKernel{𝒑,:□,𝜙},x::Node,Δx::NTuple{3,Float64}) where {𝒑,𝜙}
     rx = abs(Δx[1])/x.s₁
     ry = abs(Δx[2])/x.s₂
     rz = abs(Δx[3])/x.s₃
@@ -440,7 +442,7 @@ function get∇𝜙(ap::ReproducingKernel{𝒑,:□,𝜙},x::GernelNode,Δx::NTu
     return wx*wy*wz, ∂wx*wy*wz, wx*∂wy*wz, wx*wy*∂wz
 end
 
-function get∇²𝜙(ap::ReproducingKernel{𝒑,:□,𝜙},x::GernelNode,Δx::NTuple{3,Float64}) where {𝒑,𝜙}
+function get∇²𝜙(ap::ReproducingKernel{𝒑,:□,𝜙},x::Node,Δx::NTuple{3,Float64}) where {𝒑,𝜙}
     rx = abs(Δx[1])/x.s₁
     ry = abs(Δx[2])/x.s₂
     rz = abs(Δx[3])/x.s₃
@@ -459,7 +461,7 @@ function get∇²𝜙(ap::ReproducingKernel{𝒑,:□,𝜙},x::GernelNode,Δx::N
     return wx*wy*wz, ∂wx*wy*wz, wx*∂wy*wz, ∂²wx*wy*wz, ∂wx*∂wy*wz, wx*∂²wy*wz, wx*wy*∂wz, ∂wx*wy*∂wz, wx*∂wy*∂wz, wx*wy*∂²wz
 end
 
-function get∇³𝜙(ap::ReproducingKernel{𝒑,:□,𝜙},x::GernelNode,Δx::NTuple{3,Float64}) where {𝒑,𝜙}
+function get∇³𝜙(ap::ReproducingKernel{𝒑,:□,𝜙},x::Node,Δx::NTuple{3,Float64}) where {𝒑,𝜙}
     rx = abs(Δx[1])/x.s₁
     ry = abs(Δx[2])/x.s₂
     ∂rx = sign(Δx[1])/x.s₁
@@ -552,9 +554,9 @@ function get∂³𝜙∂r³(::ReproducingKernel{𝒑,𝑠,:QuinticSpline},r::Flo
         return -(3-3r)^2*13.5
     end
 end
-function cal𝗠!(ap::ReproducingKernel,x::NTuple{3,Float64})
+function cal𝗠!(ap::ReproducingKernel,x::SNode)
     𝓒 = ap.𝓒
-    𝗠 = ap.𝗠[:∂1]
+    𝗠 = ap.𝗠[:𝝭]
     n = get𝑛𝒑(ap)
     fill!(𝗠,0.)
     for xᵢ in 𝓒
@@ -1010,4 +1012,28 @@ function cal∇³₂𝗠!(ap::ReproducingKernel,x::NTuple{3,Float64})
     𝗠⁻¹ = UUᵀ!(U)
 
     return 𝗠⁻¹, ∂𝗠⁻¹∂x, ∂𝗠⁻¹∂y, ∂²𝗠⁻¹∂x², ∂²𝗠⁻¹∂x∂y, ∂²𝗠⁻¹∂y², ∂³𝗠⁻¹∂x³, ∂³𝗠⁻¹∂x²∂y, ∂³𝗠⁻¹∂x∂y², ∂³𝗠⁻¹∂y³
+end
+
+"""
+set𝝭!
+"""
+function set𝝭!(aps::Vector{T}) where T<:ReproducingKernel
+    for ap in aps
+        𝓖 = ap.𝓖
+        for 𝒙 in 𝓖
+            set𝝭!(ap,𝒙)
+        end
+    end
+end
+
+function set𝝭!(ap::ReproducingKernel,𝒙::SNode)
+    𝓒 = ap.𝓒
+    𝝭 = 𝒙[:𝝭]
+    𝒑₀ᵀ𝗠⁻¹ = cal𝗠!(ap,𝒙)
+    for (i,𝒙ᵢ) in enumerate(𝓒)
+        Δ𝒙 = 𝒙 - 𝒙ᵢ
+        𝒑= get𝒑(ap,Δ𝒙)
+        𝜙 = get𝜙(ap,𝒙ᵢ,Δ𝒙)
+        𝝭[i] = 𝒑₀ᵀ𝗠⁻¹*𝒑*𝜙
+    end
 end

@@ -1,6 +1,11 @@
 
+RegularGrid:
+    n: 2
+    γ: 5
+
 Ω:
-    type: Element{:Tri3}
+    # type: Element{:Tri3}
+    type: ReproducingKernel{:Linear2D,:□,:CubicSpline,:Tri3}
     𝓒:
         tag: Ω
     𝓖:

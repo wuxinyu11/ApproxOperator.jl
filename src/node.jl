@@ -35,6 +35,13 @@ struct Node<:AbstractNode
 end
 const REF = (I=1,)
 
+function Node(ss::Pair{Symbol,Vector{Float64}}...)
+    data = Dict([s=>(1,v) for (s,v) in ss])
+    _,v = ss[1]
+    n = length(v)
+    return [Node(i,data) for i in 1:n]
+end
+
 """
 SNode
 """
@@ -45,31 +52,35 @@ end
 const SREF = (g=1,G=2,s=3)
 
 for (t,ref) in ((:Node,:REF),(:SNode,:SREF))
+    @eval begin
 
-@eval begin
+        function getproperty(p::$t,f::Symbol)
+            if haskey($ref,f)
+                return getfield(p,:index)[$ref[f]]
+            elseif haskey(getfield(p,:data),f)
+                i,v = getfield(p,:data)[f]
+                j = getfield(p,:index)[i]
+                return v[j]
+            else
+                return 0.0
+            end
+        end
 
-function getproperty(p::$t,f::Symbol)
-    if haskey($ref,f)
-        return getfield(p,:index)[$ref[f]]
-    elseif haskey(getfield(p,:data),f)
-        i,v = getfield(p,:data)[f]
-        j = getfield(p,:index)[i]
-        return v[j]
-    else
-        return 0.0
+        function setproperty!(p::$t,f::Symbol,x::Float64)
+            i,v = getfield(p,:data)[f]
+            j = getfield(p,:index)[i]
+            v[j] = x
+        end
+
+        function getindex(p::$t,f::Symbol)
+            i,v = getfield(p,:data)[f]
+            j = getfield(p,:index)[i]
+            return RV(j,v)
+        end
+
     end
 end
 
-function setproperty!(p::$t,f::Symbol,x::Float64)
-    i,v = getfield(p,:data)[f]
-    j = getfield(p,:index)[i]
-    v[j] = x
-end
-#
-# function getindex(p::T,f::Symbol)
-#     i,v = getfield(p,:data)[f]
-#     return RV(i,v)
-# end
++(a::T,b::S) where {T<:AbstractNode,S<:AbstractNode} = (a.x+b.x,a.y+b.y,a.z+b.z)
+-(a::T,b::S) where {T<:AbstractNode,S<:AbstractNode} = (a.x-b.x,a.y-b.y,a.z-b.z)
 
-end
-end
