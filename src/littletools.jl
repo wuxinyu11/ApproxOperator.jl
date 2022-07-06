@@ -85,57 +85,48 @@ function checkConsistency(as::Vector{T}) where T<:ReproducingKernel
     return f.^0.5
 end
 
-for (𝝭,𝒑,list) in ((:𝝭,:𝒑,(:𝝭)),
-                   (:∇𝝭,:∇𝒑,(:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂𝝭∂z)))
+const list∇𝝭 = (:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂𝝭∂z)
+const list∇²𝝭 = (:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂²𝝭∂x²,:∂²𝝭∂x∂y,:∂²𝝭∂y²,:∂𝝭∂z,:∂²𝝭∂x∂z,:∂²𝝭∂y∂z,:∂²𝝭∂z²)
+const list∇³𝝭 = (:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂²𝝭∂x²,:∂²𝝭∂x∂y,:∂²𝝭∂y²,:∂³𝝭∂x³,:∂³𝝭∂x²∂y,:∂³𝝭∂x∂y²,:∂³𝝭∂y³)
+for (𝝭,𝒑,list) in ((:check𝝭,:get𝒑,:list𝝭),
+                   (:check∇𝝭,:get∇𝒑,:list∇𝝭),
+                   (:check∇²𝝭,:get∇²𝒑,:list∇²𝝭),
+                   (:check∇³𝝭,:get∇³𝒑,:list∇³𝝭))
     @eval begin
-        function check$𝝭(a::T,f::Vector{Float64},𝒑ʰ::Vector{Float64}) where T<:AbstractElement
-            n = size(f,1)
+        function $𝝭(a::T,f::Matrix{Float64},𝒑::Matrix{Float64},𝒑ʰ::Matrix{Float64}) where T<:AbstractElement
+            n = get𝑛𝒑(a)
             for ξ in a.𝓖
                 𝒙 = get𝒙(a,ξ)
                 𝑤 = ξ.𝑤
-                𝒑 = get𝒑(a,𝒙)
+                𝒑s = $𝒑(a,𝒙)
+                for i in 1:n
+                    for (j,𝒑_) in enumerate(𝒑s)
+                        𝒑[i,j] = 𝒑_[i]
+                    end
+                end
                 fill!(𝒑ʰ,0.0)
-                for 𝒙ᵢ in a.𝓒
-                    𝒑ᵢ = get𝒑(a,𝒙ᵢ)
+                for (k,𝒙ᵢ) in enumerate(a.𝓒)
+                    𝒑ᵢ = get𝒑(a,(𝒙ᵢ.x,𝒙ᵢ.y,𝒙ᵢ.z))
                     for i in 1:n
-                        for (j,s) in list
-                            𝒑ʰ[i,j] += ξ[s]*𝒑ᵢ
+                        for (j,s) in enumerate($list)
+                            𝒑ʰ[i,j] += ξ[s][k]*𝒑ᵢ[i]
+                        end
+                    end
                 end
                 f .+= (𝒑 .- 𝒑ʰ).^2 .* 𝑤
             end
         end
 
-        function checkConsistency(as::Vector{T},get𝝭_::F,get𝒑_::H) where {T<:ReproducingKernel,F<:Function,H<:Function}
+        function $𝝭(as::Vector{T}) where T<:ReproducingKernel
             nᵖ = get𝑛𝒑(as[1])
-            n = length(get𝒑_(as[1],(0.0,0.0,0.0)))
+            n = length($list)
             f = zeros(nᵖ,n)
             𝒑 = zeros(nᵖ,n)
             𝒑ʰ = zeros(nᵖ,n)
             for a in as
-                checkConsistency(a,get𝝭_,get𝒑_,f,𝒑,𝒑ʰ)
+                $𝝭(a,f,𝒑,𝒑ʰ)
             end
             return f.^0.5
         end
-    end
-end
-
-function checkConsistency(a::T,get𝝭_::F,get𝒑_::H,f::Matrix{Float64},𝒑::Matrix{Float64},𝒑ʰ::Matrix{Float64}) where {T<:ReproducingKernel,F<:Function,H<:Function}
-    for ξ in (a.𝓖)
-        𝒙 = get𝒙(a,ξ)
-        𝑤 = get𝑤(a,ξ)
-        𝝭_ = get𝝭_(a,ξ)
-        𝒑_ = get𝒑_(a,𝒙)
-        for (j,𝒑__) in enumerate(𝒑_)
-            𝒑[:,j] .= 𝒑__
-        end
-        fill!(𝒑ʰ,0.0)
-        for (i,node) in enumerate(a.𝓒)
-            𝒙ᵢ = (node.x,node.y,node.z)
-            𝒑ᵢ = get𝒑(a,𝒙ᵢ)
-            for (j,𝝭) in enumerate(𝝭_)
-                𝒑ʰ[:,j] .+= 𝝭[i].*𝒑ᵢ
-            end
-        end
-        f .+= (𝒑 .- 𝒑ʰ).^2 .* 𝑤
     end
 end

@@ -5,7 +5,7 @@ RegularGrid:
 
 Ω:
     # type: Element{:Tri3}
-    type: ReproducingKernel{:Quadratic2D,:□,:CubicSpline,:Tri3}
+    type: ReproducingKernel{:Cubic2D,:□,:QuinticSpline,:Tri3}
     𝓒:
         tag: Ω
     𝓖:

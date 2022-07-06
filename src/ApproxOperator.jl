@@ -27,6 +27,6 @@ export set𝝭!, set∇𝝭!, set∇²𝝭!, set∇³𝝭!, set∇̃𝝭!, set�
 
 # #debug
 include("littletools.jl")
-export checkConsistency
+export check𝝭, check∇𝝭, check∇²𝝭, check∇³𝝭
 
 end
