@@ -1431,13 +1431,13 @@ function set∇̂³𝝭(ap::ReproducingKernel,𝒙::SNode)
         𝝭[i] = 𝒑₀ᵀ𝗠⁻¹*𝒑*𝜙
         ∂𝝭∂x[i] = ∂𝝭∂x_
         ∂𝝭∂y[i] = ∂𝝭∂y_
-        ∂²𝝭∂x²[i] = ∂²𝝭∂x²_ 
+        ∂²𝝭∂x²[i] = ∂²𝝭∂x²_
         ∂²𝝭∂x∂y[i] = ∂²𝝭∂x∂y_
-        ∂²𝝭∂y²[i] = ∂²𝝭∂y²_ 
-        ∂³𝝭∂x³[i] = ∂³𝝭∂x³_ 
+        ∂²𝝭∂y²[i] = ∂²𝝭∂y²_
+        ∂³𝝭∂x³[i] = ∂³𝝭∂x³_
         ∂³𝝭∂x²∂y[i] = ∂³𝝭∂x²∂y_
         ∂³𝝭∂x∂y²[i] = ∂³𝝭∂x∂y²_
-        ∂³𝝭∂y³[i] = ∂³𝝭∂y³_ 
+        ∂³𝝭∂y³[i] = ∂³𝝭∂y³_
     end
 end
 
@@ -2381,7 +2381,7 @@ function set∇̄²𝝭!(ap::ReproducingKernel{𝒑,𝑠,𝜙,:Tri3};Γᵍ::Vect
     end
 end
 
-for set𝝭 in (:set𝝭!,:set∇𝝭!,:set∇²𝝭!,:set∇³𝝭!,:set∇̂𝝭!,:set∇²₂𝝭!,set∇̄𝝭!)
+for set𝝭 in (:set𝝭!,:set∇𝝭!,:set∇²𝝭!,:set∇³𝝭!,:set∇̂𝝭!,:set∇²₂𝝭!,:set∇̄𝝭!)
     @eval begin
         function $set𝝭(aps::Vector{T}) where T<:ReproducingKernel
             for ap in aps
@@ -2400,8 +2400,9 @@ for set𝝭 in (:set∇̃𝝭!,:set∇̃²𝝭!,:set∇∇̃²𝝭!)
             if length(gps) ≠ length(aps)
                 error("Miss match element numbers")
             else
-            for i in 1:length(gps)
-                $set𝝭!(gps[i],aps[i])
+                for i in 1:length(gps)
+                    $set𝝭(gps[i],aps[i])
+                end
             end
         end
     end
