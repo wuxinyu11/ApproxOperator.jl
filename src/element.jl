@@ -4,14 +4,17 @@ getnₚ
 """
 getnₚ(ap::T) where T<:AbstractElement = length(getfield(ap.𝓒[1],:data)[:x][2])
 @inline getnₚ(aps::Vector{T}) where T<:AbstractElement = getnₚ(aps[1])
+
+"""
+# Element
+"""
 struct Element{T}<:AbstractElement{T}
     𝓒::Vector{Node}
     𝓖::Vector{SNode}
 end
-
 Element{T}(𝓒::Vector{Node}) where T = Element{T}(𝓒,SNode[])
+Element{T}(a::S) where {T,S<:AbstractElement} = Element{T}(a.𝓒)
 
-# Element{T}(a::S) where {T,S<:AbstractElement} = Element{T}(a.𝓒)
 # function Element{T}(as::Vector{S};renumbering::Bool=false) where {T,S<:AbstractElement}
 #     aps = Element{T}[]
 #     if renumbering
@@ -355,37 +358,42 @@ function get∂𝝭∂x∂𝝭∂y(ap::Element{:Quad},ξ::SNode)
 end
 # @inline get∇𝝭(ap::Element{:Quad},ξ::𝝃) where 𝝃<:AbstractNode = get𝝭(ap,ξ),get∂𝝭∂x∂𝝭∂y(ap,ξ)...,(0.0,0.0,0.0,0.0)
 
-# ## ⊆,∩
-# function issubset(a::T,b::S) where {T<:AbstractElement{:Poi1},S<:AbstractElement{:Seg2}}
-#     i = findfirst(x->x==a.𝓒[1],b.𝓒)
-#     return i ≠ nothing && i ≤ 2
-# end
+"""
+⊆,∩
+"""
+function issubset(a::T,b::S) where {T<:AbstractElement{:Poi1},S<:AbstractElement{:Seg2}}
+    i = findfirst(x->x==a.𝓒[1],b.𝓒)
+    return i ≠ nothing && i ≤ 2
+end
 
-# @inline intersect(a::T,b::T) where T<:AbstractElement = a.𝓒 == b.𝓒 ? a : nothing
-# @inline function intersect(a::T,b::S) where {T<:AbstractElement{:Seg2},S<:AbstractElement{:Poi1}}
-#     i = findfirst(x->x==b.𝓒[1],a.𝓒)
-#     return i ≠ nothing && i ≤ 2 ? a : nothing
-# end
-# @inline function intersect(a::T,b::S) where {T<:AbstractElement{:Tri3},S<:AbstractElement{:Poi1}}
-#     i = findfirst(x->x==b.𝓒[1],a.𝓒)
-#     return i ≠ nothing && i ≤ 3 ? a : nothing
-# end
-# @inline function intersect(a::T,b::S) where {T<:AbstractElement{:Tri3},S<:AbstractElement{:Seg2}}
-#     i = findfirst(x->x==b.𝓒[1],a.𝓒)
-#     j = findfirst(x->x==b.𝓒[2],a.𝓒)
-#     return i ≠ nothing && j ≠ nothing && i ≤ 3 && j ≤ 3 ? a : nothing
-# end
-# function intersect(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement,S<:AbstractElement}
-#     aps = T[]
-#     for b in bs
-#         for a in as
-#             ap = a∩b
-#             ap ≠ nothing ? push!(aps,ap) : nothing
-#         end
-#     end
-#     return aps
-# end
+@inline intersect(a::T,b::T) where T<:AbstractElement = a.𝓒 == b.𝓒 ? a : nothing
+@inline function intersect(a::T,b::S) where {T<:AbstractElement{:Seg2},S<:AbstractElement{:Poi1}}
+    i = findfirst(x->x==b.𝓒[1],a.𝓒)
+    return i ≠ nothing && i ≤ 2 ? a : nothing
+end
+@inline function intersect(a::T,b::S) where {T<:AbstractElement{:Tri3},S<:AbstractElement{:Poi1}}
+    i = findfirst(x->x==b.𝓒[1],a.𝓒)
+    return i ≠ nothing && i ≤ 3 ? a : nothing
+end
+@inline function intersect(a::T,b::S) where {T<:AbstractElement{:Tri3},S<:AbstractElement{:Seg2}}
+    i = findfirst(x->x==b.𝓒[1],a.𝓒)
+    j = findfirst(x->x==b.𝓒[2],a.𝓒)
+    return i ≠ nothing && j ≠ nothing && i ≤ 3 && j ≤ 3 ? a : nothing
+end
+function intersect(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement,S<:AbstractElement}
+    aps = T[]
+    for b in bs
+        for a in as
+            ap = a∩b
+            ap ≠ nothing ? push!(aps,ap) : nothing
+        end
+    end
+    return aps
+end
 
+"""
+push!
+"""
 function push!(ap::T,svs::Pair{Symbol,Vector{Float64}}...) where T<:AbstractElement
     for sv in svs
         s,v = sv

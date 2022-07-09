@@ -13,86 +13,33 @@ function set𝓖!(aps::Vector{T},s::Symbol) where T<:AbstractElement
         end
     end
 end
-# function set𝓖!(aps::Vector{T},s::Symbol) where T<:AbstractElement
-#     𝓖 = QuadratureRule[s]
-#     nₑ = length(aps)
-#     nᵢ = nₑ*length(𝓖)
-#     data = Dict(:w=>zeros(nᵢ))
-#     data[:ξ] = zeros(nᵢ)
-#     isrk = false
-#     D = length(𝓖[1])
-#     if s∈(:SegRK2,:SegRK3,:SegRK4,:SegRK5,:TriRK3,:TriRK6,:TriRK13,:TetRK14,:TetRK27)
-#         isrk = true
-#         data[:wᵇ] = zeros(nᵢ)
-#         D > 3 ? data[:η] = zeros(nᵢ) : nothing
-#         D > 4 ? data[:γ] = zeros(nᵢ) : nothing
-#     else
-#         D > 2 ? data[:η] = zeros(nᵢ) : nothing
-#         D > 3 ? data[:γ] = zeros(nᵢ) : nothing
-#     end
-#     if T<:ReproducingKernel{SNode}
-#         index = zeros(Int,nᵢ)
-#         nₜ = 0
-#         n = 0
-#         𝝭 = Dict{Symbol,Vector{Float64}}()
-#         for ap in aps
-#             empty!(ap.𝓖)
-#             for ξ in 𝓖
-#                 n += 1
-#                 index[n] = nₜ
-#                 nₜ += length(ap.𝓒)
-#                 push!(ap.𝓖,SNode(n,data,index,𝝭))
-#                 set𝓖(n,data,ξ,isrk)
-#             end
-#         end
-#     else
-#         n = 0
-#         for ap in aps
-#             empty!(ap.𝓖)
-#             for ξ in 𝓖
-#                 n += 1
-#                 push!(ap.𝓖,Node(n,data))
-#                 set𝓖(n,data,ξ,isrk)
-#             end
-#         end
-#     end
-# end
 
-# function set𝓖(i::Int,data::Dict{Symbol,Vector{Float64}},ξ::NTuple{2,Float64},isrk::Bool=false)
-#     data[:w][i] = ξ[1]
-#     data[:ξ][i] = ξ[2]
-# end
-# function set𝓖(i::Int,data::Dict{Symbol,Vector{Float64}},ξ::NTuple{3,Float64},isrk::Bool=false)
-#     data[:w][i] = ξ[1]
-#     data[:ξ][i] = ξ[2]
-#     isrk ? data[:wᵇ][i] = ξ[3] : data[:η][i] = ξ[3]
-# end
-# function set𝓖(i::Int,data::Dict{Symbol,Vector{Float64}},ξ::NTuple{4,Float64},isrk::Bool=false)
-#     data[:w][i] = ξ[1]
-#     data[:ξ][i] = ξ[2]
-#     data[:η][i] = ξ[3]
-#     isrk ? data[:wᵇ][i] = ξ[4] : data[:γ][i] = ξ[4]
-# end
-# function set𝓖(i::Int,data::Dict{Symbol,Vector{Float64}},ξ::NTuple{5,Float64},isrk::Bool=false)
-#     data[:w][i] = ξ[1]
-#     data[:ξ][i] = ξ[2]
-#     data[:η][i] = ξ[3]
-#     data[:γ][i] = ξ[4]
-#     data[:wᵇ][i] = ξ[5]
-# end
+function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement,S<:AbstractElement}
+    if length(as) ≠ length(bs)
+        error("Miss match element numbers")
+    else
+        for i in 1:length(as)
+            set𝓖!(a,b)
+        end
+    end
+end
 
-# ## get𝓖
-# function get𝓖(a::T,b::S) where {T<:AbstractElement{:Seg2},S<:AbstractElement{:Poi1}}
-#     i = findfirst(x->x.id==b.𝓒[1].id, a.𝓒)
-#     if i ≠ nothing && i ≤ 2
-#         for ξ in b.𝓖
-#             i == 1 ? (ξ.ξ = -1.0;ξ.n₁ = -1.0) : (ξ.ξ = 1.0;ξ.n₁ = 1.0)
-#         end
-#         return b.𝓖
-#     else
-#         return nothing
-#     end
-# end
+function set𝓖!(a::T,b::S) where {T<:AbstractElement,S<:AbstractElement}
+    𝓖 = get𝓖(a,b)
+    push!(a.𝓖,𝓖...)
+end
+
+function get𝓖(a::T,b::S) where {T<:AbstractElement{:Seg2},S<:AbstractElement{:Poi1}}
+    i = findfirst(x->x.id==b.𝓒[1].id, a.𝓒)
+    if i ≠ nothing && i ≤ 2
+        for ξ in b.𝓖
+            i == 1 ? (ξ.ξ = -1.0;ξ.n₁ = -1.0) : (ξ.ξ = 1.0;ξ.n₁ = 1.0)
+        end
+        return b.𝓖
+    else
+        return nothing
+    end
+end
 
 # function get𝓖(a::T,b::S) where {T<:AbstractElement{:Tri3},S<:AbstractElement{:Poi1}}
 #     i = findfirst(x->x.id==b.𝓒[1].id, a.𝓒)

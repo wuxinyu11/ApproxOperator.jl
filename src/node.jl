@@ -29,6 +29,9 @@ end
 """
 Node
 """
++(a::T,b::S) where {T<:AbstractNode,S<:AbstractNode} = (a.x+b.x,a.y+b.y,a.z+b.z)
+-(a::T,b::S) where {T<:AbstractNode,S<:AbstractNode} = (a.x-b.x,a.y-b.y,a.z-b.z)
+
 struct Node<:AbstractNode
     index::Int
     data::Dict{Symbol,Tuple{Int,Vector{Float64}}}
@@ -51,10 +54,19 @@ struct SNode<:AbstractNode
 end
 const SREF = (g=1,G=2,s=3)
 
-for (t,ref) in ((:Node,:REF),(:SNode,:SREF))
+"""
+GNode
+"""
+struct GNode<:AbstractNode
+    index::NTuple{2,Int}
+    data::Dict{Symbol,Tuple{Int,Vector{Float64}}}
+end
+const GREF = (I=1,i=2)
+
+for (t,ref) in ((:Node,:REF),(:SNode,:SREF),(:GNode,:GREF))
     @eval begin
 
-        function getproperty(p::$t,f::Symbol)
+        function Base.getproperty(p::$t,f::Symbol)
             if haskey($ref,f)
                 return getfield(p,:index)[$ref[f]]
             elseif haskey(getfield(p,:data),f)
@@ -66,13 +78,13 @@ for (t,ref) in ((:Node,:REF),(:SNode,:SREF))
             end
         end
 
-        function setproperty!(p::$t,f::Symbol,x::Float64)
+        function Base.setproperty!(p::$t,f::Symbol,x::Float64)
             i,v = getfield(p,:data)[f]
             j = getfield(p,:index)[i]
             v[j] = x
         end
 
-        function getindex(p::$t,f::Symbol)
+        function Base.getindex(p::$t,f::Symbol)
             i,v = getfield(p,:data)[f]
             j = getfield(p,:index)[i]
             return RV(j,v)
@@ -81,6 +93,4 @@ for (t,ref) in ((:Node,:REF),(:SNode,:SREF))
     end
 end
 
-+(a::T,b::S) where {T<:AbstractNode,S<:AbstractNode} = (a.x+b.x,a.y+b.y,a.z+b.z)
--(a::T,b::S) where {T<:AbstractNode,S<:AbstractNode} = (a.x-b.x,a.y-b.y,a.z-b.z)
 

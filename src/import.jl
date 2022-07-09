@@ -152,9 +152,9 @@ function importmsh(filename::String,config::Dict{Any,Any})
             QType = Meta.parse(cfg["𝓖"]["type"])
             if haskey(cfg["𝓖"],"tag")
                 elms_𝓖 = [Element{s[1]}([nodes[i] for i in s[2]]) for s in elms[cfg["𝓖"]["tag"]]]
-                elms_𝓒 = elements[cfg["𝓒"]["tag"]]
+                elements[name] = elements[name]∩elms_𝓖
                 set𝓖!(elms_𝓖,QType)
-                elements[name] = Type(elms_𝓒,elms_𝓖)
+                set𝓖!(elements[name],elms_𝓖)
             else
                 set𝓖!(elements[name],QType)
             end

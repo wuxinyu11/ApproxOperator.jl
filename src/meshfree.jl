@@ -210,6 +210,10 @@ struct ReproducingKernel{𝑝,𝑠,𝜙,T}<:AbstractElement{T}
 end
 
 ReproducingKernel{𝒑,𝑠,𝜙,T}(𝓒::Vector{Node},𝗠::Dict{Symbol,SymMat}) where {𝒑,𝑠,𝜙,T} = ReproducingKernel{𝒑,𝑠,𝜙,T}(𝓒,SNode[],𝗠)
+
+"""
+Basis function
+"""
 ## Basis Function
 # @inline get∇₁𝒑(ap::ReproducingKernel,x::Any) = get𝒑(ap,x), get∂𝒑∂x(ap,x)
 # @inline get∇₂𝒑(ap::ReproducingKernel,x::Any) = get𝒑(ap,x), get∂𝒑∂x(ap,x), get∂𝒑∂y(ap,x)
