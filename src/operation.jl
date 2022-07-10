@@ -67,6 +67,9 @@ function prescribe!(ap::T,sf::Pair{Symbol,F}) where {T<:AbstractElement,F<:Funct
 end
 
 function prescribe!(aps::Vector{T},sf::Pair{Symbol,F}) where {T<:AbstractElement,F<:Function}
+    s,f = sf
+    n = length(getfield(aps[1].𝓖[1],:data)[:x][2])
+    haskey(getfield(aps[1].𝓖[1],:data),s) ? nothing : push!(getfield(aps[1].𝓖[1],:data),s=>(2,zeros(n)))
     for ap in aps
         prescribe!(ap,sf)
     end
@@ -749,9 +752,14 @@ function (op::Operator{:∫VgdΓ})(ap::T,k::AbstractMatrix{Float64},f::AbstractV
             for (j,xⱼ) in enumerate(𝓒)
                 J = xⱼ.I
                 Vⱼ = D₁₁₁*B₁₁₁[j] + D₁₁₂*B₁₁₂[j] + D₁₂₂*B₁₂₂[j] + D₂₂₂*B₂₂₂[j]
-                k[I,J] += (-Vᵢ*N[j]-N[i]*Vⱼ+α*N[i]*N[j])*𝑤
+                # k[I,J] += (-Vᵢ*N[j]-N[i]*Vⱼ+α*N[i]*N[j])*𝑤
+                # k[I,J] += α*N[i]*N[j]*𝑤
+                # f[I] -= N[j]
             end
-            f[I] += (-Vᵢ+α*N[i])*g*𝑤
+            # f[I] += (-Vᵢ+α*N[i])*g*𝑤
+            # f[I] += α*N[i]*g*𝑤
+            f[I] += g*𝑤
+            I == 1 ? println(g*𝑤) : nothing
         end
     end
 end
@@ -840,7 +848,7 @@ end
 
 function (op::Operator{:wΔMₙₛ})(ap::T,f::AbstractVector{Float64}) where T<:AbstractElement{:Poi1}
     𝓒 = ap.𝓒; ξ = ap.𝓖[1]
-    N = get𝝭(ap,ξ)
+    N = ξ[:𝝭]
     ΔM = ξ.ΔM
     for (i,xᵢ) in enumerate(𝓒)
         I = xᵢ.I
@@ -1111,7 +1119,16 @@ function (op::Operator{:H₃})(ap::T) where T<:AbstractElement
     ū² = 0
     for ξ in ap.𝓖
         𝑤 = get𝑤(ap,ξ)
-        N,B₁,B₂,B₁₁,B₁₂,B₂₂,B₁₁₁,B₁₁₂,B₁₂₂,B₂₂₂ = get∇³𝝭(ap,ξ)
+        N = ξ[:𝝭]
+        B₁ = ξ[:∂𝝭∂x]
+        B₂ = ξ[:∂𝝭∂y]
+        B₁₁ = ξ[:∂²𝝭∂x²]
+        B₁₂ = ξ[:∂²𝝭∂x∂y]
+        B₂₂ = ξ[:∂²𝝭∂y²]
+        B₁₁₁ = ξ[:∂³𝝭∂x³]
+        B₁₁₂ = ξ[:∂³𝝭∂x²∂y]
+        B₁₂₂ = ξ[:∂³𝝭∂x∂y²]
+        B₂₂₂ = ξ[:∂³𝝭∂y³]
         ūᵢ = ξ.u
         ∂ūᵢ∂x = ξ.∂u∂x
         ∂ūᵢ∂y = ξ.∂u∂y

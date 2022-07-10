@@ -189,44 +189,46 @@ function get𝐴(ap::T) where T<:AbstractElement{:Tri3}
     return (𝐴₁^2 + 𝐴₂^2 + 𝐴₃^2)^0.5
 end
 
-# ## get𝒏
-# @inline get𝒏(ap::T) where T<:AbstractElement{:Poi1} = 1.0
-# @inline function get𝒏(ap::T) where T<:AbstractElement{:Seg2}
-#     x₁ = ap.𝓒[1].x
-#     y₁ = ap.𝓒[1].y
-#     x₂ = ap.𝓒[2].x
-#     y₂ = ap.𝓒[2].y
-#     𝐿 = get𝐿(ap)
-#     return (y₂-y₁)/𝐿,(x₁-x₂)/𝐿,(x₂-x₁)/𝐿,(y₂-y₁)/𝐿
-# end
+"""
+get𝒏
+"""
+@inline get𝒏(ap::T) where T<:AbstractElement{:Poi1} = 1.0
+@inline function get𝒏(ap::T) where T<:AbstractElement{:Seg2}
+    x₁ = ap.𝓒[1].x
+    y₁ = ap.𝓒[1].y
+    x₂ = ap.𝓒[2].x
+    y₂ = ap.𝓒[2].y
+    𝐿 = get𝐿(ap)
+    return (y₂-y₁)/𝐿,(x₁-x₂)/𝐿,(x₂-x₁)/𝐿,(y₂-y₁)/𝐿
+end
 
-# @inline get𝒏(ap::T,ξ::𝝃) where {T<:AbstractElement{:Seg2},𝝃<:AbstractNode} = get𝒏(ap,ξ.ξ)
-# @inline get𝒏(ap::T,ξ::𝝃) where {T<:AbstractElement{:Tri3},𝝃<:AbstractNode} = get𝒏(ap,ξ.ξ,ξ.η)
+@inline get𝒏(ap::T,ξ::𝝃) where {T<:AbstractElement{:Seg2},𝝃<:AbstractNode} = get𝒏(ap,ξ.ξ)
+@inline get𝒏(ap::T,ξ::𝝃) where {T<:AbstractElement{:Tri3},𝝃<:AbstractNode} = get𝒏(ap,ξ.ξ,ξ.η)
 
-# function get𝒏(ap::T,ξ::Float64) where T<:AbstractElement{:Seg2}
-#     n₁ = 0.0
-#     n₁ += ξ == -1.0 ? -1.0 : 0.0
-#     n₁ += ξ ==  1.0 ?  1.0 : 0.0
-#     return n₁
-# end
-# function get𝒏(ap::T,ξ::Float64,η::Float64) where T<:AbstractElement{:Tri3}
-#     n₁ = 0
-#     n₂ = 0
-#     x₁ = ap.𝓒[1].x
-#     y₁ = ap.𝓒[1].y
-#     x₂ = ap.𝓒[2].x
-#     y₂ = ap.𝓒[2].y
-#     x₃ = ap.𝓒[3].x
-#     y₃ = ap.𝓒[3].y
-#     γ = 1.0-ξ-η
-#     n₁ += ξ == 0.0 ? y₃-y₂ : 0.0
-#     n₁ += η == 0.0 ? y₁-y₃ : 0.0
-#     n₁ += γ == 0.0 ? y₂-y₁ : 0.0
-#     n₂ += ξ == 0.0 ? x₂-x₃ : 0.0
-#     n₂ += η == 0.0 ? x₃-x₁ : 0.0
-#     n₂ += γ == 0.0 ? x₁-x₂ : 0.0
-#     return n₁,n₂
-# end
+function get𝒏(ap::T,ξ::Float64) where T<:AbstractElement{:Seg2}
+    n₁ = 0.0
+    n₁ += ξ == -1.0 ? -1.0 : 0.0
+    n₁ += ξ ==  1.0 ?  1.0 : 0.0
+    return n₁
+end
+function get𝒏(ap::T,ξ::Float64,η::Float64) where T<:AbstractElement{:Tri3}
+    n₁ = 0
+    n₂ = 0
+    x₁ = ap.𝓒[1].x
+    y₁ = ap.𝓒[1].y
+    x₂ = ap.𝓒[2].x
+    y₂ = ap.𝓒[2].y
+    x₃ = ap.𝓒[3].x
+    y₃ = ap.𝓒[3].y
+    γ = 1.0-ξ-η
+    n₁ += ξ == 0.0 ? y₃-y₂ : 0.0
+    n₁ += η == 0.0 ? y₁-y₃ : 0.0
+    n₁ += γ == 0.0 ? y₂-y₁ : 0.0
+    n₂ += ξ == 0.0 ? x₂-x₃ : 0.0
+    n₂ += η == 0.0 ? x₃-x₁ : 0.0
+    n₂ += γ == 0.0 ? x₁-x₂ : 0.0
+    return n₁,n₂
+end
 
 # ## set𝒏!
 # function set𝒏!(aps::Vector{T}) where T<:AbstractElement
