@@ -36,7 +36,7 @@ struct Node<:AbstractNode
     index::Int
     data::Dict{Symbol,Tuple{Int,Vector{Float64}}}
 end
-const REF = (I=1,)
+const REF = (𝐼=1,)
 
 function Node(ss::Pair{Symbol,Vector{Float64}}...)
     data = Dict([s=>(1,v) for (s,v) in ss])
@@ -52,7 +52,7 @@ struct SNode<:AbstractNode
     index::NTuple{3,Int}
     data::Dict{Symbol,Tuple{Int,Vector{Float64}}}
 end
-const SREF = (g=1,G=2,s=3)
+const SREF = (𝑔=1,𝐺=2,𝑠=3)
 
 """
 GNode
@@ -61,7 +61,7 @@ struct GNode<:AbstractNode
     index::NTuple{2,Int}
     data::Dict{Symbol,Tuple{Int,Vector{Float64}}}
 end
-const GREF = (I=1,i=2)
+const GREF = (𝐼=1,𝑖=2)
 
 for (t,ref) in ((:Node,:REF),(:SNode,:SREF),(:GNode,:GREF))
     @eval begin
@@ -93,4 +93,14 @@ for (t,ref) in ((:Node,:REF),(:SNode,:SREF),(:GNode,:GREF))
     end
 end
 
-
+"""
+push!(node<:AbstractNode)
+"""
+function push!(n::AbstractNode,svs::Pair{Symbol,Vector{Float64}}...;index::Int=1)
+    for (s,v) in svs
+        push!(getfield(n,:data),s=>(index,v))
+    end
+end
+function push!(ns::Vector{N},svs::Pair{Symbol,Vector{Float64}}...;index::Int=1) where N<:AbstractNode
+    push!(ns[1],svs...,index=index)
+end

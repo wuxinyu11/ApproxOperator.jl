@@ -392,14 +392,3 @@ function intersect(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement,S<:Abs
     end
     return aps
 end
-
-"""
-push!
-"""
-function push!(ap::T,svs::Pair{Symbol,Vector{Float64}}...) where T<:AbstractElement
-    for sv in svs
-        s,v = sv
-        push!(getfield(ap.𝓒[1],:data),s=>(1,v))
-    end
-end
-push!(aps::Vector{T},svs::Pair{Symbol,Vector{Float64}}...) where T<:AbstractElement = push!(aps[1],svs...)

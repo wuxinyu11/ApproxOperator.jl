@@ -158,10 +158,6 @@ function importmsh(filename::String,config::Dict{Any,Any})
             else
                 set𝓖!(elements[name],QType)
             end
-            nₑ = length(elements[name])
-            nᵢ = length(quadraturerule(QType)[:w])
-            push!(getfield(elements[name][1].𝓖[1],:data),:x=>(2,zeros(nₑ*nᵢ)),:y=>(2,zeros(nₑ*nᵢ)),:z=>(2,zeros(nₑ*nᵢ)),:𝑤=>(2,zeros(nₑ*nᵢ)))
-            setgeometry!.(elements[name])
             if haskey(cfg["𝓖"],"𝝭")
                 ss = Meta.parse.(cfg["𝓖"]["𝝭"])
                 Type<:ReproducingKernel ? set_memory_𝗠!(elements[name],ss...) : nothing
@@ -169,5 +165,5 @@ function importmsh(filename::String,config::Dict{Any,Any})
             end
         end
     end
-    return elements
+    return elements, nodes
 end

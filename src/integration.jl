@@ -2,23 +2,33 @@
 function set𝓖!(aps::Vector{T},s::Symbol) where T<:AbstractElement
     data_ = quadraturerule(s)
     n = length(data_[:w])
+    nₑ = length(aps)
     G = 0
     s = 0
     data = Dict([s=>(1,v) for (s,v) in data_])
     for ap in aps
+        empty!(ap.𝓖)
         for g in 1:n
             G += 1
             push!(ap.𝓖,SNode((g,G,s),data))
             s += length(ap.𝓒)
         end
     end
+    push!(getfield(aps[1].𝓖[1],:data),:x=>(2,zeros(nₑ*n)),:y=>(2,zeros(nₑ*n)),:z=>(2,zeros(nₑ*n)),:𝑤=>(2,zeros(nₑ*n)))
+    setgeometry!.(aps)
+end
+
+function set𝓖!(aps::Vector{T},s::Symbol,fs::Symbol...) where T<:AbstractElement
+    set𝓖!(aps,s)
+    n = aps[end].𝓖[end].𝑠 + length(aps[end].𝓒)
+    for f in fs
+        push!(getfield(aps[1].𝓖[1],:data),f=>(3,zeros(n)))
+    end
 end
 
 function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement,S<:AbstractElement}
-    if length(as) ≠ length(bs)
-        error("Miss match element numbers")
-    else
-        for i in 1:length(as)
+    for b in bs
+        for a in as
             set𝓖!(a,b)
         end
     end
@@ -26,11 +36,17 @@ end
 
 function set𝓖!(a::T,b::S) where {T<:AbstractElement,S<:AbstractElement}
     𝓖 = get𝓖(a,b)
+    empty!(a.𝓖)
     push!(a.𝓖,𝓖...)
 end
 
 function get𝓖(a::T,b::S) where {T<:AbstractElement{:Seg2},S<:AbstractElement{:Poi1}}
-    i = findfirst(x->x.id==b.𝓒[1].id, a.𝓒)
+    ξ = b.𝓖[1]
+    if ~haskey(getfield(ξ,:data),:n₁)
+        n = length(getfield(ξ,:data)[:x])
+        push!(getfield(ξ,:data),:n₁=>(2,zeros(n)))
+    end
+    i = findfirst(x->x.𝐼==b.𝓒[1].𝐼, a.𝓒)
     if i ≠ nothing && i ≤ 2
         for ξ in b.𝓖
             i == 1 ? (ξ.ξ = -1.0;ξ.n₁ = -1.0) : (ξ.ξ = 1.0;ξ.n₁ = 1.0)
@@ -41,122 +57,98 @@ function get𝓖(a::T,b::S) where {T<:AbstractElement{:Seg2},S<:AbstractElement{
     end
 end
 
-# function get𝓖(a::T,b::S) where {T<:AbstractElement{:Tri3},S<:AbstractElement{:Poi1}}
-#     i = findfirst(x->x.id==b.𝓒[1].id, a.𝓒)
-#     if i ≠ nothing
-#         x₁ = a.𝓒[1].x
-#         y₁ = a.𝓒[1].y
-#         x₂ = a.𝓒[2].x
-#         y₂ = a.𝓒[2].y
-#         x₃ = a.𝓒[3].x
-#         y₃ = a.𝓒[3].y
-#         n₁₁ = y₃-y₂;n₂₁ = y₁-y₃;n₃₁ = y₂-y₁
-#         n₁₂ = x₂-x₃;n₂₂ = x₃-x₁;n₃₂ = x₁-x₂
-#         s₁₁ = -n₁₂;s₂₁ = -n₂₂;s₃₁ = -n₃₂
-#         s₁₂ =  n₁₁;s₂₂ =  n₂₁;s₃₂ =  n₃₁
-#         𝐿₁² = n₁₁^2+n₁₂^2
-#         𝐿₂² = n₂₁^2+n₂₂^2
-#         𝐿₃² = n₃₁^2+n₃₂^2
-#         if haskey(b.𝓖[1].data,:η)
-#             ξ₀ = b.𝓖[1]
-#             n = ξ₀.id
-#             data = ξ₀.data
-#             if isa(ξ₀,SNode)
-#                 index = ξ₀.index
-#                 𝝭 = ξ₀.𝝭
-#                 push!(index,0)
-#                 for (s,v) in data
-#                     push!(v,0.0)
-#                 end
-#                 ξ = SNode(n+1,data,index,𝝭)
-#             else
-#                 ξ = Node(n+1,data)
-#             end
-#         else
-#             ξ = b.𝓖[1]
-#         end
-#         if i == 1
-#             ξ.ξ = 1.0
-#             ξ.η = 0.0
-#             ξ.Δn₁s₁ = n₂₁*s₂₁/𝐿₂² - n₃₁*s₃₁/𝐿₃²
-#             ξ.Δn₁s₂n₂s₁ = n₂₁*s₂₂/𝐿₂² + n₂₂*s₂₁/𝐿₂² - n₃₁*s₃₂/𝐿₃² - n₃₂*s₃₁/𝐿₃²
-#             ξ.Δn₂s₂ = n₂₂*s₂₂/𝐿₂² - n₃₂*s₃₂/𝐿₃²
-#         elseif i == 2
-#             ξ.ξ = 0.0
-#             ξ.η = 1.0
-#             ξ.Δn₁s₁ = n₃₁*s₃₁/𝐿₃² - n₁₁*s₁₁/𝐿₁²
-#             ξ.Δn₁s₂n₂s₁ = n₃₁*s₃₂/𝐿₃² + n₃₂*s₃₁/𝐿₃² - n₁₁*s₁₂/𝐿₁² - n₁₂*s₁₁/𝐿₁²
-#             ξ.Δn₂s₂ = n₃₂*s₃₂/𝐿₃² - n₁₂*s₁₂/𝐿₁²
-#         else
-#             ξ.ξ = 0.0
-#             ξ.η = 0.0
-#             ξ.Δn₁s₁ = n₁₁*s₁₁/𝐿₁² - n₂₁*s₂₁/𝐿₂²
-#             ξ.Δn₁s₂n₂s₁ = n₁₁*s₁₂/𝐿₁² + n₁₂*s₁₁/𝐿₁² - n₂₁*s₂₂/𝐿₂² - n₂₂*s₂₁/𝐿₂²
-#             ξ.Δn₂s₂ = n₁₂*s₁₂/𝐿₁² - n₂₂*s₂₂/𝐿₂²
-#         end
-#         return [ξ]
-#     else
-#         return nothing
-#     end
-# end
+function get𝓖(a::T,b::S) where {T<:AbstractElement{:Tri3},S<:AbstractElement{:Poi1}}
+    ξ = b.𝓖[1]
+    if ~haskey(getfield(ξ,:data),:η)
+        n = length(getfield(ξ,:data)[:x])
+        push!(getfield(ξ,:data),:n₁=>(2,zeros(n)))
+    end
+    i = findfirst(x->x.id==b.𝓒[1].id, a.𝓒)
+    if i ≠ nothing
+        x₁ = a.𝓒[1].x
+        y₁ = a.𝓒[1].y
+        x₂ = a.𝓒[2].x
+        y₂ = a.𝓒[2].y
+        x₃ = a.𝓒[3].x
+        y₃ = a.𝓒[3].y
+        n₁₁ = y₃-y₂;n₂₁ = y₁-y₃;n₃₁ = y₂-y₁
+        n₁₂ = x₂-x₃;n₂₂ = x₃-x₁;n₃₂ = x₁-x₂
+        s₁₁ = -n₁₂;s₂₁ = -n₂₂;s₃₁ = -n₃₂
+        s₁₂ =  n₁₁;s₂₂ =  n₂₁;s₃₂ =  n₃₁
+        𝐿₁² = n₁₁^2+n₁₂^2
+        𝐿₂² = n₂₁^2+n₂₂^2
+        𝐿₃² = n₃₁^2+n₃₂^2
+        if i == 1
+            ξ.ξ = 1.0
+            ξ.η = 0.0
+            ξ.Δn₁s₁ = n₂₁*s₂₁/𝐿₂² - n₃₁*s₃₁/𝐿₃²
+            ξ.Δn₁s₂n₂s₁ = n₂₁*s₂₂/𝐿₂² + n₂₂*s₂₁/𝐿₂² - n₃₁*s₃₂/𝐿₃² - n₃₂*s₃₁/𝐿₃²
+            ξ.Δn₂s₂ = n₂₂*s₂₂/𝐿₂² - n₃₂*s₃₂/𝐿₃²
+        elseif i == 2
+            ξ.ξ = 0.0
+            ξ.η = 1.0
+            ξ.Δn₁s₁ = n₃₁*s₃₁/𝐿₃² - n₁₁*s₁₁/𝐿₁²
+            ξ.Δn₁s₂n₂s₁ = n₃₁*s₃₂/𝐿₃² + n₃₂*s₃₁/𝐿₃² - n₁₁*s₁₂/𝐿₁² - n₁₂*s₁₁/𝐿₁²
+            ξ.Δn₂s₂ = n₃₂*s₃₂/𝐿₃² - n₁₂*s₁₂/𝐿₁²
+        else
+            ξ.ξ = 0.0
+            ξ.η = 0.0
+            ξ.Δn₁s₁ = n₁₁*s₁₁/𝐿₁² - n₂₁*s₂₁/𝐿₂²
+            ξ.Δn₁s₂n₂s₁ = n₁₁*s₁₂/𝐿₁² + n₁₂*s₁₁/𝐿₁² - n₂₁*s₂₂/𝐿₂² - n₂₂*s₂₁/𝐿₂²
+            ξ.Δn₂s₂ = n₁₂*s₁₂/𝐿₁² - n₂₂*s₂₂/𝐿₂²
+        end
+        return [ξ]
+    else
+        return nothing
+    end
+end
 
-# function get𝓖(a::T,b::S) where {T<:AbstractElement{:Tri3},S<:AbstractElement{:Seg2}}
-#     i = findfirst(x->x.id==b.𝓒[1].id, a.𝓒)
-#     j = findfirst(x->x.id==b.𝓒[2].id, a.𝓒)
-#     if i ≠ nothing && j ≠ nothing && i ≤ 3 && j ≤ 3
-#         𝐿 = get𝐿(b)
-#         x₁ = a.𝓒[1].x
-#         y₁ = a.𝓒[1].y
-#         x₂ = a.𝓒[2].x
-#         y₂ = a.𝓒[2].y
-#         x₃ = a.𝓒[3].x
-#         y₃ = a.𝓒[3].y
-#         for ξ in b.𝓖
-#             if i == 1
-#                 ξ.ξ = (1.0-ξ.ξ)/2.0
-#                 ξ.η = 1.0-ξ.ξ
-#                 ξ.n₁ = (y₂-y₁)/𝐿
-#                 ξ.n₂ = (x₁-x₂)/𝐿
-#                 ξ.s₁ = (x₂-x₁)/𝐿
-#                 ξ.s₂ = (y₂-y₁)/𝐿
-#             elseif i == 2
-#                 ξ.η = (1.0-ξ.ξ)/2.0
-#                 ξ.ξ = 0.0
-#                 ξ.n₁ = (y₃-y₂)/𝐿
-#                 ξ.n₂ = (x₂-x₃)/𝐿
-#                 ξ.s₁ = (x₃-x₂)/𝐿
-#                 ξ.s₂ = (y₃-y₂)/𝐿
-#             else
-#                 ξ.ξ = (1.0+ξ.ξ)/2.0
-#                 ξ.η = 0.0
-#                 ξ.n₁ = (y₁-y₃)/𝐿
-#                 ξ.n₂ = (x₃-x₁)/𝐿
-#                 ξ.s₁ = (x₁-x₃)/𝐿
-#                 ξ.s₂ = (y₁-y₃)/𝐿
-#             end
-#             ξ.w *= 0.5
-#             ξ.𝑤 = ξ.w*𝐿
-#         end
-#         return b.𝓖
-#     else
-#         return nothing
-#     end
-# end
+function get𝓖(a::T,b::S) where {T<:AbstractElement{:Tri3},S<:AbstractElement{:Seg2}}
+    i = findfirst(x->x.id==b.𝓒[1].id, a.𝓒)
+    j = findfirst(x->x.id==b.𝓒[2].id, a.𝓒)
+    if i ≠ nothing && j ≠ nothing && i ≤ 3 && j ≤ 3
+        𝐿 = get𝐿(b)
+        x₁ = a.𝓒[1].x
+        y₁ = a.𝓒[1].y
+        x₂ = a.𝓒[2].x
+        y₂ = a.𝓒[2].y
+        x₃ = a.𝓒[3].x
+        y₃ = a.𝓒[3].y
+        for ξ in b.𝓖
+            if i == 1
+                ξ.ξ = (1.0-ξ.ξ)/2.0
+                ξ.η = 1.0-ξ.ξ
+                ξ.n₁ = (y₂-y₁)/𝐿
+                ξ.n₂ = (x₁-x₂)/𝐿
+                ξ.s₁ = (x₂-x₁)/𝐿
+                ξ.s₂ = (y₂-y₁)/𝐿
+            elseif i == 2
+                ξ.η = (1.0-ξ.ξ)/2.0
+                ξ.ξ = 0.0
+                ξ.n₁ = (y₃-y₂)/𝐿
+                ξ.n₂ = (x₂-x₃)/𝐿
+                ξ.s₁ = (x₃-x₂)/𝐿
+                ξ.s₂ = (y₃-y₂)/𝐿
+            else
+                ξ.ξ = (1.0+ξ.ξ)/2.0
+                ξ.η = 0.0
+                ξ.n₁ = (y₁-y₃)/𝐿
+                ξ.n₂ = (x₃-x₁)/𝐿
+                ξ.s₁ = (x₁-x₃)/𝐿
+                ξ.s₂ = (y₁-y₃)/𝐿
+            end
+            ξ.w *= 0.5
+            ξ.𝑤 = ξ.w*𝐿
+        end
+        return b.𝓖
+    else
+        return nothing
+    end
+end
 
-# ## coordinate convertion
-# @inline getξ(a::T,b::T,ξ::N) where {T<:AbstractElement{:Tri3},N<:AbstractNode} = ξ
-# function getξ(a::T,b::S,ξ::N) where {T<:AbstractElement{:Tri3},S<:AbstractElement{:Seg2},N<:AbstractNode}
-#     i = findfirst(x->x.id==b.𝓒[1].id, a.𝓒)
-#     if i == 1
-#         return ((1.0-ξ.ξ)/2.0,(1.0+ξ.ξ)/2.0,0.0)
-#     elseif i == 2
-#         return ((1.0-ξ.ξ)/2.0,0.0,0.0)
-#     else
-#         return ((1.0+ξ.ξ)/2.0,0.0,0.0)
-#     end
-# end
-
-## Quadrature Points
+"""
+quadraturerule(s::Symbol)
+"""
 function quadraturerule(s::Symbol)
     if s == :PoiGI1
         return Dict([:w=>[1.0],:ξ=>[1.0]])
