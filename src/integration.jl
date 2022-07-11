@@ -26,84 +26,69 @@ function set𝓖!(aps::Vector{T},s::Symbol,fs::Symbol...) where T<:AbstractEleme
     end
 end
 
-function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement,S<:AbstractElement}
+function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement{:Seg2},S<:AbstractElement{:Poi1}}
+    data = Dict([:ξ=>(1,[-1.0,1.0]),:w=>(1,[1.0,1.0])])
+    s = 0
+    G = 0
     for b in bs
         for a in as
-            set𝓖!(a,b)
+            g = findfirst(x->x.𝐼==b.𝓒[1].𝐼, a.𝓒)
+            if i ≠ nothing && i ≤ 2
+                G += 1
+                push!(a.𝓖,SNode((g,G,s),data))
+                s += length(a.𝓒)
+            end
         end
     end
 end
 
-function set𝓖!(a::T,b::S) where {T<:AbstractElement,S<:AbstractElement}
-    𝓖 = get𝓖(a,b)
-    empty!(a.𝓖)
-    push!(a.𝓖,𝓖...)
-end
-
-function get𝓖(a::T,b::S) where {T<:AbstractElement{:Seg2},S<:AbstractElement{:Poi1}}
-    ξ = b.𝓖[1]
-    if ~haskey(getfield(ξ,:data),:n₁)
-        n = length(getfield(ξ,:data)[:x])
-        push!(getfield(ξ,:data),:n₁=>(2,zeros(n)))
-    end
-    i = findfirst(x->x.𝐼==b.𝓒[1].𝐼, a.𝓒)
-    if i ≠ nothing && i ≤ 2
-        for ξ in b.𝓖
-            i == 1 ? (ξ.ξ = -1.0;ξ.n₁ = -1.0) : (ξ.ξ = 1.0;ξ.n₁ = 1.0)
+function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement{:Tri3},S<:AbstractElement{:Poi1}}
+    nₑ = length(as)
+    nᵢ = length(getfield(bs[1].𝓖[1],:data)[:w][2])
+    data = Dict([:ξ=>(1,[1.0,0.0,0.0]),:η=>(1,[0.0,1.0,0.0]),:w=>(1,[1.0,1.0,1.0])])
+    push!(data,:Δn₁s₁=>(2,zeros(nᵢ*nₑ)))
+    push!(data,:Δn₁s₂n₂s₁=>(2,zeros(nᵢ*nₑ)))
+    push!(data,:Δn₂s₂=>(2,zeros(nᵢ*nₑ)))
+    s = 0
+    G = 0
+    for b in bs
+        for a in as
+            g = findfirst(x->x.𝐼==b.𝓒[1].𝐼, a.𝓒)
+            if g ≠ nothing
+                x₁ = a.𝓒[1].x
+                y₁ = a.𝓒[1].y
+                x₂ = a.𝓒[2].x
+                y₂ = a.𝓒[2].y
+                x₃ = a.𝓒[3].x
+                y₃ = a.𝓒[3].y
+                n₁₁ = y₃-y₂;n₂₁ = y₁-y₃;n₃₁ = y₂-y₁
+                n₁₂ = x₂-x₃;n₂₂ = x₃-x₁;n₃₂ = x₁-x₂
+                s₁₁ = -n₁₂;s₂₁ = -n₂₂;s₃₁ = -n₃₂
+                s₁₂ =  n₁₁;s₂₂ =  n₂₁;s₃₂ =  n₃₁
+                𝐿₁² = n₁₁^2+n₁₂^2
+                𝐿₂² = n₂₁^2+n₂₂^2
+                𝐿₃² = n₃₁^2+n₃₂^2
+                ξ = SNode((g,G,s),data)
+                if g == 1
+                    ξ.Δn₁s₁ = n₂₁*s₂₁/𝐿₂² - n₃₁*s₃₁/𝐿₃²
+                    ξ.Δn₁s₂n₂s₁ = n₂₁*s₂₂/𝐿₂² + n₂₂*s₂₁/𝐿₂² - n₃₁*s₃₂/𝐿₃² - n₃₂*s₃₁/𝐿₃²
+                    ξ.Δn₂s₂ = n₂₂*s₂₂/𝐿₂² - n₃₂*s₃₂/𝐿₃²
+                elseif g == 2
+                    ξ.Δn₁s₁ = n₃₁*s₃₁/𝐿₃² - n₁₁*s₁₁/𝐿₁²
+                    ξ.Δn₁s₂n₂s₁ = n₃₁*s₃₂/𝐿₃² + n₃₂*s₃₁/𝐿₃² - n₁₁*s₁₂/𝐿₁² - n₁₂*s₁₁/𝐿₁²
+                    ξ.Δn₂s₂ = n₃₂*s₃₂/𝐿₃² - n₁₂*s₁₂/𝐿₁²
+                else
+                    ξ.Δn₁s₁ = n₁₁*s₁₁/𝐿₁² - n₂₁*s₂₁/𝐿₂²
+                    ξ.Δn₁s₂n₂s₁ = n₁₁*s₁₂/𝐿₁² + n₁₂*s₁₁/𝐿₁² - n₂₁*s₂₂/𝐿₂² - n₂₂*s₂₁/𝐿₂²
+                    ξ.Δn₂s₂ = n₁₂*s₁₂/𝐿₁² - n₂₂*s₂₂/𝐿₂²
+                end
+                push!(a.𝓖,ξ)
+            end
         end
-        return b.𝓖
-    else
-        return nothing
     end
 end
 
-function get𝓖(a::T,b::S) where {T<:AbstractElement{:Tri3},S<:AbstractElement{:Poi1}}
-    ξ = b.𝓖[1]
-    if ~haskey(getfield(ξ,:data),:η)
-        n = length(getfield(ξ,:data)[:x])
-        push!(getfield(ξ,:data),:n₁=>(2,zeros(n)))
-    end
-    i = findfirst(x->x.id==b.𝓒[1].id, a.𝓒)
-    if i ≠ nothing
-        x₁ = a.𝓒[1].x
-        y₁ = a.𝓒[1].y
-        x₂ = a.𝓒[2].x
-        y₂ = a.𝓒[2].y
-        x₃ = a.𝓒[3].x
-        y₃ = a.𝓒[3].y
-        n₁₁ = y₃-y₂;n₂₁ = y₁-y₃;n₃₁ = y₂-y₁
-        n₁₂ = x₂-x₃;n₂₂ = x₃-x₁;n₃₂ = x₁-x₂
-        s₁₁ = -n₁₂;s₂₁ = -n₂₂;s₃₁ = -n₃₂
-        s₁₂ =  n₁₁;s₂₂ =  n₂₁;s₃₂ =  n₃₁
-        𝐿₁² = n₁₁^2+n₁₂^2
-        𝐿₂² = n₂₁^2+n₂₂^2
-        𝐿₃² = n₃₁^2+n₃₂^2
-        if i == 1
-            ξ.ξ = 1.0
-            ξ.η = 0.0
-            ξ.Δn₁s₁ = n₂₁*s₂₁/𝐿₂² - n₃₁*s₃₁/𝐿₃²
-            ξ.Δn₁s₂n₂s₁ = n₂₁*s₂₂/𝐿₂² + n₂₂*s₂₁/𝐿₂² - n₃₁*s₃₂/𝐿₃² - n₃₂*s₃₁/𝐿₃²
-            ξ.Δn₂s₂ = n₂₂*s₂₂/𝐿₂² - n₃₂*s₃₂/𝐿₃²
-        elseif i == 2
-            ξ.ξ = 0.0
-            ξ.η = 1.0
-            ξ.Δn₁s₁ = n₃₁*s₃₁/𝐿₃² - n₁₁*s₁₁/𝐿₁²
-            ξ.Δn₁s₂n₂s₁ = n₃₁*s₃₂/𝐿₃² + n₃₂*s₃₁/𝐿₃² - n₁₁*s₁₂/𝐿₁² - n₁₂*s₁₁/𝐿₁²
-            ξ.Δn₂s₂ = n₃₂*s₃₂/𝐿₃² - n₁₂*s₁₂/𝐿₁²
-        else
-            ξ.ξ = 0.0
-            ξ.η = 0.0
-            ξ.Δn₁s₁ = n₁₁*s₁₁/𝐿₁² - n₂₁*s₂₁/𝐿₂²
-            ξ.Δn₁s₂n₂s₁ = n₁₁*s₁₂/𝐿₁² + n₁₂*s₁₁/𝐿₁² - n₂₁*s₂₂/𝐿₂² - n₂₂*s₂₁/𝐿₂²
-            ξ.Δn₂s₂ = n₁₂*s₁₂/𝐿₁² - n₂₂*s₂₂/𝐿₂²
-        end
-        return [ξ]
-    else
-        return nothing
-    end
-end
-
-function get𝓖(a::T,b::S) where {T<:AbstractElement{:Tri3},S<:AbstractElement{:Seg2}}
+function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement{:Tri3},S<:AbstractElement{:Seg2}}
     i = findfirst(x->x.id==b.𝓒[1].id, a.𝓒)
     j = findfirst(x->x.id==b.𝓒[2].id, a.𝓒)
     if i ≠ nothing && j ≠ nothing && i ≤ 3 && j ≤ 3
