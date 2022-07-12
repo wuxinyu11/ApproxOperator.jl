@@ -2304,7 +2304,7 @@ function set∇̄²𝝭!(ap::ReproducingKernel{𝒑,𝑠,𝜙,:Tri3};Γᵍ::Vect
                     n₂ = ξ.n₂
                     s₁ = ξ.s₁
                     s₂ = ξ.s₂
-                    𝝭 = get𝝭(a,ξ)
+                    𝝭 = ξ[:𝝭]
                     𝒒, ∂𝒒∂ξ, ∂𝒒∂η = get∇²𝒑₂(a,ξ)
 
                     𝒒̂ᵀ𝗚⁻¹𝒒 =  𝒒̂ᵀ𝗚⁻¹*𝒒
@@ -2342,7 +2342,8 @@ function set∇̄²𝝭!(ap::ReproducingKernel{𝒑,𝑠,𝜙,:Tri3};Γᵍ::Vect
                     n₂ = ξ.n₂
                     s₁ = ξ.s₁
                     s₂ = ξ.s₂
-                    _,∂𝝭∂x,∂𝝭∂y = get∇𝝭(b,ξ)
+                    ∂𝝭∂x = ξ[:∂𝝭∂x]
+                    ∂𝝭∂y = ξ[:∂𝝭∂y]
                     𝒒 = get𝒑₂(b,ξ)
 
                     𝒒̂ᵀ𝗚⁻¹𝒒 =  𝒒̂ᵀ𝗚⁻¹*𝒒
@@ -2423,6 +2424,30 @@ for set𝝭 in (:set∇̃𝝭!,:set∇̃²𝝭!,:set∇∇̃²𝝭!)
                 for i in 1:length(gps)
                     $set𝝭(gps[i],aps[i])
                 end
+            end
+        end
+    end
+end
+
+for set𝝭 in (:set∇̄𝝭!,:set∇̃²𝝭!,:set∇∇̃²𝝭!)
+    @eval begin
+        function $set𝝭(gps::Vector{T},aps::Vector{S}) where {T<:ReproducingKernel,S<:ReproducingKernel}
+            if length(gps) ≠ length(aps)
+                error("Miss match element numbers")
+            else
+                for i in 1:length(gps)
+                    $set𝝭(gps[i],aps[i])
+                end
+            end
+        end
+    end
+end
+
+for set𝝭 in (:set∇̄²𝝭!,:set∇∇̄²𝝭!)
+    @eval begin
+        function $set𝝭(aps::Vector{T};Γᵍ::Vector{T}=T[],Γᶿ::Vector{T}=T[],Γᴾ::Vector{T}=T[]) where T<:ReproducingKernel
+            for i in 1:length(aps)
+                $set𝝭(aps[i],Γᵍ=Γᵍ,Γᶿ=Γᶿ,Γᴾ=Γᴾ)
             end
         end
     end

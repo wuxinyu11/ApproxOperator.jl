@@ -44,17 +44,17 @@ end
 
 function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement{:Tri3},S<:AbstractElement{:Poi1}}
     nₑ = length(as)
-    nᵢ = length(getfield(bs[1].𝓖[1],:data)[:w][2])
     data = Dict([:ξ=>(1,[1.0,0.0,0.0]),:η=>(1,[0.0,1.0,0.0]),:w=>(1,[1.0,1.0,1.0])])
-    push!(data,:Δn₁s₁=>(2,zeros(nᵢ*nₑ)))
-    push!(data,:Δn₁s₂n₂s₁=>(2,zeros(nᵢ*nₑ)))
-    push!(data,:Δn₂s₂=>(2,zeros(nᵢ*nₑ)))
+    push!(data,:Δn₁s₁=>(2,zeros(nₑ)))
+    push!(data,:Δn₁s₂n₂s₁=>(2,zeros(nₑ)))
+    push!(data,:Δn₂s₂=>(2,zeros(nₑ)))
     s = 0
     G = 0
     for b in bs
         for a in as
             g = findfirst(x->x.𝐼==b.𝓒[1].𝐼, a.𝓒)
             if g ≠ nothing
+                G += 1
                 x₁ = a.𝓒[1].x
                 y₁ = a.𝓒[1].y
                 x₂ = a.𝓒[2].x
@@ -89,45 +89,56 @@ function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement{:Tri3},
 end
 
 function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement{:Tri3},S<:AbstractElement{:Seg2}}
-    i = findfirst(x->x.id==b.𝓒[1].id, a.𝓒)
-    j = findfirst(x->x.id==b.𝓒[2].id, a.𝓒)
-    if i ≠ nothing && j ≠ nothing && i ≤ 3 && j ≤ 3
-        𝐿 = get𝐿(b)
-        x₁ = a.𝓒[1].x
-        y₁ = a.𝓒[1].y
-        x₂ = a.𝓒[2].x
-        y₂ = a.𝓒[2].y
-        x₃ = a.𝓒[3].x
-        y₃ = a.𝓒[3].y
-        for ξ in b.𝓖
-            if i == 1
-                ξ.ξ = (1.0-ξ.ξ)/2.0
-                ξ.η = 1.0-ξ.ξ
-                ξ.n₁ = (y₂-y₁)/𝐿
-                ξ.n₂ = (x₁-x₂)/𝐿
-                ξ.s₁ = (x₂-x₁)/𝐿
-                ξ.s₂ = (y₂-y₁)/𝐿
-            elseif i == 2
-                ξ.η = (1.0-ξ.ξ)/2.0
-                ξ.ξ = 0.0
-                ξ.n₁ = (y₃-y₂)/𝐿
-                ξ.n₂ = (x₂-x₃)/𝐿
-                ξ.s₁ = (x₃-x₂)/𝐿
-                ξ.s₂ = (y₃-y₂)/𝐿
-            else
-                ξ.ξ = (1.0+ξ.ξ)/2.0
-                ξ.η = 0.0
-                ξ.n₁ = (y₁-y₃)/𝐿
-                ξ.n₂ = (x₃-x₁)/𝐿
-                ξ.s₁ = (x₁-x₃)/𝐿
-                ξ.s₂ = (y₁-y₃)/𝐿
+    nₑ = length(as)
+    nᵢ = length(getfield(bs[1].𝓖[1],:data)[:w][2])
+    data = Dict([:ξ=>(2,zeros(nₑ*nₑ)),:η=>(2,zeros(nₑ*nₑ)),:w=>(2,zeros(nₑ*nₑ)),:x=>(2,zeros(nₑ*nₑ)),:y=>(2,zeros(nₑ*nₑ)),:z=>(2,zeros(nₑ*nₑ)),:𝑤=>(2,zeros(nₑ*nₑ)),:n₁=>(2,zeros(nₑ*nₑ)),:n₂=>(2,zeros(nₑ*nₑ)),:s₁=>(2,zeros(nₑ*nₑ)),:s₂=>(2,zeros(nₑ*nₑ))])
+    G = 0
+    for b in bs
+        for a in as
+            i = findfirst(x->x.𝐼==b.𝓒[1].𝐼, a.𝓒)
+            j = findfirst(x->x.𝐼==b.𝓒[2].𝐼, a.𝓒)
+            if i ≠ nothing && j ≠ nothing && i ≤ 3 && j ≤ 3
+                𝐿 = get𝐿(b)
+                x₁ = a.𝓒[1].x
+                y₁ = a.𝓒[1].y
+                x₂ = a.𝓒[2].x
+                y₂ = a.𝓒[2].y
+                x₃ = a.𝓒[3].x
+                y₃ = a.𝓒[3].y
+                for ξ_ in b.𝓖
+                    G += 1
+                    ξ = SNode((ξ_.𝑔,G,length(a.𝓒)),data)
+                    if i == 1
+                        ξ.ξ = (1.0-ξ_.ξ)/2.0
+                        ξ.η = 1.0-ξ_.ξ
+                        ξ.n₁ = (y₂-y₁)/𝐿
+                        ξ.n₂ = (x₁-x₂)/𝐿
+                        ξ.s₁ = (x₂-x₁)/𝐿
+                        ξ.s₂ = (y₂-y₁)/𝐿
+                    elseif i == 2
+                        ξ.η = (1.0-ξ_.ξ)/2.0
+                        ξ.ξ = 0.0
+                        ξ.n₁ = (y₃-y₂)/𝐿
+                        ξ.n₂ = (x₂-x₃)/𝐿
+                        ξ.s₁ = (x₃-x₂)/𝐿
+                        ξ.s₂ = (y₃-y₂)/𝐿
+                    else
+                        ξ.ξ = (1.0+ξ_.ξ)/2.0
+                        ξ.η = 0.0
+                        ξ.n₁ = (y₁-y₃)/𝐿
+                        ξ.n₂ = (x₃-x₁)/𝐿
+                        ξ.s₁ = (x₁-x₃)/𝐿
+                        ξ.s₂ = (y₁-y₃)/𝐿
+                    end
+                    ξ.x = ξ_.x
+                    ξ.y = ξ_.y
+                    ξ.z = ξ_.z
+                    ξ.w = 0.5*ξ_.w
+                    ξ.𝑤 = 0.5*ξ_.w*𝐿
+                    push!(a.𝓖,ξ)
+                end
             end
-            ξ.w *= 0.5
-            ξ.𝑤 = ξ.w*𝐿
         end
-        return b.𝓖
-    else
-        return nothing
     end
 end
 
