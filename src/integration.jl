@@ -44,7 +44,7 @@ end
 
 function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement{:Tri3},S<:AbstractElement{:Poi1}}
     nₑ = length(as)
-    data = Dict([:ξ=>(1,[1.0,0.0,0.0]),:η=>(1,[0.0,1.0,0.0]),:w=>(1,[1.0,1.0,1.0])])
+    data = Dict([:ξ=>(1,[1.0,0.0,0.0]),:η=>(1,[0.0,1.0,0.0]),:w=>(1,[1.0,1.0,1.0]),:x=>(2,zeros(nₑ)),:y=>(2,zeros(nₑ)),:z=>(2,zeros(nₑ))])
     push!(data,:Δn₁s₁=>(2,zeros(nₑ)))
     push!(data,:Δn₁s₂n₂s₁=>(2,zeros(nₑ)))
     push!(data,:Δn₂s₂=>(2,zeros(nₑ)))
@@ -70,6 +70,9 @@ function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement{:Tri3},
                 𝐿₃² = n₃₁^2+n₃₂^2
                 ξ = SNode((g,G,s),data)
                 if g == 1
+                    ξ.x = a.𝓒[1].x
+                    ξ.y = a.𝓒[1].y
+                    ξ.z = a.𝓒[1].z
                     ξ.Δn₁s₁ = n₂₁*s₂₁/𝐿₂² - n₃₁*s₃₁/𝐿₃²
                     ξ.Δn₁s₂n₂s₁ = n₂₁*s₂₂/𝐿₂² + n₂₂*s₂₁/𝐿₂² - n₃₁*s₃₂/𝐿₃² - n₃₂*s₃₁/𝐿₃²
                     ξ.Δn₂s₂ = n₂₂*s₂₂/𝐿₂² - n₃₂*s₃₂/𝐿₃²
@@ -93,6 +96,7 @@ function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement{:Tri3},
     nᵢ = length(getfield(bs[1].𝓖[1],:data)[:w][2])
     data = Dict([:ξ=>(2,zeros(nₑ*nₑ)),:η=>(2,zeros(nₑ*nₑ)),:w=>(2,zeros(nₑ*nₑ)),:x=>(2,zeros(nₑ*nₑ)),:y=>(2,zeros(nₑ*nₑ)),:z=>(2,zeros(nₑ*nₑ)),:𝑤=>(2,zeros(nₑ*nₑ)),:n₁=>(2,zeros(nₑ*nₑ)),:n₂=>(2,zeros(nₑ*nₑ)),:s₁=>(2,zeros(nₑ*nₑ)),:s₂=>(2,zeros(nₑ*nₑ))])
     G = 0
+    s = 0
     for b in bs
         for a in as
             i = findfirst(x->x.𝐼==b.𝓒[1].𝐼, a.𝓒)
@@ -107,10 +111,11 @@ function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement{:Tri3},
                 y₃ = a.𝓒[3].y
                 for ξ_ in b.𝓖
                     G += 1
-                    ξ = SNode((ξ_.𝑔,G,length(a.𝓒)),data)
+                    ξ = SNode((ξ_.𝑔,G,s),data)
+                    s += length(a.𝓒)
                     if i == 1
                         ξ.ξ = (1.0-ξ_.ξ)/2.0
-                        ξ.η = 1.0-ξ_.ξ
+                        ξ.η = 1.0-ξ.ξ
                         ξ.n₁ = (y₂-y₁)/𝐿
                         ξ.n₂ = (x₁-x₂)/𝐿
                         ξ.s₁ = (x₂-x₁)/𝐿

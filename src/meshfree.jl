@@ -216,10 +216,10 @@ Basis function
 """
 ## Basis Function
 # @inline get∇₁𝒑(ap::ReproducingKernel,x::Any) = get𝒑(ap,x), get∂𝒑∂x(ap,x)
-# @inline get∇₂𝒑(ap::ReproducingKernel,x::Any) = get𝒑(ap,x), get∂𝒑∂x(ap,x), get∂𝒑∂y(ap,x)
+@inline get∇₂𝒑(ap::ReproducingKernel,x::Any) = get𝒑(ap,x), get∂𝒑∂x(ap,x), get∂𝒑∂y(ap,x)
 @inline get∇𝒑(ap::ReproducingKernel,x::Any) = get𝒑(ap,x), get∂𝒑∂x(ap,x), get∂𝒑∂y(ap,x), get∂𝒑∂z(ap,x)
 # @inline get∇²₁𝒑(ap::ReproducingKernel,x::Any) = get𝒑(ap,x), get∂𝒑∂x(ap,x), get∂²𝒑∂x²(ap,x)
-# @inline get∇²₂𝒑(ap::ReproducingKernel,x::Any) = get𝒑(ap,x), get∂𝒑∂x(ap,x), get∂𝒑∂y(ap,x), get∂²𝒑∂x²(ap,x), get∂²𝒑∂x∂y(ap,x), get∂²𝒑∂y²(ap,x)
+@inline get∇²₂𝒑(ap::ReproducingKernel,x::Any) = get𝒑(ap,x), get∂𝒑∂x(ap,x), get∂𝒑∂y(ap,x), get∂²𝒑∂x²(ap,x), get∂²𝒑∂x∂y(ap,x), get∂²𝒑∂y²(ap,x)
 @inline get∇²𝒑(ap::ReproducingKernel,x::Any) = get𝒑(ap,x), get∂𝒑∂x(ap,x), get∂𝒑∂y(ap,x), get∂²𝒑∂x²(ap,x), get∂²𝒑∂x∂y(ap,x), get∂²𝒑∂y²(ap,x), get∂𝒑∂z(ap,x), get∂²𝒑∂x∂z(ap,x), get∂²𝒑∂y∂z(ap,x), get∂²𝒑∂z²(ap,x)
 # @inline get∇³₁𝒑(ap::ReproducingKernel,x::Any) = get𝒑(ap,x), get∂𝒑∂x(ap,x), get∂²𝒑∂x²(ap,x), get∂³𝒑∂x³(ap,x)
 @inline get∇³𝒑(ap::ReproducingKernel,x::Any) = get𝒑(ap,x), get∂𝒑∂x(ap,x), get∂𝒑∂y(ap,x), get∂²𝒑∂x²(ap,x), get∂²𝒑∂x∂y(ap,x), get∂²𝒑∂y²(ap,x), get∂³𝒑∂x³(ap,x), get∂³𝒑∂x²∂y(ap,x), get∂³𝒑∂x∂y²(ap,x), get∂³𝒑∂y³(ap,x)
@@ -2290,12 +2290,9 @@ function set∇̄²𝝭!(ap::ReproducingKernel{𝒑,𝑠,𝜙,:Tri3};Γᵍ::Vect
         𝗚⁻¹ = cal𝗚₂!(ap)
         𝒒̂ᵀ𝗚⁻¹ = 𝒒̂*𝗚⁻¹
 
-        ∂²𝝭∂x² = ap.𝝭[:∂̄x²]
-        ∂²𝝭∂x∂y = ap.𝝭[:∂̄x∂̄y]
-        ∂²𝝭∂y² = ap.𝝭[:∂̄y²]
-        fill!(∂²𝝭∂x²,0.0)
-        fill!(∂²𝝭∂x∂y,0.0)
-        fill!(∂²𝝭∂y²,0.0)
+        ∂²𝝭∂x² = ξ̂[:∂²𝝭∂x²_]
+        ∂²𝝭∂x∂y = ξ̂[:∂²𝝭∂x∂y_]
+        ∂²𝝭∂y² = ξ̂[:∂²𝝭∂y²_]
         for a in Γᵍ
             if ap∩a ≠ nothing
                 for ξ in a.𝓖
@@ -2378,7 +2375,7 @@ function set∇̄²𝝭!(ap::ReproducingKernel{𝒑,𝑠,𝜙,:Tri3};Γᵍ::Vect
                 Δn₁s₂n₂s₁ = ξ.Δn₁s₂n₂s₁
                 Δn₂s₂ = ξ.Δn₂s₂
 
-                𝝭 = get𝝭(c,ξ)
+                𝝭 = ξ[:𝝭]
                 𝒒 = get𝒑₂(c,ξ)
 
                 𝒒̂ᵀ𝗚⁻¹𝒒 =  𝒒̂ᵀ𝗚⁻¹*𝒒
@@ -2393,11 +2390,6 @@ function set∇̄²𝝭!(ap::ReproducingKernel{𝒑,𝑠,𝜙,:Tri3};Γᵍ::Vect
                     ∂²𝝭∂y²[i] += 𝝭[i]*Δms₂₂
                 end
             end
-        end
-        for i in 1:length(𝓒)
-            ξ̂.𝝭[:∂̄x²][ξ̂.index[ξ̂.id]+i] = ∂²𝝭∂x²[i]
-            ξ̂.𝝭[:∂̄x∂̄y][ξ̂.index[ξ̂.id]+i] = ∂²𝝭∂x∂y[i]
-            ξ̂.𝝭[:∂̄y²][ξ̂.index[ξ̂.id]+i] = ∂²𝝭∂y²[i]
         end
     end
 end
@@ -2429,26 +2421,16 @@ for set𝝭 in (:set∇̃𝝭!,:set∇̃²𝝭!,:set∇∇̃²𝝭!)
     end
 end
 
-for set𝝭 in (:set∇̄𝝭!,:set∇̃²𝝭!,:set∇∇̃²𝝭!)
-    @eval begin
-        function $set𝝭(gps::Vector{T},aps::Vector{S}) where {T<:ReproducingKernel,S<:ReproducingKernel}
-            if length(gps) ≠ length(aps)
-                error("Miss match element numbers")
-            else
-                for i in 1:length(gps)
-                    $set𝝭(gps[i],aps[i])
-                end
-            end
-        end
+function set∇̄²𝝭!(aps::Vector{T};Γᵍ::Vector{T}=T[],Γᶿ::Vector{T}=T[],Γᴾ::Vector{T}=T[]) where T<:ReproducingKernel
+    for ap in aps
+        set∇̄²𝝭!(ap,Γᵍ=Γᵍ,Γᶿ=Γᶿ,Γᴾ=Γᴾ)
     end
 end
 
-for set𝝭 in (:set∇̄²𝝭!,:set∇∇̄²𝝭!)
-    @eval begin
-        function $set𝝭(aps::Vector{T};Γᵍ::Vector{T}=T[],Γᶿ::Vector{T}=T[],Γᴾ::Vector{T}=T[]) where T<:ReproducingKernel
-            for i in 1:length(aps)
-                $set𝝭(aps[i],Γᵍ=Γᵍ,Γᶿ=Γᶿ,Γᴾ=Γᴾ)
-            end
-        end
+function set∇∇̄²𝝭!(aps::Vector{T};Γᵍ::Vector{T}=T[],Γᶿ::Vector{T}=T[],Γᴾ::Vector{T}=T[]) where T<:ReproducingKernel
+    for i in 1:length(aps)
+        isempty(Γᵍ) ? a = nothing : a = Γᵍ[i]
+        isempty(Γᶿ) ? b = nothing : b = Γᶿ[i]
+        set∇∇̄²𝝭!(aps[i],Γᵍ=a,Γᶿ=b,Γᴾ=Γᴾ)
     end
 end
