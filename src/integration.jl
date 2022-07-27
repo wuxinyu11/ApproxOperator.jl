@@ -43,7 +43,14 @@ function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement{:Seg2},
 end
 
 function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement{:Tri3},S<:AbstractElement{:Poi1}}
-    nₑ = length(as)
+    unique!(as)
+    nₑ = 0
+    for b in bs
+        for a in as
+            g = findfirst(x->x.𝐼==b.𝓒[1].𝐼, a.𝓒)
+            g ≠ nothing && g ≤ 3 ? nₑ += 1 : nothing
+        end
+    end
     data = Dict([:ξ=>(1,[1.0,0.0,0.0]),:η=>(1,[0.0,1.0,0.0]),:w=>(1,[1.0,1.0,1.0]),:x=>(2,zeros(nₑ)),:y=>(2,zeros(nₑ)),:z=>(2,zeros(nₑ))])
     push!(data,:Δn₁s₁=>(2,zeros(nₑ)))
     push!(data,:Δn₁s₂n₂s₁=>(2,zeros(nₑ)))
@@ -53,7 +60,7 @@ function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement{:Tri3},
     for b in bs
         for a in as
             g = findfirst(x->x.𝐼==b.𝓒[1].𝐼, a.𝓒)
-            if g ≠ nothing
+            if g ≠ nothing && g ≤ 3
                 G += 1
                 x₁ = a.𝓒[1].x
                 y₁ = a.𝓒[1].y
@@ -101,7 +108,7 @@ end
 function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement{:Tri3},S<:AbstractElement{:Seg2}}
     nₑ = length(as)
     nᵢ = length(getfield(bs[1].𝓖[1],:data)[:w][2])
-    data = Dict([:ξ=>(2,zeros(nₑ*nₑ)),:η=>(2,zeros(nₑ*nₑ)),:w=>(2,zeros(nₑ*nₑ)),:x=>(2,zeros(nₑ*nₑ)),:y=>(2,zeros(nₑ*nₑ)),:z=>(2,zeros(nₑ*nₑ)),:𝑤=>(2,zeros(nₑ*nₑ)),:n₁=>(2,zeros(nₑ*nₑ)),:n₂=>(2,zeros(nₑ*nₑ)),:s₁=>(2,zeros(nₑ*nₑ)),:s₂=>(2,zeros(nₑ*nₑ))])
+    data = Dict([:ξ=>(2,zeros(nₑ*nᵢ)),:η=>(2,zeros(nₑ*nᵢ)),:w=>(2,zeros(nₑ*nᵢ)),:x=>(2,zeros(nₑ*nᵢ)),:y=>(2,zeros(nₑ*nᵢ)),:z=>(2,zeros(nₑ*nᵢ)),:𝑤=>(2,zeros(nₑ*nᵢ)),:n₁=>(2,zeros(nₑ*nᵢ)),:n₂=>(2,zeros(nₑ*nᵢ)),:s₁=>(2,zeros(nₑ*nᵢ)),:s₂=>(2,zeros(nₑ*nᵢ))])
     G = 0
     s = 0
     for b in bs

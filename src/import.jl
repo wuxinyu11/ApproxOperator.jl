@@ -73,7 +73,7 @@ function import_msh_4(fid::IO) end
 function import_msh_2(fid::IO)
     etype = Dict(1=>:Seg2,2=>:Tri3,3=>:Quad,15=>:Poi1)
     nodes = Dict{Symbol,Vector{Float64}}()
-    elements = Dict{String,Set{Tuple{Symbol,Vector{Int}}}}()
+    elements = Dict{String,Vector{Tuple{Symbol,Vector{Int}}}}()
     physicalnames = Dict{Int,String}()
     for line in eachline(fid)
         if line == "\$PhysicalNames"
@@ -86,7 +86,7 @@ function import_msh_2(fid::IO)
                 physicalTag = parse(Int,p_)
                 name = strip(n_,'\"')
                 physicalnames[physicalTag] = name
-                elements[name] = Set{Tuple{Symbol,Vector{Int}}}()
+                elements[name] = Vector{Tuple{Symbol,Vector{Int}}}()
             end
             readline(fid)
         elseif line == "\$Nodes"
@@ -138,6 +138,17 @@ function importmsh(filename::String,config::Dict{Any,Any})
     else
         sp = nothing
     end
+    if haskey(config,"IndependentDofs")
+        for (k,v) in config["IndependentDofs"]
+            dofs = Set{Int}()
+            for (type,nodeList) in elms[v]
+                union!(dofs,Set(nodeList))
+            end
+            elms[k] = [(:Poi1,[dof]) for dof in dofs]
+        end
+        delete!(config,"IndependentDofs")
+    end
+
     nodes = Node(nodes...)
     for (name,cfg) in config
         Type = eval(Meta.parse(cfg["type"]))
