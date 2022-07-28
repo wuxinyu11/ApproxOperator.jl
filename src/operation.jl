@@ -682,9 +682,10 @@ end
 
 function (op::Operator{:∫∇𝑛vθdΓ})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
-    n₁,n₂ = get𝒏(ap)
     for ξ in 𝓖
         𝑤 = ξ.𝑤
+        n₁ = ξ.n₁
+        n₂ = ξ.n₂
         B₁ = ξ[:∂𝝭∂x]
         B₂ = ξ[:∂𝝭∂y]
         θ = ξ.θ
