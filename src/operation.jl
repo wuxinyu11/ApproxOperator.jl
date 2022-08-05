@@ -603,6 +603,40 @@ end
 """
 Kirchhoff-Love plate
 """
+"""
+## Operator{:∫κᵢⱼMᵢⱼdΩ}
+
+This is a bilinear operator implemented by the follow equation: 
+$$
+\int_\Omega \kappa_{ij} M_{ij} d\Omega
+$$
+where $\kappa_{ij}$ is the curvature:
+$$
+\kappa_{ij} = - w_{,ij}, i,j = 1,2
+$$
+and $M_{ij}$ is the bending moment expressed as:
+$$
+\begin{Bmatrix}
+    M_{11} \\ M_{22} \\ M_{12}
+\end{Bmatrix} = -D
+\begin{bmatrix}
+    1 & \nu & 0 \\
+    \nu & 1 & 0 \\
+    0 & 0 & \frac{1-\nu}{2}
+\end{bmatrix}
+\begin{Bmatrix}
+    w_{,11} \\ w_{,22} \\ 2w_{,12}
+\end{Bmatrix}
+$$
+with
+$$
+D=\frac{h^3E}{12(1-\nu^2)}
+$$
+
+---
+Required parameters: D, ν 
+Required shape functions: ∂²𝝭∂x², ∂²𝝭∂x∂y, ∂²𝝭∂y²
+"""
 function (op::Operator{:∫κᵢⱼMᵢⱼdΩ})(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     D = op.D
@@ -729,8 +763,10 @@ function (op::Operator{:∫MₙₙθdΓ})(ap::T,k::AbstractMatrix{Float64},f::Ab
                 θⱼ = B₁[j]*n₁ + B₂[j]*n₂
                 Mⱼ = D₁₁*B₁₁[j] + D₁₂*B₁₂[j] + D₂₂*B₂₂[j]
                 k[I,J] += (Mᵢ*θⱼ+θᵢ*Mⱼ+α*θᵢ*θⱼ)*𝑤
+                # k[I,J] += (-Mᵢ*θⱼ-θᵢ*Mⱼ+α*θᵢ*θⱼ)*𝑤
             end
             f[I] += (Mᵢ+α*θᵢ)*θ*𝑤
+            # f[I] += (-Mᵢ+α*θᵢ)*θ*𝑤
         end
     end
 end
@@ -763,8 +799,10 @@ function (op::Operator{:∫VgdΓ})(ap::T,k::AbstractMatrix{Float64},f::AbstractV
                 J = xⱼ.𝐼
                 Vⱼ = D₁₁₁*B₁₁₁[j] + D₁₁₂*B₁₁₂[j] + D₁₂₂*B₁₂₂[j] + D₂₂₂*B₂₂₂[j]
                 k[I,J] += (-Vᵢ*N[j]-N[i]*Vⱼ+α*N[i]*N[j])*𝑤
+                # k[I,J] += (Vᵢ*N[j]+N[i]*Vⱼ+α*N[i]*N[j])*𝑤
             end
             f[I] += (-Vᵢ+α*N[i])*g*𝑤
+            # f[I] += (Vᵢ+α*N[i])*g*𝑤
         end
     end
 end
@@ -801,8 +839,10 @@ function (op::Operator{:∫M̃ₙₙθdΓ})(ap::T,k::AbstractMatrix{Float64},f::
                 θⱼ = B₁[j]*n₁ + B₂[j]*n₂
                 Mⱼ = D₁₁*B₁₁[j] + D₁₂*B₁₂[j] + D₂₂*B₂₂[j]
                 k[I,J] += (Mᵢ*θⱼ+θᵢ*Mⱼ-M̄ᵢ*θⱼ)*𝑤
+                # k[I,J] += (Mᵢ*θⱼ+θᵢ*Mⱼ)*𝑤
             end
             f[I] += (Mᵢ-M̄ᵢ)*θ*𝑤
+            # f[I] += (Mᵢ)*θ*𝑤
         end
     end
 end
@@ -845,8 +885,10 @@ function (op::Operator{:∫ṼgdΓ})(ap::T,k::AbstractMatrix{Float64},f::Abstrac
                 J = xⱼ.𝐼
                 Vⱼ = D₁₁₁*B₁₁₁[j] + D₁₁₂*B₁₁₂[j] + D₁₂₁*B₁₂₁[j] + D₁₂₂*B₁₂₂[j] + D₂₂₁*B₂₂₁[j] + D₂₂₂*B₂₂₂[j]
                 k[I,J] -= (Vᵢ*N[j]+N[i]*Vⱼ-V̄ᵢ*N[j])*𝑤
+                # k[I,J] -= (Vᵢ*N[j]+N[i]*Vⱼ)*𝑤
             end
             f[I] -= (Vᵢ-V̄ᵢ)*g*𝑤
+            # f[I] -= (Vᵢ)*g*𝑤
         end
     end
 end
@@ -887,8 +929,10 @@ function (op::Operator{:ΔMₙₛg})(ap::T,k::AbstractMatrix{Float64},f::Abstrac
                 J = xⱼ.𝐼
                 ΔMₙₛⱼ = D₁₁*B₁₁[j] + D₁₂*B₁₂[j] + D₂₂*B₂₂[j]
                 k[I,J] += ΔMₙₛᵢ*N[j] + N[i]*ΔMₙₛⱼ + α*N[i]*N[j]
+                # k[I,J] += -ΔMₙₛᵢ*N[j] - N[i]*ΔMₙₛⱼ + α*N[i]*N[j]
             end
             f[I] += (ΔMₙₛᵢ + α*N[i])*g
+            # f[I] += (-ΔMₙₛᵢ + α*N[i])*g
         end
     end
 end
@@ -919,9 +963,11 @@ function (op::Operator{:ΔM̃ₙₛg})(ap::T,k::AbstractMatrix{Float64},f::Abstr
             for (j,xⱼ) in enumerate(𝓒)
                 J = xⱼ.𝐼
                 ΔMₙₛⱼ = D₁₁*B₁₁[j] + D₁₂*B₁₂[j] + D₂₂*B₂₂[j]
-                k[I,J] += ΔMₙₛᵢ*N[j] + N[i]*ΔMₙₛⱼ + ΔM̄ₙₛᵢ*N[j]
+                k[I,J] += ΔMₙₛᵢ*N[j] + N[i]*ΔMₙₛⱼ - ΔM̄ₙₛᵢ*N[j]
+                # k[I,J] += ΔMₙₛᵢ*N[j] + N[i]*ΔMₙₛⱼ
             end
-            f[I] += (ΔMₙₛᵢ + ΔM̄ₙₛᵢ)*g
+            f[I] += (ΔMₙₛᵢ - ΔM̄ₙₛᵢ)*g
+            # f[I] += (ΔMₙₛᵢ)*g
         end
     end
 end

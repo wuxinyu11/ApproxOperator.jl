@@ -2083,8 +2083,8 @@ function set∇∇̄²𝝭!(ap::ReproducingKernel{𝒑,𝑠,𝜙,:Tri3};Γᵍ::U
                 𝑤 = ξ.𝑤
                 n₁ = ξ.n₁
                 n₂ = ξ.n₂
-                s₁ = ξ.s₁
-                s₂ = ξ.s₂
+                s₁ = -n₂
+                s₂ = n₁
                 𝝭 = ξ[:𝝭]
                 𝒒, ∂𝒒∂ξ, ∂𝒒∂η = get∇²𝒑₂(Γᵍ,ξ)
 
@@ -2291,14 +2291,19 @@ function set∇̄²𝝭!(ap::ReproducingKernel{𝒑,𝑠,𝜙,:Tri3};Γᵍ::Vect
         ∂²𝝭∂x² = ξ̂[:∂²𝝭∂x²_]
         ∂²𝝭∂x∂y = ξ̂[:∂²𝝭∂x∂y_]
         ∂²𝝭∂y² = ξ̂[:∂²𝝭∂y²_]
+        for i in 1:length(𝓒)
+            ∂²𝝭∂x²[i] = 0.0
+            ∂²𝝭∂x∂y[i] = 0.0
+            ∂²𝝭∂y²[i] = 0.0
+        end
         for a in Γᵍ
             if ap∩a ≠ nothing
                 for ξ in a.𝓖
                     𝑤 = ξ.𝑤
                     n₁ = ξ.n₁
                     n₂ = ξ.n₂
-                    s₁ = ξ.s₁
-                    s₂ = ξ.s₂
+                    s₁ = -n₂
+                    s₂ = n₁
                     𝝭 = ξ[:𝝭]
                     𝒒, ∂𝒒∂ξ, ∂𝒒∂η = get∇²𝒑₂(a,ξ)
 
@@ -2334,8 +2339,8 @@ function set∇̄²𝝭!(ap::ReproducingKernel{𝒑,𝑠,𝜙,:Tri3};Γᵍ::Vect
                     𝑤 = ξ.𝑤
                     n₁ = ξ.n₁
                     n₂ = ξ.n₂
-                    s₁ = ξ.s₁
-                    s₂ = ξ.s₂
+                    s₁ = -n₂
+                    s₂ = n₁
                     ∂𝝭∂x = ξ[:∂𝝭∂x]
                     ∂𝝭∂y = ξ[:∂𝝭∂y]
                     𝒒 = get𝒑₂(b,ξ)
