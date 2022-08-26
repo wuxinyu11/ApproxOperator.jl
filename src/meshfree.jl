@@ -2553,7 +2553,7 @@ function set∇̄²𝝭!(ap::ReproducingKernel{𝒑,𝑠,𝜙,:Tri3};Γᵍ::Vect
     end
 end
 
-for set𝝭 in (:set𝝭!,:set∇𝝭!,:set∇₂𝝭!,:set∇²𝝭!,:set∇³𝝭!,:set∇̂³𝝭!,:set∇²₂𝝭!,:set∇̄𝝭!)
+for set𝝭 in (:set𝝭!,:set∇𝝭!,:set∇₂𝝭!,:set∇²𝝭!,:set∇³𝝭!,:set∇̂³𝝭!,:set∇²₂𝝭!)
     @eval begin
         function $set𝝭(aps::Vector{T}) where T<:ReproducingKernel
             for ap in aps

@@ -580,6 +580,7 @@ end
 
 function (op::Operator{:∫vᵢgᵢds})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    α = op.α
     for ξ in 𝓖
         𝑤 = ξ.𝑤
         N = ξ[:𝝭]
@@ -592,13 +593,13 @@ function (op::Operator{:∫vᵢgᵢds})(ap::T,k::AbstractMatrix{Float64},f::Abst
             I = xᵢ.𝐼
             for (j,xⱼ) in enumerate(𝓒)
                 J = xⱼ.𝐼
-                k[2*I-1,2*J-1] += op.α*N[i]*n₁₁*N[j]*𝑤
-                k[2*I,2*J-1]   += op.α*N[i]*n₁₂*N[j]*𝑤
-                k[2*I-1,2*J]   += op.α*N[i]*n₁₂*N[j]*𝑤
-                k[2*I,2*J]     += op.α*N[i]*n₂₂*N[j]*𝑤
+                k[2*I-1,2*J-1] += α*N[i]*n₁₁*N[j]*𝑤
+                k[2*I,2*J-1]   += α*N[i]*n₁₂*N[j]*𝑤
+                k[2*I-1,2*J]   += α*N[i]*n₁₂*N[j]*𝑤
+                k[2*I,2*J]     += α*N[i]*n₂₂*N[j]*𝑤
             end
-            f[2*I-1] += op.α*N[i]*(n₁₁*g₁+n₁₂*g₂)*𝑤
-            f[2*I]   += op.α*N[i]*(n₁₂*g₁+n₂₂*g₂)*𝑤
+            f[2*I-1] += α*N[i]*(n₁₁*g₁+n₁₂*g₂)*𝑤
+            f[2*I]   += α*N[i]*(n₁₂*g₁+n₂₂*g₂)*𝑤
         end
     end
 end
