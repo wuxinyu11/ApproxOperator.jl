@@ -604,7 +604,6 @@ function (op::Operator{:∫vᵢgᵢds})(ap::T,k::AbstractMatrix{Float64},f::Abst
     end
 end
 
-
 function (op::Operator{:∫κᵢⱼMᵢⱼdΩ})(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     D = op.D
@@ -619,6 +618,26 @@ function (op::Operator{:∫κᵢⱼMᵢⱼdΩ})(ap::T,k::AbstractMatrix{Float64}
             for (j,xⱼ) in enumerate(𝓒)
                 J = xⱼ.𝐼
                 k[I,J] += D*(B₁₁[i]*B₁₁[j] + ν*(B₁₁[i]*B₂₂[j] + B₂₂[i]*B₁₁[j]) + B₂₂[i]*B₂₂[j] + 2*(1-ν)*B₁₂[i]*B₁₂[j])*𝑤
+            end
+        end
+    end
+end
+
+function (op::Operator{:∫κ̃ᵢⱼM̃ᵢⱼdΩ})(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    D = op.D
+    ν = op.ν
+    for ξ in 𝓖
+        B₁₁ = ξ[:∂²𝝭∂x²]
+        B₁₂ = ξ[:∂²𝝭∂x∂y]
+        B₂₁ = ξ[:∂²𝝭∂y∂x]
+        B₂₂ = ξ[:∂²𝝭∂y²]
+        𝑤 = ξ.𝑤
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[I,J] += D*(B₁₁[i]*B₁₁[j] + ν*(B₁₁[i]*B₂₂[j] + B₂₂[i]*B₁₁[j]) + B₂₂[i]*B₂₂[j] + (1-ν)*(B₁₂[i]*B₁₂[j]+B₂₁[i]*B₂₁[j]))*𝑤
             end
         end
     end
