@@ -246,21 +246,32 @@ set𝝭!
 """
 function set𝝭!(aps::Vector{T}) where T<:AbstractElement
     for ap in aps
-        set𝝭!(ap)
-    end
-end
-
-function set𝝭!(ap::Element{S}) where S
-    𝓖 = ap.𝓖
-    for ξ in 𝓖
-        N = get𝝭(ap,ξ)
-        for i in 1:length(ap.𝓒)
-            𝝭 = ξ[:𝝭]
-            𝝭[i] = N[i]
+        𝓖 = ap.𝓖
+        for ξ in 𝓖
+            N = get𝝭(ap,ξ)
+            for i in 1:length(ap.𝓒)
+                𝝭 = ξ[:𝝭]
+                𝝭[i] = N[i]
+            end
         end
     end
 end
 
+function set∇𝝭!(aps::Vector{Element{:Seg2}})
+    for ap in aps
+        𝓖 = ap.𝓖
+        for ξ in 𝓖
+            N = get𝝭(ap,ξ)
+            B = get∂𝝭∂x(ap,ξ)
+            for i in 1:length(ap.𝓒)
+                𝝭 = ξ[:𝝭]
+                ∂𝝭∂x = ξ[:∂𝝭∂x]
+                𝝭[i] = N[i]
+                ∂𝝭∂x[i] = B[i]
+            end
+        end
+    end
+end
 """
 get𝝭(ap::Element,ξ::SNode)
 """
@@ -268,7 +279,7 @@ get𝝭(ap::Element,ξ::SNode)
 @inline get𝝭(::Element{:Poi1},::Any) = 1.0
 
 # ------------- Seg2 ---------------
-@inline get𝝭(ap::Element{:Seg2},ξ::SNode) = (0.5*(1.0-ξ.ξ),0.5*(1.0+ξ.ξ))
+get𝝭(ap::Element{:Seg2},ξ::SNode) = (0.5*(1.0-ξ.ξ),0.5*(1.0+ξ.ξ))
 @inline function get∂𝝭∂x(ap::Element{:Seg2},::Any)
     𝐿 = get𝐿(ap)
     return (-1.0/𝐿,1.0/𝐿)

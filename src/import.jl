@@ -34,13 +34,13 @@ end
 
 function set_memory_𝗠!(ap::T,ss::Symbol... = keys(ap[1].𝗠)...) where T<:ReproducingKernel
     n = get𝑛𝒑(ap)
-    n₁ = get𝑛𝒑₁(ap)
-    n₂ = get𝑛𝒑₂(ap)
     empty!(ap.𝗠)
     for s in ss
         if s == :∇̃
+            n₁ = get𝑛𝒑₁(ap)
             ap.𝗠[s] = SymMat(n₁)
         elseif s ∈ (:∇̃²,:∂∇̃²∂ξ,:∂∇̃²∂η)
+            n₂ = get𝑛𝒑₂(ap)
             ap.𝗠[s] = SymMat(n₂)
         else
             ap.𝗠[s] = SymMat(n)
@@ -112,7 +112,13 @@ function import_msh_2(fid::IO)
             nₑ = parse(Int,line)
             for i in 1:nₑ
                 line = readline(fid)
-                elmN_,elmT_,numT_,phyT_,elmE_,l_... = split(line," ")
+                entries = split(line," ")
+                elmN_ = entries[1]
+                elmT_ = entries[2]
+                numT_ = entries[3]
+                phyT_ = entries[4]
+                elmE_ = entries[5]
+                l_ = entries[6:end]
                 elmNumber = parse(Int,elmN_)
                 elmType = parse(Int,elmT_)
                 numTag = parse(Int,numT_)
