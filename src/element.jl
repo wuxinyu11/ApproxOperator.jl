@@ -244,22 +244,6 @@ end
 """
 set𝝭!
 """
-function set𝝭!(aps::Vector{T}) where T<:AbstractElement
-    for ap in aps
-        set𝝭!(ap)
-    end
-end
-
-function set𝝭!(ap::Element{S}) where S
-    𝓖 = ap.𝓖
-    for ξ in 𝓖
-        N = get𝝭(ap,ξ)
-        for i in 1:length(ap.𝓒)
-            𝝭 = ξ[:𝝭]
-            𝝭[i] = N[i]
-        end
-    end
-end
 
 """
 get𝝭(ap::Element,ξ::SNode)
@@ -350,6 +334,58 @@ end
 # @inline get∇𝝭(ap::Element{:Quad},ξ::𝝃) where 𝝃<:AbstractNode = get𝝭(ap,ξ),get∂𝝭∂x∂𝝭∂y(ap,ξ)...,(0.0,0.0,0.0,0.0)
 
 """
+ Discontinuous boundary element
+"""
+struct DBelement{T}<:AbstractElement{T}
+    𝓒::Vector{GNode}
+    𝓖::Vector{SNode}
+end
+DBelement{T}(𝓒::Vector{GNode}) where T = DBelement{T}(𝓒,SNode[])
+
+function set𝝭!(ap::DBelement{:Tri3},x::SNode)
+    ξ₁ = x.ξ
+    ξ₂ = x.η
+    ξ₃ = 1.0-x.ξ-x.η
+    N₁ = ξ₂+ξ₃-ξ₁
+    N₂ = ξ₃+ξ₁-ξ₂
+    N₃ = ξ₁+ξ₂-ξ₃
+    𝝭 = x[:𝝭]
+    𝝭[1] = N₁
+    𝝭[2] = N₂
+    𝝭[3] = N₃
+end
+
+function set∇𝝭!(ap::DBelement{:Tri3},x::SNode)
+    x₁ = ap.𝓒[1].x
+    x₂ = ap.𝓒[2].x
+    x₃ = ap.𝓒[3].x
+    y₁ = ap.𝓒[1].y
+    y₂ = ap.𝓒[2].y
+    y₃ = ap.𝓒[3].y
+    𝐴 = get𝐴(ap)
+    ∂𝝭∂x = x[:∂𝝭∂x]
+    ∂𝝭∂y = x[:∂𝝭∂y]
+    ∂𝝭∂x[1] = (y₂-y₃)/𝐴
+    ∂𝝭∂x[2] = (y₃-y₁)/𝐴
+    ∂𝝭∂x[3] = (y₁-y₂)/𝐴
+    ∂𝝭∂y[1] = (x₂-x₃)/𝐴
+    ∂𝝭∂y[2] = (x₃-x₁)/𝐴
+    ∂𝝭∂y[3] = (x₁-x₂)/𝐴
+end
+
+for set𝝭 in (:set𝝭!,:set∇𝝭!)
+    @eval begin
+        function $set𝝭(aps::Vector{T}) where T<:AbstractElement
+            for ap in aps
+                𝓖 = ap.𝓖
+                for 𝒙 in 𝓖
+                    $set𝝭(ap,𝒙)
+                end
+            end
+        end
+    end
+end
+"""
 ⊆,∩
 """
 function issubset(a::T,b::S) where {T<:AbstractElement{:Poi1},S<:AbstractElement{:Seg2}}
@@ -369,6 +405,11 @@ end
 @inline function intersect(a::T,b::S) where {T<:AbstractElement{:Tri3},S<:AbstractElement{:Seg2}}
     i = findfirst(x->x==b.𝓒[1],a.𝓒)
     j = findfirst(x->x==b.𝓒[2],a.𝓒)
+    return i ≠ nothing && j ≠ nothing && i ≤ 3 && j ≤ 3 ? a : nothing
+end
+@inline function intersect(a::T,b::S) where {T<:DBelement{:Tri3},S<:AbstractElement{:Seg2}}
+    i = findfirst(x->x.𝑖==b.𝓒[1].𝐼, a.𝓒)
+    j = findfirst(x->x.𝑖==b.𝓒[2].𝐼, a.𝓒)
     return i ≠ nothing && j ≠ nothing && i ≤ 3 && j ≤ 3 ? a : nothing
 end
 function intersect(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement,S<:AbstractElement}

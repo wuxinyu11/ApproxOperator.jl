@@ -178,3 +178,65 @@ function importmsh(filename::String,config::Dict{Any,Any})
     end
     return elements, nodes
 end
+
+function importmsh(filename::String,::Val{:test})
+    elems,nodes = importmsh(filename)
+    data = Dict([s=>(2,v) for (s,v) in nodes])
+    dofs = getboundarydofs2D(elems["Ω"])
+    elements = Dict{String,Any}()
+    nodes = Node(nodes...)
+    gnodes = GNode[]
+    elements["∂Ω"] = Vector{Element{:Seg2}}(undef,length(dofs))
+    for (dof,i) in dofs
+        elements["∂Ω"][i] = Element{:Seg2}([nodes[j] for j in dof])
+    end
+    elements["Ω"] = DBelement{:Tri3}[]
+    elements["Γ"] = DBelement{:Tri3}[]
+    haskey(elems,"Γᵗ") ? elements["Γᵗ"] = DBelement{:Tri3}[] : nothing
+    for (type,nodeList) in elems["Ω"]
+        𝓒 = [GNode((dofs[Set(setdiff(nodeList,i))],i),data) for i in nodeList]
+        union!(gnodes,𝓒)
+        push!(elements["Ω"],DBelement{:Tri3}(𝓒))
+        push!(elements["Γ"],DBelement{:Tri3}(𝓒))
+        haskey(elems,"Γᵗ") ? push!(elements["Γᵗ"],DBelement{:Tri3}(𝓒)) : nothing
+    end
+    set𝓖!(elements["Ω"],:TriGI13)
+    set𝓖_DB!(elements["Γ"],:SegGI2)
+    if haskey(elems,"Γᵗ")
+        elms_𝓖 = [Element{type}([nodes[i] for i in nodeList])     for (type,nodeList) in elems["Γᵗ"]]
+        elements["Γᵗ"] = elements["Γᵗ"]∩elms_𝓖
+        set𝓖!(elms_𝓖,:SegGI2)
+        set𝓖!(elements["Γᵗ"],elms_𝓖)
+    end
+
+    elements["Γᵍ"] = DBelement{:Seg2}[]
+    for (type,nodeList) in elems["Γᵍ"]
+        𝐼 = dofs[Set(nodeList)]
+        𝓒 = [GNode((0,i),data) for i in nodeList]
+        push!(𝓒,GNode((𝐼,0),data))
+        push!(elements["Γᵍ"],DBelement{:Seg2}(𝓒))
+    end
+    set𝓖!(elements["Γᵍ"],:SegGI2)
+
+    set_memory_𝝭!(elements["Ω"],:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂𝝭∂z)
+    haskey(elems,"Γᵗ") ? set_memory_𝝭!(elements["Γᵗ"],:𝝭) : nothing
+    set_memory_𝝭!(elements["Γᵍ"],:𝝭)
+    set_memory_𝝭!(elements["Γ"],:𝝭)
+    return elements, gnodes
+end
+
+function getboundarydofs2D(elements::Vector{Tuple{Symbol,Vector{Int}}})
+    dofs = Dict{Set{Int},Int}()
+    idBoundaries = (Tri3=((1,2),(2,3),(3,1)),)
+    n = 0
+    for (type,nodeList) in elements
+        for bc in idBoundaries[type]
+            dof = Set(nodeList[i] for i in bc)
+            if ~haskey(dofs,dof)
+                n += 1
+                dofs[dof] = n
+            end
+        end
+    end
+    return dofs
+end

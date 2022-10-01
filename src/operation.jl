@@ -85,11 +85,11 @@ function (op::Operator{:𝑓𝑣})(ap::T,f::AbstractVector{Float64}) where T<:Ab
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
         𝑤 = ξ.𝑤
-        N = ξ.𝝭
-        u = ξ.u
+        N = ξ[:𝝭]
+        g = ξ.g
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.𝐼
-            f[I] += N[i]*u*𝑤
+            f[I] += N[i]*g*𝑤
         end
     end
 end
@@ -159,6 +159,7 @@ end
 
 function (op::Operator{:∫vgdΓ})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    α = op.α
     for ξ in 𝓖
         𝑤 = ξ.𝑤
         N = ξ[:𝝭]
@@ -167,9 +168,9 @@ function (op::Operator{:∫vgdΓ})(ap::T,k::AbstractMatrix{Float64},f::AbstractV
             I = xᵢ.𝐼
             for (j,xⱼ) in enumerate(𝓒)
                 J = xⱼ.𝐼
-                k[I,J] += op.α*N[i]*N[j]*𝑤
+                k[I,J] += α*N[i]*N[j]*𝑤
             end
-            f[I] += op.α*N[i]*g*𝑤
+            f[I] += α*N[i]*g*𝑤
         end
     end
 end
@@ -1189,5 +1190,69 @@ end
 function set∇𝑢!(aps::Vector{T}) where T<:AbstractElement
     for ap in aps
         set∇𝑢!(ap)
+    end
+end
+
+function (op::Operator{:∫udΓ})(aps::Vector{T}) where T<:AbstractElement
+    d = zeros(length(aps))
+    for (i,ap) in enumerate(aps)
+        d[i] = op(ap)
+    end
+    return d
+end
+
+function (op::Operator{:∫udΓ})(ap::T) where T<:AbstractElement
+    𝓖 = ap.𝓖
+    d = sum(ξ.u*ξ.w for ξ in 𝓖)/2
+    return d
+end
+
+# function (op::Operator{:∫udΓ})(aps::Vector{T},k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+#     for ap in aps
+#         op(ap,k,f)
+#     end
+# end
+
+function (op::Operator{:∫udΓ})(ap::DBelement{:Seg2},k::AbstractMatrix{Float64},f::AbstractVector{Float64})
+    x = ap.𝓒[3]
+    j = x.𝐼
+    g = op(ap)
+    for i in 1:length(f)
+        f[i] -= k[i,j]*g
+    end
+    k[j,:] .= 0.
+    k[:,j] .= 0.
+    k[j,j] = 1.
+    f[j] = g
+end
+
+# function (op::Operator{:∫udΓ})(ap::DBelement{:Seg2},f::AbstractVector{Float64})
+#     x = ap.𝓒[3]
+#     j = x.𝐼
+#     g = op(ap)
+#     for i in 1:length(f)
+#         f[i] -= k[i,j]*g
+#     end
+#     k[j,:] .= 0.
+#     k[:,j] .= 0.
+#     k[j,j] = 1.
+#     f[j] = g
+# end
+
+function (op::Operator{:Δ∫vtdΓ})(ap::T,f::AbstractVector{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    for ξ in 𝓖
+        B₁ = ξ[:∂𝝭∂x]
+        B₂ = ξ[:∂𝝭∂y]
+        B₃ = ξ[:∂𝝭∂z]
+        𝑤 = ξ.𝑤
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                d = xⱼ.d
+                f[I] += op.k*(B₁[i]*B₁[j] + B₂[i]*B₂[j] + B₃[i]*B₃[j])*d*𝑤
+            end
+        end
     end
 end

@@ -106,15 +106,16 @@ function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement{:Tri3},
 end
 
 function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement{:Tri3},S<:AbstractElement{:Seg2}}
-    nₑ = length(as)
+    unique!(as)
+    nₑ = length(bs)
     nᵢ = length(getfield(bs[1].𝓖[1],:data)[:w][2])
     data = Dict([:ξ=>(2,zeros(nₑ*nᵢ)),:η=>(2,zeros(nₑ*nᵢ)),:w=>(2,zeros(nₑ*nᵢ)),:x=>(2,zeros(nₑ*nᵢ)),:y=>(2,zeros(nₑ*nᵢ)),:z=>(2,zeros(nₑ*nᵢ)),:𝑤=>(2,zeros(nₑ*nᵢ)),:n₁=>(2,zeros(nₑ*nᵢ)),:n₂=>(2,zeros(nₑ*nᵢ)),:s₁=>(2,zeros(nₑ*nᵢ)),:s₂=>(2,zeros(nₑ*nᵢ))])
     G = 0
     s = 0
     for b in bs
         for a in as
-            i = findfirst(x->x.𝐼==b.𝓒[1].𝐼, a.𝓒)
-            j = findfirst(x->x.𝐼==b.𝓒[2].𝐼, a.𝓒)
+            i = T<:DBelement ? findfirst(x->x.𝑖==b.𝓒[1].𝐼, a.𝓒) : findfirst(x->x.𝐼==b.𝓒[1].𝐼, a.𝓒)
+            j = T<:DBelement ? findfirst(x->x.𝑖==b.𝓒[2].𝐼, a.𝓒) : findfirst(x->x.𝐼==b.𝓒[2].𝐼, a.𝓒)
             if i ≠ nothing && j ≠ nothing && i ≤ 3 && j ≤ 3
                 𝐿 = get𝐿(b)
                 x₁ = a.𝓒[1].x
@@ -161,6 +162,68 @@ function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement{:Tri3},
     end
 end
 
+function set𝓖_DB!(aps::Vector{T},s::Symbol) where T<:AbstractElement
+    data_ = quadraturerule(s)
+    n = length(data_[:w])
+    nₑ = length(aps)
+    data = Dict([:w=>(1,zeros(3*n)),:ξ=>(1,zeros(3*n)),:η=>(1,zeros(3*n)),:n₁=>(2,zeros(3*nₑ*n)),:n₂=>(2,zeros(3*nₑ*n)),:x=>(2,zeros(3*nₑ*n)),:y=>(2,zeros(3*nₑ*n)),:z=>(2,zeros(3*nₑ*n)),:𝑤=>(2,zeros(3*nₑ*n))])
+    for i in 1:n
+        w = data_[:w][i]
+        ξ = data_[:ξ][i]
+        data[:w][2][3*i-2] = w
+        data[:w][2][3*i-1] = w
+        data[:w][2][3*i]   = w
+        data[:η][2][3*i-2] = (1-ξ)/2
+        data[:ξ][2][3*i-1] = (1+ξ)/2
+        data[:ξ][2][3*i] = (1-ξ)/2
+        data[:η][2][3*i] = (1+ξ)/2
+    end
+    G = 0
+    s = 0
+    for ap in aps
+        empty!(ap.𝓖)
+        for g in 1:3*n
+            G += 1
+            push!(ap.𝓖,SNode((g,G,s),data))
+            s += length(ap.𝓒)
+        end
+        x₁ = ap.𝓒[1].x
+        x₂ = ap.𝓒[2].x
+        x₃ = ap.𝓒[3].x
+        y₁ = ap.𝓒[1].y
+        y₂ = ap.𝓒[2].y
+        y₃ = ap.𝓒[3].y
+        𝐿₁ = ((x₂-x₃)^2+(y₂-y₃)^2)^0.5
+        𝐿₂ = ((x₃-x₁)^2+(y₃-y₁)^2)^0.5
+        𝐿₃ = ((x₁-x₂)^2+(y₁-y₂)^2)^0.5
+        n₁₁ = (y₃-y₂)/𝐿₁
+        n₂₁ = (x₂-x₃)/𝐿₁
+        n₁₂ = (y₁-y₃)/𝐿₂
+        n₂₂ = (x₃-x₁)/𝐿₂
+        n₁₃ = (y₂-y₁)/𝐿₃
+        n₂₃ = (x₁-x₂)/𝐿₃
+        for i in 1:n
+            ξ₁ = ap.𝓖[3*i-2]
+            ξ₂ = ap.𝓖[3*i-1]
+            ξ₃ = ap.𝓖[3*i]
+            ξ₁.n₁ = n₁₁
+            ξ₁.n₂ = n₂₁
+            ξ₂.n₁ = n₁₂
+            ξ₂.n₂ = n₂₂
+            ξ₃.n₁ = n₁₃
+            ξ₃.n₂ = n₂₃
+            ξ₁.x = x₁*ξ₁.ξ + x₂*ξ₁.η + x₃*(1-ξ₁.ξ-ξ₁.η)
+            ξ₁.y = y₁*ξ₁.ξ + y₂*ξ₁.η + y₃*(1-ξ₁.ξ-ξ₁.η)
+            ξ₂.x = x₁*ξ₂.ξ + x₂*ξ₂.η + x₃*(1-ξ₂.ξ-ξ₂.η)
+            ξ₂.y = y₁*ξ₂.ξ + y₂*ξ₂.η + y₃*(1-ξ₂.ξ-ξ₂.η)
+            ξ₃.x = x₁*ξ₃.ξ + x₂*ξ₃.η + x₃*(1-ξ₃.ξ-ξ₃.η)
+            ξ₃.y = y₁*ξ₃.ξ + y₂*ξ₃.η + y₃*(1-ξ₃.ξ-ξ₃.η)
+            ξ₁.𝑤 = 𝐿₁/2*ξ₁.w
+            ξ₂.𝑤 = 𝐿₂/2*ξ₂.w
+            ξ₃.𝑤 = 𝐿₃/2*ξ₃.w
+        end
+    end
+end
 """
 quadraturerule(s::Symbol)
 """
