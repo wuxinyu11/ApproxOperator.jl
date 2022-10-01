@@ -215,13 +215,14 @@ ReproducingKernel{𝒑,𝑠,𝜙,T}(𝓒::Vector{Node},𝗠::Dict{Symbol,SymMat}
 Basis function
 """
 ## Basis Function
-# @inline get∇₁𝒑(ap::ReproducingKernel,x::Any) = get𝒑(ap,x), get∂𝒑∂x(ap,x)
+@inline get∇₁𝒑(ap::ReproducingKernel,x::Any) = get𝒑(ap,x), get∂𝒑∂x(ap,x)
 @inline get∇₂𝒑(ap::ReproducingKernel,x::Any) = get𝒑(ap,x), get∂𝒑∂x(ap,x), get∂𝒑∂y(ap,x)
 @inline get∇𝒑(ap::ReproducingKernel,x::Any) = get𝒑(ap,x), get∂𝒑∂x(ap,x), get∂𝒑∂y(ap,x), get∂𝒑∂z(ap,x)
-# @inline get∇²₁𝒑(ap::ReproducingKernel,x::Any) = get𝒑(ap,x), get∂𝒑∂x(ap,x), get∂²𝒑∂x²(ap,x)
+@inline get∇²₁𝒑(ap::ReproducingKernel,x::Any) = get𝒑(ap,x), get∂𝒑∂x(ap,x), get∂²𝒑∂x²(ap,x)
 @inline get∇²₂𝒑(ap::ReproducingKernel,x::Any) = get𝒑(ap,x), get∂𝒑∂x(ap,x), get∂𝒑∂y(ap,x), get∂²𝒑∂x²(ap,x), get∂²𝒑∂x∂y(ap,x), get∂²𝒑∂y²(ap,x)
+@inline get∇̃²₂𝒑(ap::ReproducingKernel,x::Any) = get∂²𝒑∂x²(ap,x), get∂²𝒑∂x∂y(ap,x), get∂²𝒑∂x∂y(ap,x), get∂²𝒑∂y²(ap,x)
 @inline get∇²𝒑(ap::ReproducingKernel,x::Any) = get𝒑(ap,x), get∂𝒑∂x(ap,x), get∂𝒑∂y(ap,x), get∂²𝒑∂x²(ap,x), get∂²𝒑∂x∂y(ap,x), get∂²𝒑∂y²(ap,x), get∂𝒑∂z(ap,x), get∂²𝒑∂x∂z(ap,x), get∂²𝒑∂y∂z(ap,x), get∂²𝒑∂z²(ap,x)
-# @inline get∇³₁𝒑(ap::ReproducingKernel,x::Any) = get𝒑(ap,x), get∂𝒑∂x(ap,x), get∂²𝒑∂x²(ap,x), get∂³𝒑∂x³(ap,x)
+@inline get∇³₁𝒑(ap::ReproducingKernel,x::Any) = get𝒑(ap,x), get∂𝒑∂x(ap,x), get∂²𝒑∂x²(ap,x), get∂³𝒑∂x³(ap,x)
 @inline get∇³𝒑(ap::ReproducingKernel,x::Any) = get𝒑(ap,x), get∂𝒑∂x(ap,x), get∂𝒑∂y(ap,x), get∂²𝒑∂x²(ap,x), get∂²𝒑∂x∂y(ap,x), get∂²𝒑∂y²(ap,x), get∂³𝒑∂x³(ap,x), get∂³𝒑∂x²∂y(ap,x), get∂³𝒑∂x∂y²(ap,x), get∂³𝒑∂y³(ap,x)
 @inline get∇∇²𝒑(ap::ReproducingKernel,x::Any) = get𝒑(ap,x), get∂³𝒑∂x³(ap,x), get∂³𝒑∂x²∂y(ap,x), get∂³𝒑∂x²∂y(ap,x), get∂³𝒑∂x∂y²(ap,x), get∂³𝒑∂x∂y²(ap,x), get∂³𝒑∂y³(ap,x)
 @inline get∇𝒑₁(ap::ReproducingKernel{𝒑,𝑠,𝜙,:Seg2},ξ::Any) where {𝒑,𝑠,𝜙} = get𝒑₁(ap,ξ), get∂𝒑₁∂ξ(ap,ξ)
@@ -419,6 +420,85 @@ Basis function
 @inline get∂²𝒑₂∂ξ∂η(ap::ReproducingKernel{:Cubic2D},ξ::Any) = (0.,0.,0.)
 @inline get∂²𝒑₂∂η²(ap::ReproducingKernel{:Cubic2D},ξ::Any) = (0.,0.,0.)
 
+# ------------ Quartic2D ---------------
+@inline get𝑛𝒑(::ReproducingKernel{:Quartic2D}) = 15
+@inline get𝒑(::ReproducingKernel{:Quartic2D},x::NTuple{3,Float64}) =
+(
+    1., x[1], x[2], x[1]^2, x[1]*x[2], x[2]^2, x[1]^3, x[1]^2*x[2], x[1]*x[2]^2, x[2]^3, x[1]^4, x[1]^3*x[2], x[1]^2*x[2]^2, x[1]*x[2]^3, x[2]^4
+)
+@inline get∂𝒑∂x(::ReproducingKernel{:Quartic2D},x::NTuple{3,Float64}) =
+(
+    0., 1., 0., 2*x[1], x[2], 0., 3*x[1]^2, 2*x[1]*x[2], x[2]^2, 0., 4.0*x[1]^3, 3.0*x[1]^2*x[2], 2.0*x[1]*x[2]^2, x[2]^3, 0.
+)
+@inline get∂𝒑∂y(::ReproducingKernel{:Quartic2D},x::NTuple{3,Float64}) =
+(
+    0., 0., 1., 0., x[1], 2*x[2], 0., x[1]^2, 2*x[1]*x[2], 3*x[2]^2, 0.0, x[1]^3, 2.0*x[1]^2*x[2], 3.0*x[1]*x[2]^2, 4.0*x[2]^3
+)
+@inline get∂²𝒑∂x²(::ReproducingKernel{:Quartic2D},x::NTuple{3,Float64}) =
+(
+    0., 0., 0., 2., 0., 0., 6*x[1], 2*x[2], 0., 0., 12.0*x[1]^2, 6.0*x[1]*x[2], 2.0*x[2]^2, 0.0, 0.0
+)
+@inline get∂²𝒑∂x∂y(::ReproducingKernel{:Quartic2D},x::NTuple{3,Float64}) =
+(
+    0., 0., 0., 0., 1., 0., 0., 2*x[1], 2*x[2], 0., 0.0, 3.0*x[1]^2, 4.0*x[1]*x[2], 3.0*x[2]^2, 0.0
+)
+@inline get∂²𝒑∂y²(::ReproducingKernel{:Quartic2D},x::NTuple{3,Float64}) =
+(
+    0., 0., 0., 0., 0., 2., 0., 0., 2*x[1], 6*x[2], 0.0, 0.0, 2.0*x[1]^2, 6.0*x[1]*x[2], 12.0*x[2]^2
+)
+@inline get∂𝒑∂z(::ReproducingKernel{:Quartic2D},::Any) =
+(
+    0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.
+)
+@inline get∂²𝒑∂x∂z(::ReproducingKernel{:Quartic2D},x::NTuple{3,Float64}) =
+(
+    0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.
+)
+@inline get∂²𝒑∂y∂z(::ReproducingKernel{:Quartic2D},x::NTuple{3,Float64}) =
+(
+    0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.
+)
+@inline get∂²𝒑∂z²(::ReproducingKernel{:Quartic2D},x::NTuple{3,Float64}) =
+(
+    0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.
+)
+@inline get∂³𝒑∂x³(::ReproducingKernel{:Quartic2D},x::NTuple{3,Float64}) =
+(
+    0., 0., 0., 0., 0., 0., 6., 0., 0., 0., 24.0*x[1], 6.0*x[2], 0.0, 0.0, 0.0
+)
+@inline get∂³𝒑∂x²∂y(::ReproducingKernel{:Quartic2D},x::NTuple{3,Float64}) =
+(
+    0., 0., 0., 0., 0., 0., 0., 2., 0., 0., 0., 6.0*x[1], 4.0*x[2], 0., 0.
+)
+@inline get∂³𝒑∂x∂y²(::ReproducingKernel{:Quartic2D},x::NTuple{3,Float64}) =
+(
+    0., 0., 0., 0., 0., 0., 0., 0., 2., 0., 0., 0., 4.0*x[1], 6.0*x[2],0.
+)
+@inline get∂³𝒑∂y³(::ReproducingKernel{:Quartic2D},x::NTuple{3,Float64}) =
+(
+    0., 0., 0., 0., 0., 0., 0., 0., 0., 6., 0., 0., 0., 6.0*x[1], 24.0*x[2]
+)
+
+@inline get𝑛𝒑₁(::ReproducingKernel{:Quartic2D}) = 10
+@inline get𝒑₁(ap::ReproducingKernel{:Quartic2D},ξ::SNode) = get𝒑₁(ap,ξ.ξ,ξ.η)
+@inline get𝒑₁(::ReproducingKernel{:Quartic2D},ξ::Float64,η::Float64) = (1.,ξ,η,ξ^2,ξ*η,η^2,ξ^3,ξ^2*η,ξ*η^2,η^3)
+@inline get∂𝒑₁∂ξ(ap::ReproducingKernel{:Quartic2D},ξ::SNode) = get∂𝒑₁∂ξ(ap,ξ.ξ,ξ.η)
+@inline get∂𝒑₁∂ξ(::ReproducingKernel{:Quartic2D},ξ::Float64,η::Float64) = (0.,1.,0.,2.0*ξ,η,0.,3.0*ξ^2,2.0*ξ*η,η^2,0.)
+@inline get∂𝒑₁∂η(ap::ReproducingKernel{:Quartic2D},ξ::SNode) = get∂𝒑₁∂η(ap,ξ.ξ,ξ.η)
+@inline get∂𝒑₁∂η(::ReproducingKernel{:Quartic2D},ξ::Float64,η::Float64) = (0.,0.,1.,0.,ξ,2.0*η,0.,ξ^2,2.0*ξ*η,3.0*η^2)
+
+@inline get𝑛𝒑₂(::ReproducingKernel{:Quartic2D}) = 6
+@inline get𝒑₂(ap::ReproducingKernel{:Quartic2D},ξ::SNode) = get𝒑₂(ap,ξ.ξ,ξ.η)
+@inline get𝒑₂(ap::ReproducingKernel{:Quartic2D},ξ::NTuple{3,Float64}) = get𝒑₂(ap,ξ[1],ξ[2])
+@inline get𝒑₂(::ReproducingKernel{:Quartic2D},ξ::Float64,η::Float64) = (1.,ξ,η,ξ^2,ξ*η,η^2)
+@inline get∂𝒑₂∂ξ(ap::ReproducingKernel{:Quartic2D},ξ::SNode) = get∂𝒑₂∂ξ(ap,ξ.ξ,ξ.η)
+@inline get∂𝒑₂∂ξ(ap::ReproducingKernel{:Quartic2D},ξ::Float64,η::Float64) = (0.,1.,0.,2.0*ξ,η,0.)
+@inline get∂𝒑₂∂η(ap::ReproducingKernel{:Quartic2D},ξ::SNode) = get∂𝒑₂∂η(ap,ξ.ξ,ξ.η)
+@inline get∂𝒑₂∂η(ap::ReproducingKernel{:Quartic2D},ξ::Float64,η::Float64) = (0.,0.,1.,0.,ξ,2.0*η)
+@inline get∂²𝒑₂∂ξ²(ap::ReproducingKernel{:Quartic2D},ξ::Any) = (0.,0.,0.,2.,0.,0.)
+@inline get∂²𝒑₂∂ξ∂η(ap::ReproducingKernel{:Quartic2D},ξ::Any) = (0.,0.,0.,0.,1.,0.)
+@inline get∂²𝒑₂∂η²(ap::ReproducingKernel{:Quartic2D},ξ::Any) = (0.,0.,0.,0.,0.,2.)
+
 ## Kernel Function
 function get𝜙(ap::ReproducingKernel{𝒑,:□,𝜙},x::Node,Δx::NTuple{3,Float64}) where {𝒑,𝜙}
     rx = abs(Δx[1])/x.s₁
@@ -446,6 +526,18 @@ function get∇𝜙(ap::ReproducingKernel{𝒑,:□,𝜙},x::Node,Δx::NTuple{3,
     return wx*wy*wz, ∂wx*wy*wz, wx*∂wy*wz, wx*wy*∂wz
 end
 
+function get∇₂𝜙(ap::ReproducingKernel{𝒑,:□,𝜙},x::Node,Δx::NTuple{3,Float64}) where {𝒑,𝜙}
+    rx = abs(Δx[1])/x.s₁
+    ry = abs(Δx[2])/x.s₂
+    ∂rx = sign(Δx[1])/x.s₁
+    ∂ry = sign(Δx[2])/x.s₂
+    wx = get𝜙ᵣ(ap,rx)
+    wy = get𝜙ᵣ(ap,ry)
+    ∂wx = get∂𝜙∂r(ap,rx)*∂rx
+    ∂wy = get∂𝜙∂r(ap,ry)*∂ry
+    return wx*wy, ∂wx*wy, wx*∂wy
+end
+
 function get∇²𝜙(ap::ReproducingKernel{𝒑,:□,𝜙},x::Node,Δx::NTuple{3,Float64}) where {𝒑,𝜙}
     rx = abs(Δx[1])/x.s₁
     ry = abs(Δx[2])/x.s₂
@@ -465,7 +557,21 @@ function get∇²𝜙(ap::ReproducingKernel{𝒑,:□,𝜙},x::Node,Δx::NTuple{
     return wx*wy*wz, ∂wx*wy*wz, wx*∂wy*wz, ∂²wx*wy*wz, ∂wx*∂wy*wz, wx*∂²wy*wz, wx*wy*∂wz, ∂wx*wy*∂wz, wx*∂wy*∂wz, wx*wy*∂²wz
 end
 
-function get∇³𝜙(ap::ReproducingKernel{𝒑,:□,𝜙},x::Node,Δx::NTuple{3,Float64}) where {𝒑,𝜙}
+function get∇²₂𝜙(ap::ReproducingKernel{𝒑,:□,𝜙},x::Node,Δx::NTuple{3,Float64}) where {𝒑,𝜙}
+    rx = abs(Δx[1])/x.s₁
+    ry = abs(Δx[2])/x.s₂
+    ∂rx = sign(Δx[1])/x.s₁
+    ∂ry = sign(Δx[2])/x.s₂
+    wx = get𝜙ᵣ(ap,rx)
+    wy = get𝜙ᵣ(ap,ry)
+    ∂wx = get∂𝜙∂r(ap,rx)*∂rx
+    ∂wy = get∂𝜙∂r(ap,ry)*∂ry
+    ∂²wx = get∂𝜙∂r(ap,rx)*∂rx^2
+    ∂²wy = get∂𝜙∂r(ap,ry)*∂ry^2
+    return wx*wy, ∂wx*wy, wx*∂wy, ∂²wx*wy, ∂wx*∂wy, wx*∂²wy
+end
+
+function get∇³₂𝜙(ap::ReproducingKernel{𝒑,:□,𝜙},x::Node,Δx::NTuple{3,Float64}) where {𝒑,𝜙}
     rx = abs(Δx[1])/x.s₁
     ry = abs(Δx[2])/x.s₂
     ∂rx = sign(Δx[1])/x.s₁
@@ -479,6 +585,25 @@ function get∇³𝜙(ap::ReproducingKernel{𝒑,:□,𝜙},x::Node,Δx::NTuple{
     ∂³wx = get∂𝜙∂r(ap,rx)*∂rx^3
     ∂³wy = get∂𝜙∂r(ap,ry)*∂ry^3
     return wx*wy, ∂wx*wy, wx*∂wy, ∂²wx*wy, ∂wx*∂wy, wx*∂²wy, ∂³wx*wy, ∂²wx*∂wy, ∂wx*∂²wy, wx*∂³wy
+end
+
+function get∇³𝜙(ap::ReproducingKernel{𝒑,:□,𝜙},x::Node,Δx::NTuple{3,Float64}) where {𝒑,𝜙}
+    rx = abs(Δx[1])/x.s₁
+    ry = abs(Δx[2])/x.s₂
+    rz = abs(Δx[3])/x.s₃
+    ∂rx = sign(Δx[1])/x.s₁
+    ∂ry = sign(Δx[2])/x.s₂
+    ∂rz = sign(Δx[3])/x.s₃
+    wx = get𝜙ᵣ(ap,rx)
+    wy = get𝜙ᵣ(ap,ry)
+    wz = get𝜙ᵣ(ap,rz)
+    ∂wx = get∂𝜙∂r(ap,rx)*∂rx
+    ∂wy = get∂𝜙∂r(ap,ry)*∂ry
+    ∂²wx = get∂𝜙∂r(ap,rx)*∂rx^2
+    ∂²wy = get∂𝜙∂r(ap,ry)*∂ry^2
+    ∂³wx = get∂𝜙∂r(ap,rx)*∂rx^3
+    ∂³wy = get∂𝜙∂r(ap,ry)*∂ry^3
+    return wx*wy*wz, ∂wx*wy*wz, wx*∂wy*wz, ∂²wx*wy*wz, ∂wx*∂wy*wz, wx*∂²wy*wz, ∂³wx*wy*wz, ∂²wx*∂wy*wz, ∂wx*∂²wy*wz, wx*∂³wy*wz
 end
 ## --------------- Kernel ---------------
 function get𝜙ᵣ(::ReproducingKernel{𝒑,𝑠,:CubicSpline},r::Float64) where {𝒑,𝑠}
@@ -1175,6 +1300,84 @@ function cal𝗚₂!(ap::ReproducingKernel{:Quartic2D,𝑠,𝜙,:Tri3}) where {�
     return 𝗚⁻¹
 end
 
+function cal∇𝗚₂!(ap::ReproducingKernel{:Quartic2D,𝑠,𝜙,:Tri3}) where {𝑠,𝜙}
+    𝗚⁻¹ = ap.𝗠[:∇̃²]
+    𝗚⁻¹∂ξ = ap.𝗠[:∂∇̃²∂ξ]
+    𝗚⁻¹∂η = ap.𝗠[:∂∇̃²∂η]
+    fill!(𝗚⁻¹,0.0)
+    fill!(𝗚⁻¹∂ξ,0.0)
+    fill!(𝗚⁻¹∂η,0.0)
+    𝐴 = get𝐴(ap)
+    𝗚⁻¹[1] =   36.0/𝐴
+    𝗚⁻¹[2] = -120.0/𝐴
+    𝗚⁻¹[3] =  600.0/𝐴
+    𝗚⁻¹[4] = -120.0/𝐴
+    𝗚⁻¹[5] =  300.0/𝐴
+    𝗚⁻¹[6] =  600.0/𝐴
+    𝗚⁻¹[7] =   90.0/𝐴
+    𝗚⁻¹[8] = -540.0/𝐴
+    𝗚⁻¹[9] = -180.0/𝐴
+    𝗚⁻¹[10] =  540.0/𝐴
+    𝗚⁻¹[11] =  180.0/𝐴
+    𝗚⁻¹[12] = -720.0/𝐴
+    𝗚⁻¹[13] = -720.0/𝐴
+    𝗚⁻¹[14] =  540.0/𝐴
+    𝗚⁻¹[15] = 1440.0/𝐴
+    𝗚⁻¹[16] =   90.0/𝐴
+    𝗚⁻¹[17] = -180.0/𝐴
+    𝗚⁻¹[18] = -540.0/𝐴
+    𝗚⁻¹[19] =   90.0/𝐴
+    𝗚⁻¹[20] =  540.0/𝐴
+    𝗚⁻¹[21] =  540.0/𝐴
+
+    𝗚⁻¹∂ξ[1] =   36.0/𝐴
+    𝗚⁻¹∂ξ[2] = -120.0/𝐴
+    𝗚⁻¹∂ξ[3] =  600.0/𝐴
+    𝗚⁻¹∂ξ[4] = -120.0/𝐴
+    𝗚⁻¹∂ξ[5] =  300.0/𝐴
+    𝗚⁻¹∂ξ[6] =  600.0/𝐴
+    𝗚⁻¹∂ξ[7] =   90.0/𝐴
+    𝗚⁻¹∂ξ[8] = -540.0/𝐴
+    𝗚⁻¹∂ξ[9] = -180.0/𝐴
+    𝗚⁻¹∂ξ[10] =  540.0/𝐴
+    𝗚⁻¹∂ξ[11] =  180.0/𝐴
+    𝗚⁻¹∂ξ[12] = -720.0/𝐴
+    𝗚⁻¹∂ξ[13] = -720.0/𝐴
+    𝗚⁻¹∂ξ[14] =  540.0/𝐴
+    𝗚⁻¹∂ξ[15] = 1440.0/𝐴
+    𝗚⁻¹∂ξ[16] =   90.0/𝐴
+    𝗚⁻¹∂ξ[17] = -180.0/𝐴
+    𝗚⁻¹∂ξ[18] = -540.0/𝐴
+    𝗚⁻¹∂ξ[19] =   90.0/𝐴
+    𝗚⁻¹∂ξ[20] =  540.0/𝐴
+    𝗚⁻¹∂ξ[21] =  540.0/𝐴
+
+    𝗚⁻¹∂η[1] =   36.0/𝐴
+    𝗚⁻¹∂η[2] = -120.0/𝐴
+    𝗚⁻¹∂η[3] =  600.0/𝐴
+    𝗚⁻¹∂η[4] = -120.0/𝐴
+    𝗚⁻¹∂η[5] =  300.0/𝐴
+    𝗚⁻¹∂η[6] =  600.0/𝐴
+    𝗚⁻¹∂η[7] =   90.0/𝐴
+    𝗚⁻¹∂η[8] = -540.0/𝐴
+    𝗚⁻¹∂η[9] = -180.0/𝐴
+    𝗚⁻¹∂η[10] =  540.0/𝐴
+    𝗚⁻¹∂η[11] =  180.0/𝐴
+    𝗚⁻¹∂η[12] = -720.0/𝐴
+    𝗚⁻¹∂η[13] = -720.0/𝐴
+    𝗚⁻¹∂η[14] =  540.0/𝐴
+    𝗚⁻¹∂η[15] = 1440.0/𝐴
+    𝗚⁻¹∂η[16] =   90.0/𝐴
+    𝗚⁻¹∂η[17] = -180.0/𝐴
+    𝗚⁻¹∂η[18] = -540.0/𝐴
+    𝗚⁻¹∂η[19] =   90.0/𝐴
+    𝗚⁻¹∂η[20] =  540.0/𝐴
+    𝗚⁻¹∂η[21] =  540.0/𝐴
+
+
+    return 𝗚⁻¹,𝗚⁻¹∂ξ,𝗚⁻¹∂η
+end
+
 """
 set𝝭!
 """
@@ -1603,11 +1806,6 @@ function set∇̃²𝝭!(gp::ReproducingKernel{𝒑,𝑠,𝜙,:Tri3},ap::Reprodu
                 ms₁₁ += (q₁*s₁₁+q₂*s₁₂)*n₁₁*s₁₁/𝐿₁²
                 ms₁₂ += (q₁*s₁₁+q₂*s₁₂)*0.5*(n₁₁*s₁₂+n₁₂*s₁₁)/𝐿₁²
                 ms₂₂ += (q₁*s₁₁+q₂*s₁₂)*n₁₂*s₁₂/𝐿₁²
-                if ξ.η == 0.0
-                    Δms₁₁ =  𝒒̂ᵀ𝗚⁻¹𝒒*(n₁₁*s₁₁/𝐿₁²-n₂₁*s₂₁/𝐿₂²)
-                    Δms₂₂ =  𝒒̂ᵀ𝗚⁻¹𝒒*(n₁₂*s₁₂/𝐿₁²-n₂₂*s₂₂/𝐿₂²)
-                    Δms₁₂ =  𝒒̂ᵀ𝗚⁻¹𝒒*0.5*((n₁₁*s₁₂+n₁₂*s₁₁)/𝐿₁²-(n₂₁*s₂₂+n₂₂*s₂₁)/𝐿₂²)
-                end
             end
             if  ξ.η == 0.0
                 q₁n₁ += q₁*n₂₁
@@ -1623,11 +1821,6 @@ function set∇̃²𝝭!(gp::ReproducingKernel{𝒑,𝑠,𝜙,:Tri3},ap::Reprodu
                 ms₁₁ += (q₁*s₂₁+q₂*s₂₂)*n₂₁*s₂₁/𝐿₂²
                 ms₁₂ += (q₁*s₂₁+q₂*s₂₂)*0.5*(n₂₁*s₂₂+n₂₂*s₂₁)/𝐿₂²
                 ms₂₂ += (q₁*s₂₁+q₂*s₂₂)*n₂₂*s₂₂/𝐿₂²
-                if ξ.ξ+ξ.η ≈ 1.0
-                    Δms₁₁ =  𝒒̂ᵀ𝗚⁻¹𝒒*(n₂₁*s₂₁/𝐿₂²-n₃₁*s₃₁/𝐿₃²)
-                    Δms₂₂ =  𝒒̂ᵀ𝗚⁻¹𝒒*(n₂₂*s₂₂/𝐿₂²-n₃₂*s₃₂/𝐿₃²)
-                    Δms₁₂ =  𝒒̂ᵀ𝗚⁻¹𝒒*0.5*((n₂₁*s₂₂+n₂₂*s₂₁)/𝐿₂²-(n₃₁*s₃₂+n₃₂*s₃₁)/𝐿₃²)
-                end
             end
             if ξ.ξ+ξ.η ≈ 1.0
                 q₁n₁ += q₁*n₃₁
@@ -1643,11 +1836,21 @@ function set∇̃²𝝭!(gp::ReproducingKernel{𝒑,𝑠,𝜙,:Tri3},ap::Reprodu
                 ms₁₁ += (q₁*s₃₁+q₂*s₃₂)*n₃₁*s₃₁/𝐿₃²
                 ms₁₂ += (q₁*s₃₁+q₂*s₃₂)*0.5*(n₃₁*s₃₂+n₃₂*s₃₁)/𝐿₃²
                 ms₂₂ += (q₁*s₃₁+q₂*s₃₂)*n₃₂*s₃₂/𝐿₃²
-                if ξ.ξ == 0.0
-                    Δms₁₁ =  𝒒̂ᵀ𝗚⁻¹𝒒*(n₃₁*s₃₁/𝐿₃²-n₁₁*s₁₁/𝐿₁²)
-                    Δms₂₂ =  𝒒̂ᵀ𝗚⁻¹𝒒*(n₃₂*s₃₂/𝐿₃²-n₁₂*s₁₂/𝐿₁²)
-                    Δms₁₂ =  𝒒̂ᵀ𝗚⁻¹𝒒*0.5*((n₃₁*s₃₂+n₃₂*s₃₁)/𝐿₃²-(n₁₁*s₁₂+n₁₂*s₁₁)/𝐿₁²)
-                end
+            end
+            if ξ.ξ == 1.0
+                Δms₁₁ =  𝒒̂ᵀ𝗚⁻¹𝒒*(n₂₁*s₂₁/𝐿₂²-n₃₁*s₃₁/𝐿₃²)
+                Δms₂₂ =  𝒒̂ᵀ𝗚⁻¹𝒒*(n₂₂*s₂₂/𝐿₂²-n₃₂*s₃₂/𝐿₃²)
+                Δms₁₂ =  𝒒̂ᵀ𝗚⁻¹𝒒*0.5*((n₂₁*s₂₂+n₂₂*s₂₁)/𝐿₂²-(n₃₁*s₃₂+n₃₂*s₃₁)/𝐿₃²)
+            end
+            if ξ.η == 1.0
+                Δms₁₁ =  𝒒̂ᵀ𝗚⁻¹𝒒*(n₃₁*s₃₁/𝐿₃²-n₁₁*s₁₁/𝐿₁²)
+                Δms₂₂ =  𝒒̂ᵀ𝗚⁻¹𝒒*(n₃₂*s₃₂/𝐿₃²-n₁₂*s₁₂/𝐿₁²)
+                Δms₁₂ =  𝒒̂ᵀ𝗚⁻¹𝒒*0.5*((n₃₁*s₃₂+n₃₂*s₃₁)/𝐿₃²-(n₁₁*s₁₂+n₁₂*s₁₁)/𝐿₁²)
+            end
+            if ξ.ξ+ξ.η ≈ 0.0
+                Δms₁₁ =  𝒒̂ᵀ𝗚⁻¹𝒒*(n₁₁*s₁₁/𝐿₁²-n₂₁*s₂₁/𝐿₂²)
+                Δms₂₂ =  𝒒̂ᵀ𝗚⁻¹𝒒*(n₁₂*s₁₂/𝐿₁²-n₂₂*s₂₂/𝐿₂²)
+                Δms₁₂ =  𝒒̂ᵀ𝗚⁻¹𝒒*0.5*((n₁₁*s₁₂+n₁₂*s₁₁)/𝐿₁²-(n₂₁*s₂₂+n₂₂*s₂₁)/𝐿₂²)
             end
 
             W₁₁₁ = mn₁₁n₁*wᵇ
@@ -2083,8 +2286,8 @@ function set∇∇̄²𝝭!(ap::ReproducingKernel{𝒑,𝑠,𝜙,:Tri3};Γᵍ::U
                 𝑤 = ξ.𝑤
                 n₁ = ξ.n₁
                 n₂ = ξ.n₂
-                s₁ = ξ.s₁
-                s₂ = ξ.s₂
+                s₁ = -n₂
+                s₂ = n₁
                 𝝭 = ξ[:𝝭]
                 𝒒, ∂𝒒∂ξ, ∂𝒒∂η = get∇²𝒑₂(Γᵍ,ξ)
 
@@ -2291,14 +2494,19 @@ function set∇̄²𝝭!(ap::ReproducingKernel{𝒑,𝑠,𝜙,:Tri3};Γᵍ::Vect
         ∂²𝝭∂x² = ξ̂[:∂²𝝭∂x²_]
         ∂²𝝭∂x∂y = ξ̂[:∂²𝝭∂x∂y_]
         ∂²𝝭∂y² = ξ̂[:∂²𝝭∂y²_]
+        for i in 1:length(𝓒)
+            ∂²𝝭∂x²[i] = 0.0
+            ∂²𝝭∂x∂y[i] = 0.0
+            ∂²𝝭∂y²[i] = 0.0
+        end
         for a in Γᵍ
             if ap∩a ≠ nothing
                 for ξ in a.𝓖
                     𝑤 = ξ.𝑤
                     n₁ = ξ.n₁
                     n₂ = ξ.n₂
-                    s₁ = ξ.s₁
-                    s₂ = ξ.s₂
+                    s₁ = -n₂
+                    s₂ = n₁
                     𝝭 = ξ[:𝝭]
                     𝒒, ∂𝒒∂ξ, ∂𝒒∂η = get∇²𝒑₂(a,ξ)
 
@@ -2334,8 +2542,8 @@ function set∇̄²𝝭!(ap::ReproducingKernel{𝒑,𝑠,𝜙,:Tri3};Γᵍ::Vect
                     𝑤 = ξ.𝑤
                     n₁ = ξ.n₁
                     n₂ = ξ.n₂
-                    s₁ = ξ.s₁
-                    s₂ = ξ.s₂
+                    s₁ = -n₂
+                    s₂ = n₁
                     ∂𝝭∂x = ξ[:∂𝝭∂x]
                     ∂𝝭∂y = ξ[:∂𝝭∂y]
                     𝒒 = get𝒑₂(b,ξ)
@@ -2391,7 +2599,7 @@ function set∇̄²𝝭!(ap::ReproducingKernel{𝒑,𝑠,𝜙,:Tri3};Γᵍ::Vect
     end
 end
 
-for set𝝭 in (:set𝝭!,:set∇𝝭!,:set∇₂𝝭!,:set∇²𝝭!,:set∇³𝝭!,:set∇̂³𝝭!,:set∇²₂𝝭!,:set∇̄𝝭!)
+for set𝝭 in (:set𝝭!,:set∇𝝭!,:set∇₂𝝭!,:set∇²𝝭!,:set∇³𝝭!,:set∇̂³𝝭!,:set∇²₂𝝭!)
     @eval begin
         function $set𝝭(aps::Vector{T}) where T<:ReproducingKernel
             for ap in aps

@@ -96,6 +96,7 @@ end
 
 function (op::Operator{:∫∇v∇uvbdΩ})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    kᶜ = op.k
     for ξ in 𝓖
         N = ξ[:𝝭]
         B₁ = ξ[:∂𝝭∂x]
@@ -107,7 +108,7 @@ function (op::Operator{:∫∇v∇uvbdΩ})(ap::T,k::AbstractMatrix{Float64},f::A
             I = xᵢ.𝐼
             for (j,xⱼ) in enumerate(𝓒)
                 J = xⱼ.𝐼
-                k[I,J] += op.k*(B₁[i]*B₁[j] + B₂[i]*B₂[j] + B₃[i]*B₃[j])*𝑤
+                k[I,J] += kᶜ*(B₁[i]*B₁[j] + B₂[i]*B₂[j] + B₃[i]*B₃[j])*𝑤
             end
             f[I] += N[i]*b*𝑤
         end
@@ -116,6 +117,7 @@ end
 
 function (op::Operator{:∫∇v∇udΩ})(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    kᶜ = op.k
     for ξ in 𝓖
         B₁ = ξ[:∂𝝭∂x]
         B₂ = ξ[:∂𝝭∂y]
@@ -125,7 +127,7 @@ function (op::Operator{:∫∇v∇udΩ})(ap::T,k::AbstractMatrix{Float64}) where
             I = xᵢ.𝐼
             for (j,xⱼ) in enumerate(𝓒)
                 J = xⱼ.𝐼
-                k[I,J] += op.k*(B₁[i]*B₁[j] + B₂[i]*B₂[j] + B₃[i]*B₃[j])*𝑤
+                k[I,J] += kᶜ*(B₁[i]*B₁[j] + B₂[i]*B₂[j] + B₃[i]*B₃[j])*𝑤
             end
         end
     end
@@ -195,6 +197,7 @@ function (op::Operator{:∫λgdΓ})(ap1::T,ap2::S,g::AbstractMatrix{Float64},q::
 end
 
 function (op::Operator{:∫∇𝑛vgdΓ})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+    kᶜ = op.k
     for ξ in ap.𝓖
         N = ξ[:𝝭]
         B₁ = ξ[:∂𝝭∂x]
@@ -209,9 +212,9 @@ function (op::Operator{:∫∇𝑛vgdΓ})(ap::T,k::AbstractMatrix{Float64},f::Ab
             I = xᵢ.𝐼
             for (j,xⱼ) in enumerate(𝓒)
                 J = xⱼ.𝐼
-                k[I,J] -= op.k*((B₁[i]*n₁+B₂[i]*n₂+B₃[i]*n₃)*N[j] + N[i]*(B₁[j]*n₁+B₂[j]*n₂+B₃[j]*n₃))*𝑤
+                k[I,J] -= kᶜ*((B₁[i]*n₁+B₂[i]*n₂+B₃[i]*n₃)*N[j] + N[i]*(B₁[j]*n₁+B₂[j]*n₂+B₃[j]*n₃))*𝑤
             end
-            f[I] -= op.k*(B₁[i]*n₁+B₂[i]*n₂+B₃[i]*n₃)*g*𝑤
+            f[I] -= kᶜ*(B₁[i]*n₁+B₂[i]*n₂+B₃[i]*n₃)*g*𝑤
         end
     end
 end
@@ -257,13 +260,13 @@ Plane Strain
 """
 function (op::Operator{:∫∫εᵢⱼσᵢⱼvᵢbᵢdxdy})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    E = op.E
+    ν = op.ν
     for ξ in 𝓖
         N = ξ[:𝝭]
         B₁ = ξ[:∂𝝭∂x]
         B₂ = ξ[:∂𝝭∂y]
         𝑤 = ξ.𝑤
-        E = op.E
-        ν = op.ν
         Cᵢᵢᵢᵢ = E/(1-ν^2)
         Cᵢᵢⱼⱼ = E*ν/(1-ν^2)
         Cᵢⱼᵢⱼ = E/2/(1+ν)
@@ -286,12 +289,12 @@ end
 
 function (op::Operator{:∫∫εᵢⱼσᵢⱼdxdy})(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    E = op.E
+    ν = op.ν
     for ξ in 𝓖
         B₁ = ξ[:∂𝝭∂x]
         B₂ = ξ[:∂𝝭∂y]
         𝑤 = ξ.𝑤
-        E = op.E
-        ν = op.ν
         Cᵢᵢᵢᵢ = E/(1-ν^2)
         Cᵢᵢⱼⱼ = E*ν/(1-ν^2)
         Cᵢⱼᵢⱼ = E/2/(1+ν)
@@ -310,12 +313,12 @@ end
 
 function (op::Operator{:∫∫εᵛᵢⱼσᵛᵢⱼdxdy})(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    E = op.E
+    ν = op.ν
     for ξ in 𝓖
         B₁ = ξ[:∂𝝭∂x]
         B₂ = ξ[:∂𝝭∂y]
         𝑤 = ξ.𝑤
-        E = op.E
-        ν = op.ν
         Cᵛ = E/(1-2*ν)
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.𝐼
@@ -332,13 +335,13 @@ end
 
 function (op::Operator{:∫∫εᵈᵢⱼσᵈᵢⱼdxdy})(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    E = op.E
+    ν = op.ν
+    Cᵈ = E/(1+ν)
     for ξ in 𝓖
         B₁ = ξ[:∂𝝭∂x]
         B₂ = ξ[:∂𝝭∂y]
         𝑤 = ξ.𝑤
-        E = op.E
-        ν = op.ν
-        Cᵈ = E/(1+ν)
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.𝐼
             for (j,xⱼ) in enumerate(𝓒)
@@ -412,16 +415,16 @@ end
 
 function (op::Operator{:∫σᵢⱼnⱼgᵢds})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    E = op.E
+    ν = op.ν
+    Cᵢᵢᵢᵢ = E/(1-ν^2)
+    Cᵢᵢⱼⱼ = E*ν/(1-ν^2)
+    Cᵢⱼᵢⱼ = E/2/(1+ν)
     for ξ in 𝓖
         𝑤 = ξ.𝑤
         N = ξ[:𝝭]
         B₁ = ξ[:∂𝝭∂x]
         B₂ = ξ[:∂𝝭∂y]
-        E = op.E
-        ν = op.ν
-        Cᵢᵢᵢᵢ = E/(1-ν^2)
-        Cᵢᵢⱼⱼ = E*ν/(1-ν^2)
-        Cᵢⱼᵢⱼ = E/2/(1+ν)
         n₁₁ = ξ.n₁₁
         n₁₂ = ξ.n₁₂
         n₂₂ = ξ.n₂₂
@@ -452,14 +455,14 @@ end
 
 function (op::Operator{:∫σᵢⱼnⱼgᵢvᵢgᵢds})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    E = op.E
+    ν = op.ν
+    α = op.α
     for ξ in 𝓖
         𝑤 = ξ.𝑤
         N = ξ[:𝝭]
         B₁ = ξ[:∂𝝭∂x]
         B₂ = ξ[:∂𝝭∂y]
-        E = op.E
-        ν = op.ν
-        α = op.α
         Cᵢᵢᵢᵢ = E/(1-ν^2)
         Cᵢᵢⱼⱼ = E*ν/(1-ν^2)
         Cᵢⱼᵢⱼ = E/2/(1+ν)
@@ -493,16 +496,16 @@ end
 
 function (op::Operator{:∫σ̄ᵢⱼnⱼgᵢds})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    E = op.E
+    ν = op.ν
+    Cᵢᵢᵢᵢ = E/(1-ν^2)
+    Cᵢᵢⱼⱼ = E*ν/(1-ν^2)
+    Cᵢⱼᵢⱼ = E/2/(1+ν)
     for ξ in 𝓖
         𝑤 = ξ.𝑤
         N = ξ[:𝝭]
         B₁ = ξ[:∂𝝭∂x_]
         B₂ = ξ[:∂𝝭∂y_]
-        E = op.E
-        ν = op.ν
-        Cᵢᵢᵢᵢ = E/(1-ν^2)
-        Cᵢᵢⱼⱼ = E*ν/(1-ν^2)
-        Cᵢⱼᵢⱼ = E/2/(1+ν)
         n₁₁ = ξ.n₁₁
         n₁₂ = ξ.n₁₂
         n₂₂ = ξ.n₂₂
@@ -577,6 +580,7 @@ end
 
 function (op::Operator{:∫vᵢgᵢds})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    α = op.α
     for ξ in 𝓖
         𝑤 = ξ.𝑤
         N = ξ[:𝝭]
@@ -589,21 +593,17 @@ function (op::Operator{:∫vᵢgᵢds})(ap::T,k::AbstractMatrix{Float64},f::Abst
             I = xᵢ.𝐼
             for (j,xⱼ) in enumerate(𝓒)
                 J = xⱼ.𝐼
-                k[2*I-1,2*J-1] += op.α*N[i]*n₁₁*N[j]*𝑤
-                k[2*I,2*J-1]   += op.α*N[i]*n₁₂*N[j]*𝑤
-                k[2*I-1,2*J]   += op.α*N[i]*n₁₂*N[j]*𝑤
-                k[2*I,2*J]     += op.α*N[i]*n₂₂*N[j]*𝑤
+                k[2*I-1,2*J-1] += α*N[i]*n₁₁*N[j]*𝑤
+                k[2*I,2*J-1]   += α*N[i]*n₁₂*N[j]*𝑤
+                k[2*I-1,2*J]   += α*N[i]*n₁₂*N[j]*𝑤
+                k[2*I,2*J]     += α*N[i]*n₂₂*N[j]*𝑤
             end
-            f[2*I-1] += op.α*N[i]*(n₁₁*g₁+n₁₂*g₂)*𝑤
-            f[2*I]   += op.α*N[i]*(n₁₂*g₁+n₂₂*g₂)*𝑤
+            f[2*I-1] += α*N[i]*(n₁₁*g₁+n₁₂*g₂)*𝑤
+            f[2*I]   += α*N[i]*(n₁₂*g₁+n₂₂*g₂)*𝑤
         end
     end
 end
 
-
-"""
-Kirchhoff-Love plate
-"""
 function (op::Operator{:∫κᵢⱼMᵢⱼdΩ})(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     D = op.D
@@ -618,6 +618,26 @@ function (op::Operator{:∫κᵢⱼMᵢⱼdΩ})(ap::T,k::AbstractMatrix{Float64}
             for (j,xⱼ) in enumerate(𝓒)
                 J = xⱼ.𝐼
                 k[I,J] += D*(B₁₁[i]*B₁₁[j] + ν*(B₁₁[i]*B₂₂[j] + B₂₂[i]*B₁₁[j]) + B₂₂[i]*B₂₂[j] + 2*(1-ν)*B₁₂[i]*B₁₂[j])*𝑤
+            end
+        end
+    end
+end
+
+function (op::Operator{:∫κ̃ᵢⱼM̃ᵢⱼdΩ})(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    D = op.D
+    ν = op.ν
+    for ξ in 𝓖
+        B₁₁ = ξ[:∂²𝝭∂x²]
+        B₁₂ = ξ[:∂²𝝭∂x∂y]
+        B₂₁ = ξ[:∂²𝝭∂y∂x]
+        B₂₂ = ξ[:∂²𝝭∂y²]
+        𝑤 = ξ.𝑤
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[I,J] += D*(B₁₁[i]*B₁₁[j] + ν*(B₁₁[i]*B₂₂[j] + B₂₂[i]*B₁₁[j]) + B₂₂[i]*B₂₂[j] + (1-ν)*(B₁₂[i]*B₁₂[j]+B₂₁[i]*B₂₁[j]))*𝑤
             end
         end
     end
@@ -683,6 +703,7 @@ end
 
 function (op::Operator{:∫∇𝑛vθdΓ})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    α = op.α
     for ξ in 𝓖
         𝑤 = ξ.𝑤
         n₁ = ξ.n₁
@@ -696,9 +717,9 @@ function (op::Operator{:∫∇𝑛vθdΓ})(ap::T,k::AbstractMatrix{Float64},f::A
             for (j,xⱼ) in enumerate(𝓒)
                 J = xⱼ.𝐼
                 θⱼ = B₁[j]*n₁+B₂[j]*n₂
-                k[I,J] += op.α*θᵢ*θⱼ*𝑤
+                k[I,J] += α*θᵢ*θⱼ*𝑤
             end
-            f[I] += op.α*θᵢ*θ*𝑤
+            f[I] += α*θᵢ*θ*𝑤
         end
     end
 end
@@ -920,10 +941,77 @@ function (op::Operator{:ΔM̃ₙₛg})(ap::T,k::AbstractMatrix{Float64},f::Abstr
             for (j,xⱼ) in enumerate(𝓒)
                 J = xⱼ.𝐼
                 ΔMₙₛⱼ = D₁₁*B₁₁[j] + D₁₂*B₁₂[j] + D₂₂*B₂₂[j]
-                k[I,J] += ΔMₙₛᵢ*N[j] + N[i]*ΔMₙₛⱼ + ΔM̄ₙₛᵢ*N[j]
+                k[I,J] += ΔMₙₛᵢ*N[j] + N[i]*ΔMₙₛⱼ - ΔM̄ₙₛᵢ*N[j]
             end
-            f[I] += (ΔMₙₛᵢ + ΔM̄ₙₛᵢ)*g
+            f[I] += (ΔMₙₛᵢ - ΔM̄ₙₛᵢ)*g
         end
+    end
+end
+
+"""
+Phase field modeling fracture
+"""
+function (op::Operator{:∫v²uₓuₓdx})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    EA = op.EA
+    η = op.η
+    for ξ in 𝓖
+        N = ξ[:𝝭]
+        B = ξ[:∂𝝭∂x]
+        v = sum(N[i]*xᵢ.v for (i,xᵢ) in enumerate(𝓒))
+        # println(v)
+        b = ξ.b
+        𝑤 = ξ.𝑤
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[I,J] += (v^2+η)*EA*B[i]*B[j]*𝑤
+            end
+            f[I] += N[i]*b*𝑤
+        end
+    end
+end
+
+function (op::Operator{:∫vₓvₓvvdx})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    kc = op.k
+    l = op.l
+    for ξ in 𝓖
+        N = ξ[:𝝭]
+        B = ξ[:∂𝝭∂x]
+        ℋ = ξ.ℋ
+        ε = 0.0
+        v = 0.0
+        ∂v∂x = 0.0
+        for (i,xᵢ) in enumerate(𝓒)
+            ε += B[i]*xᵢ.u
+            v += N[i]*xᵢ.v
+            ∂v∂x += B[i]*xᵢ.v
+        end
+        ℋₜ = max(ℋ,ε^2)
+        # println(ℋₜ)
+        𝑤 = ξ.𝑤
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[I,J] += kc*(2*l*B[i]*B[j] + N[i]*N[j]/2/l)*𝑤
+            end
+            f[I] += N[i]*(kc/2/l - ℋₜ)*𝑤
+            # println(f[I])
+            # f[I] = N[i]*(kc/2/l - ℋₜ - kc*(2*l*∂v∂x + v/2/l))*𝑤
+        end
+    end
+end
+
+function (op::Operator{:UPDATE_PFM_1D})(ap::T) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    for ξ in 𝓖
+        B = ξ[:∂𝝭∂x]
+        ℋ = ξ.ℋ
+        ε = sum(B[i]*xᵢ.u for (i,xᵢ) in enumerate(𝓒))
+        ξ.ℋ = max(ℋ,ε^2)
     end
 end
 
@@ -938,7 +1026,7 @@ function (op::Operator{:L₂})(ap::T) where T<:AbstractElement
         N = ξ[:𝝭]
         ūᵢ = ξ.u
         uᵢ = 0
-        for (i,xᵢ) in enumerate(𝓒)
+        for (i,xᵢ) in enumerate(ap.𝓒)
             uᵢ += N[i]*xᵢ.d
         end
         Δu² += (uᵢ - ūᵢ)^2*𝑤

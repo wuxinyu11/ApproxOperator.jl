@@ -21,6 +21,6 @@ export set𝝭!, set∇𝝭!, set∇₂𝝭!, set∇²𝝭!, set∇²₂𝝭!, s
 
 # debug
 include("littletools.jl")
-export check𝝭, check∇𝝭, check∇₂𝝭, check∇²𝝭, check∇²₂𝝭, check∇³𝝭
+export check𝝭, check∇𝝭, check∇₂𝝭, check∇²𝝭, check∇²₂𝝭, check∇³𝝭, check∇∇²𝝭
 
 end
