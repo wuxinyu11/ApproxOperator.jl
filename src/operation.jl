@@ -86,10 +86,10 @@ function (op::Operator{:𝑓𝑣})(ap::T,f::AbstractVector{Float64}) where T<:Ab
     for ξ in 𝓖
         𝑤 = ξ.𝑤
         N = ξ[:𝝭]
-        g = ξ.g
+        u = ξ.u
         for (i,xᵢ) in enumerate(𝓒)
             I = xᵢ.𝐼
-            f[I] += N[i]*g*𝑤
+            f[I] += N[i]*u*𝑤
         end
     end
 end
@@ -111,6 +111,22 @@ function (op::Operator{:∫∇v∇uvbdΩ})(ap::T,k::AbstractMatrix{Float64},f::A
                 k[I,J] += kᶜ*(B₁[i]*B₁[j] + B₂[i]*B₂[j] + B₃[i]*B₃[j])*𝑤
             end
             f[I] += N[i]*b*𝑤
+        end
+    end
+end
+
+function (op::Operator{:∫vₓuₓdx})(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    EA = op.EA
+    for ξ in 𝓖
+        B = ξ[:∂𝝭∂x]
+        𝑤 = ξ.𝑤
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[I,J] += B[i]*EA*B[j]*𝑤
+            end
         end
     end
 end
