@@ -5,10 +5,8 @@ struct Operator{T,D}
     type::Val{T}
     data::Dict{Symbol,D}
 end
-Operator(t::Symbol) = Operator(Val(t),Dict{Symbol,Any}())
-function Operator(t::Symbol,d::Pair{Symbol,D}...) where D<:Any
-    return Operator(Val(t),Dict(d))
-end
+Operator{T}() where T = Operator(Val(T),Dict{Symbol,Any}())
+Operator{T}(d::Pair{Symbol,D}...) where {T,D<:Any} = Operator(Val(T),Dict(d))
 
 
 ## General Functions

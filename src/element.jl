@@ -265,30 +265,48 @@ end
 get𝝭(ap::Element,ξ::SNode)
 """
 # ------------- Poi1 ---------------
-@inline get𝝭(::Element{:Poi1},::Any) = 1.0
+function set𝝭!(ap::Element{:Poi1},x::SNode)
+    𝝭 = x[:𝝭]
+    𝝭[1] = 1.0
+end
 
 # ------------- Seg2 ---------------
-get𝝭(ap::Element{:Seg2},ξ::SNode) = (0.5*(1.0-ξ.ξ),0.5*(1.0+ξ.ξ))
-@inline function get∂𝝭∂x(ap::Element{:Seg2},::Any)
+function set𝝭!(ap::Element{:Seg2},x::SNode)
+    𝝭 = x[:𝝭]
+    𝝭[1] = 0.5*(1.0-x.ξ)
+    𝝭[2] = 0.5*(1.0+x.ξ)
+end
+
+function set∇𝝭!(ap::Element{:Seg2},x::SNode)
     𝐿 = get𝐿(ap)
-    return (-1.0/𝐿,1.0/𝐿)
+    ∂𝝭∂x = x[:∂𝝭∂x]
+    ∂𝝭∂x[1] = -1.0/𝐿
+    ∂𝝭∂x[2] = 1.0/𝐿
 end
 
 # ------------- Tri3 ---------------
-@inline get𝝭(ap::Element{:Tri3},ξ::SNode) = (ξ.ξ,ξ.η,1.0-ξ.ξ-ξ.η)
-@inline function get∂𝝭∂x(ap::Element{:Tri3},ξ::SNode)
-    y₁ = ap.𝓒[1].y
-    y₂ = ap.𝓒[2].y
-    y₃ = ap.𝓒[3].y
-    𝐴 = get𝐴(ap)
-    return (y₂-y₃)/2.0/𝐴,(y₃-y₁)/2.0/𝐴,(y₁-y₂)/2.0/𝐴
+function set𝝭!(ap::Element{:Tri3},x::SNode)
+    𝝭 = x[:𝝭]
+    𝝭[1] = x.ξ
+    𝝭[2] = x.η
+    𝝭[3] = 1.0-x.ξ-x.η
 end
-@inline function get∂𝝭∂y(ap::Element{:Tri3},ξ::SNode)
+function set∇𝝭!(ap::Element{:Tri3},x::SNode)
+    𝐴 = get𝐴(ap)
     x₁ = ap.𝓒[1].x
     x₂ = ap.𝓒[2].x
     x₃ = ap.𝓒[3].x
-    𝐴 = get𝐴(ap)
-    return (x₃-x₂)/2.0/𝐴,(x₁-x₃)/2.0/𝐴,(x₂-x₁)/2.0/𝐴
+    y₁ = ap.𝓒[1].y
+    y₂ = ap.𝓒[2].y
+    y₃ = ap.𝓒[3].y
+    ∂𝝭∂x = x[:∂𝝭∂x]
+    ∂𝝭∂y = x[:∂𝝭∂y]
+    ∂𝝭∂x[1] = (y₂-y₃)/2.0/𝐴
+    ∂𝝭∂x[2] = (y₃-y₁)/2.0/𝐴
+    ∂𝝭∂x[3] = (y₁-y₂)/2.0/𝐴
+    ∂𝝭∂y[1] = (x₃-x₂)/2.0/𝐴
+    ∂𝝭∂y[2] = (x₁-x₃)/2.0/𝐴
+    ∂𝝭∂y[3] = (x₂-x₁)/2.0/𝐴
 end
 
 # ------------- Quad ---------------
