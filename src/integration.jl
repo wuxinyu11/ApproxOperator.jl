@@ -366,6 +366,12 @@ function quadraturerule(s::Symbol)
                   0.865063366688984510732096688424,
                   0.973906528517171720077964012085]
         ])
+    elseif s == :TriGI1
+        return Dict([
+            :w=>[1.0],
+            :ξ=>[1/3],
+            :η=>[1/3]
+        ])
     elseif s == :TriGI3
         return Dict([
             :w=>[1/3,1/3,1/3],
