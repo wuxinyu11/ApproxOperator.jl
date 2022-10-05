@@ -310,17 +310,48 @@ function set∇𝝭!(ap::Element{:Tri3},x::SNode)
 end
 
 # ------------- Quad ---------------
-@inline get𝝭(ap::Element{:Quad},ξ::SNode) = get𝝭(ap,ξ.ξ,ξ.η)
-@inline get∂𝝭∂ξ(ap::Element{:Quad},ξ::SNode) = get∂𝝭∂ξ(ap,ξ.η)
-@inline get∂𝝭∂η(ap::Element{:Quad},ξ::SNode) = get∂𝝭∂η(ap,ξ.ξ)
-
-function get𝝭(ap::Element{:Quad},ξ::Float64,η::Float64)
-    N₁ = 0.25*(1.0-ξ)*(1.0-η)
-    N₂ = 0.25*(1.0+ξ)*(1.0-η)
-    N₃ = 0.25*(1.0+ξ)*(1.0+η)
-    N₄ = 0.25*(1.0-ξ)*(1.0+η)
-    return (N₁,N₂,N₃,N₄)
+function set𝝭!(ap::Element{:Quad},x::SNode)
+    ξ = x.ξ
+    η = x.η
+    𝝭 = x[:𝝭]
+    𝝭[1] = 0.25*(1.0-ξ)*(1.0-η)
+    𝝭[2] = 0.25*(1.0+ξ)*(1.0-η)
+    𝝭[3] = 0.25*(1.0+ξ)*(1.0+η)
+    𝝭[4] = 0.25*(1.0-ξ)*(1.0+η)
 end
+
+function set∇𝝭!(ap::Element{:Quad},x::SNode)
+    x₁ = ap.𝓒[1].x
+    x₂ = ap.𝓒[2].x
+    x₃ = ap.𝓒[3].x
+    x₄ = ap.𝓒[4].x
+    y₁ = ap.𝓒[1].y
+    y₂ = ap.𝓒[2].y
+    y₃ = ap.𝓒[3].y
+    y₄ = ap.𝓒[4].y
+    ∂N₁∂ξ,∂N₂∂ξ,∂N₃∂ξ,∂N₄∂ξ = get∂𝝭∂ξ(ap,x)
+    ∂N₁∂η,∂N₂∂η,∂N₃∂η,∂N₄∂η = get∂𝝭∂η(ap,x)
+    ∂x∂ξ = ∂N₁∂ξ*x₁ + ∂N₂∂ξ*x₂ + ∂N₃∂ξ*x₃ + ∂N₄∂ξ*x₄
+    ∂x∂η = ∂N₁∂η*x₁ + ∂N₂∂η*x₂ + ∂N₃∂η*x₃ + ∂N₄∂η*x₄
+    ∂y∂ξ = ∂N₁∂ξ*y₁ + ∂N₂∂ξ*y₂ + ∂N₃∂ξ*y₃ + ∂N₄∂ξ*y₄
+    ∂y∂η = ∂N₁∂η*y₁ + ∂N₂∂η*y₂ + ∂N₃∂η*y₃ + ∂N₄∂η*y₄
+    detJ = ∂x∂ξ*∂y∂η - ∂x∂η*∂y∂ξ
+    ∂ξ∂x =   ∂y∂η/detJ
+    ∂η∂x = - ∂y∂ξ/detJ
+    ∂ξ∂y = - ∂x∂η/detJ
+    ∂η∂y =   ∂x∂ξ/detJ
+    ∂𝝭∂x = x[:∂𝝭∂x]
+    ∂𝝭∂y = x[:∂𝝭∂y]
+    ∂𝝭∂x[1] = ∂N₁∂ξ*∂ξ∂x + ∂N₁∂η*∂η∂x
+    ∂𝝭∂x[2] = ∂N₂∂ξ*∂ξ∂x + ∂N₂∂η*∂η∂x
+    ∂𝝭∂x[3] = ∂N₃∂ξ*∂ξ∂x + ∂N₃∂η*∂η∂x
+    ∂𝝭∂x[4] = ∂N₄∂ξ*∂ξ∂x + ∂N₄∂η*∂η∂x
+    ∂𝝭∂y[1] = ∂N₁∂ξ*∂ξ∂y + ∂N₁∂η*∂η∂y
+    ∂𝝭∂y[2] = ∂N₂∂ξ*∂ξ∂y + ∂N₂∂η*∂η∂y
+    ∂𝝭∂y[3] = ∂N₃∂ξ*∂ξ∂y + ∂N₃∂η*∂η∂y
+    ∂𝝭∂y[4] = ∂N₄∂ξ*∂ξ∂y + ∂N₄∂η*∂η∂y
+end
+
 function get∂𝝭∂ξ(ap::Element{:Quad},η::Float64)
     ∂N₁∂ξ = - 0.25*(1-η)
     ∂N₂∂ξ =   0.25*(1-η)
@@ -335,37 +366,6 @@ function get∂𝝭∂η(ap::Element{:Quad},ξ::Float64)
     ∂N₄∂η =   0.25*(1-ξ)
     return (∂N₁∂η,∂N₂∂η,∂N₃∂η,∂N₄∂η)
 end
-function get∂𝝭∂x∂𝝭∂y(ap::Element{:Quad},ξ::SNode)
-    x₁ = ap.𝓒[1].x
-    x₂ = ap.𝓒[2].x
-    x₃ = ap.𝓒[3].x
-    x₄ = ap.𝓒[4].x
-    y₁ = ap.𝓒[1].y
-    y₂ = ap.𝓒[2].y
-    y₃ = ap.𝓒[3].y
-    y₄ = ap.𝓒[4].y
-    ∂N₁∂ξ,∂N₂∂ξ,∂N₃∂ξ,∂N₄∂ξ = get∂𝝭∂ξ(ap,ξ)
-    ∂N₁∂η,∂N₂∂η,∂N₃∂η,∂N₄∂η = get∂𝝭∂η(ap,ξ)
-    ∂x∂ξ = ∂N₁∂ξ*x₁ + ∂N₂∂ξ*x₂ + ∂N₃∂ξ*x₃ + ∂N₄∂ξ*x₄
-    ∂x∂η = ∂N₁∂η*x₁ + ∂N₂∂η*x₂ + ∂N₃∂η*x₃ + ∂N₄∂η*x₄
-    ∂y∂ξ = ∂N₁∂ξ*y₁ + ∂N₂∂ξ*y₂ + ∂N₃∂ξ*y₃ + ∂N₄∂ξ*y₄
-    ∂y∂η = ∂N₁∂η*y₁ + ∂N₂∂η*y₂ + ∂N₃∂η*y₃ + ∂N₄∂η*y₄
-    detJ = ∂x∂ξ*∂y∂η - ∂x∂η*∂y∂ξ
-    ∂ξ∂x =   ∂y∂η/detJ
-    ∂η∂x = - ∂y∂ξ/detJ
-    ∂ξ∂y = - ∂x∂η/detJ
-    ∂η∂y =   ∂x∂ξ/detJ
-    ∂N₁∂x = ∂N₁∂ξ*∂ξ∂x + ∂N₁∂η*∂η∂x
-    ∂N₂∂x = ∂N₂∂ξ*∂ξ∂x + ∂N₂∂η*∂η∂x
-    ∂N₃∂x = ∂N₃∂ξ*∂ξ∂x + ∂N₃∂η*∂η∂x
-    ∂N₄∂x = ∂N₄∂ξ*∂ξ∂x + ∂N₄∂η*∂η∂x
-    ∂N₁∂y = ∂N₁∂ξ*∂ξ∂y + ∂N₁∂η*∂η∂y
-    ∂N₂∂y = ∂N₂∂ξ*∂ξ∂y + ∂N₂∂η*∂η∂y
-    ∂N₃∂y = ∂N₃∂ξ*∂ξ∂y + ∂N₃∂η*∂η∂y
-    ∂N₄∂y = ∂N₄∂ξ*∂ξ∂y + ∂N₄∂η*∂η∂y
-    return (∂N₁∂x,∂N₂∂x,∂N₃∂x,∂N₄∂x),(∂N₁∂y,∂N₂∂y,∂N₃∂y,∂N₄∂y)
-end
-# @inline get∇𝝭(ap::Element{:Quad},ξ::𝝃) where 𝝃<:AbstractNode = get𝝭(ap,ξ),get∂𝝭∂x∂𝝭∂y(ap,ξ)...,(0.0,0.0,0.0,0.0)
 
 """
  Discontinuous boundary element
