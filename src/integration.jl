@@ -26,6 +26,22 @@ function set𝓖!(aps::Vector{T},s::Symbol,fs::Symbol...) where T<:AbstractEleme
     end
 end
 
+function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement,S<:AbstractElement}
+    data = getfield(bs[1].𝓖[1],:data)
+    s = 0
+    nₑ = length(as)
+    for i in 1:nₑ
+        a = as[i]
+        b = bs[i]
+        for ξ_ in b.𝓖
+            g = ξ_.g
+            G = ξ_.G
+            push!(a.𝓖,SNode((g,G,s),data))
+            s += length(a.𝓒)
+        end
+    end
+end
+
 function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement{:Seg2},S<:AbstractElement{:Poi1}}
     data = Dict([:ξ=>(1,[-1.0,1.0]),:w=>(1,[1.0,1.0])])
     s = 0

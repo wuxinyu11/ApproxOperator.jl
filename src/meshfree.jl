@@ -157,6 +157,14 @@ function RegularGrid(x::Vector{Float64},y::Vector{Float64},z::Vector{Float64};n:
     return RegularGrid([xmin,ymin,zmin],[dx,dy,dz],Int[nx,ny,nz],cells)
 end
 
+function RegularGrid(nodes::Vector{T};n::Int=1,γ::Int=1) where T<:AbstractNode
+    node = nodes[1]
+    x = getfield(node,:data)[:x][2]
+    y = getfield(node,:data)[:y][2]
+    z = getfield(node,:data)[:z][2]
+    return RegularGrid(x,y,z,n=n,γ=γ)
+end
+
 # actions of RegularGrid
 function (rg::RegularGrid)(x::Float64,y::Float64,z::Float64)
     ix = floor(Int, (x - rg.xmin[1])/rg.dx[1] * rg.nx[1])
@@ -180,9 +188,9 @@ for t in subtypes(SpatialPartition)
     end
     (sp::t)(xs::T) where T<:AbstractVector = sp(xs...)
     function (sp::t)(ap::T) where T<:AbstractElement
-        𝓒 = ap.𝓒
+        𝓒 = ap.𝓒; 𝓖 = ap.𝓖
         indices = Set{Int}()
-        for 𝒙 in 𝓒
+        for 𝒙 in 𝓖
             union!(indices,sp(𝒙.x*1.0,𝒙.y*1.0,𝒙.z*1.0))
         end
         union!(𝓒,(Node(i,getfield(𝓒[1],:data)) for i in indices))
@@ -192,6 +200,14 @@ for t in subtypes(SpatialPartition)
             sp(ap)
         end
         T<:ReproducingKernel ? set_memory_𝝭!(aps) : nothing
+    end
+    function (sp::t)(ap::T,nodes::Vector{Node}) where T<:AbstractElement
+        𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+        indices = Set{Int}()
+        for 𝒙 in 𝓖
+            union!(indices,sp(𝒙.x*1.0,𝒙.y*1.0,𝒙.z*1.0))
+        end
+        return [nodes[i] for i in indices]
     end
     function (sp::t)(apss::Any...)
         for aps in apss

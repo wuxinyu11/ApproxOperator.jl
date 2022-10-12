@@ -185,6 +185,32 @@ function importmsh(filename::String,config::Dict{Any,Any})
     return elements, nodes
 end
 
+function importmsh(filename1::String,filename2::String,config::Dict{Any,Any})
+    elms, nodes_ = importmsh(filename1)
+    ~, nodes = importmsh(filename2)
+    elements = Dict{String,Any}()
+    cfg = config["RegularGrid"]
+    sp = RegularGrid(nodes[:x],nodes[:y],nodes[:z];n=cfg["n"],γ=cfg["γ"])
+    delete!(config,"RegularGrid")
+    nodes = Node(nodes...)
+    for (name,cfg) in config
+        Type = eval(Meta.parse(cfg["type"]))
+        𝗠 = Dict{Symbol,SymMat}()
+        QType = Meta.parse(cfg["𝓖"]["type"])
+        elms_𝓖 = [Element{s[1]}([nodes[i] for i in s[2]]) for s in elms[cfg["𝓖"]["tag"]]]
+        set𝓖!(elms_𝓖,QType)
+        elements[name] = [Type(sp(elm,nodes),𝗠) for elm in elms_𝓖]
+        set𝓖!(elements[name],elms_𝓖)
+
+        if haskey(cfg["𝓖"],"𝝭")
+            ss = Meta.parse.(cfg["𝓖"]["𝝭"])
+            Type<:ReproducingKernel ? set_memory_𝗠!(elements[name],ss...) : nothing
+            set_memory_𝝭!(elements[name],ss...)
+        end
+    end
+    return elements, nodes
+end
+
 function importmsh(filename::String,::Val{:test})
     elems,nodes = importmsh(filename)
     data = Dict([s=>(2,v) for (s,v) in nodes])
