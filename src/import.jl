@@ -197,7 +197,7 @@ function importmsh(filename1::String,filename2::String,config::Dict{Any,Any})
         Type = eval(Meta.parse(cfg["type"]))
         𝗠 = Dict{Symbol,SymMat}()
         QType = Meta.parse(cfg["𝓖"]["type"])
-        elms_𝓖 = [Element{s[1]}([nodes[i] for i in s[2]]) for s in elms[cfg["𝓖"]["tag"]]]
+        elms_𝓖 = [Element{s[1]}([nodes_[i] for i in s[2]]) for s in elms[cfg["𝓖"]["tag"]]]
         set𝓖!(elms_𝓖,QType)
         elements[name] = [Type(sp(elm,nodes),𝗠) for elm in elms_𝓖]
         set𝓖!(elements[name],elms_𝓖)
