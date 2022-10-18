@@ -193,6 +193,7 @@ function importmsh(filename1::String,filename2::String,config::Dict{Any,Any})
     sp = RegularGrid(nodes[:x],nodes[:y],nodes[:z];n=cfg["n"],γ=cfg["γ"])
     delete!(config,"RegularGrid")
     nodes = Node(nodes...)
+    nodes_ = Node(nodes_...)
     for (name,cfg) in config
         Type = eval(Meta.parse(cfg["type"]))
         𝗠 = Dict{Symbol,SymMat}()

@@ -34,8 +34,8 @@ function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement,S<:Abst
         a = as[i]
         b = bs[i]
         for ξ_ in b.𝓖
-            g = ξ_.g
-            G = ξ_.G
+            g = ξ_.𝑔
+            G = ξ_.𝐺
             push!(a.𝓖,SNode((g,G,s),data))
             s += length(a.𝓒)
         end
