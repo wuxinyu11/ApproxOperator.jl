@@ -201,6 +201,11 @@ function importmsh(filename1::String,filename2::String,config::Dict{Any,Any})
         elms_𝓖 = [Element{s[1]}([nodes_[i] for i in s[2]]) for s in elms[cfg["𝓖"]["tag"]]]
         set𝓖!(elms_𝓖,QType)
         elements[name] = [Type(sp(elm,nodes),𝗠) for elm in elms_𝓖]
+        # if haskey(cfg,"𝓒")
+        #     elements[name] = [Type(elm.𝓒,𝗠) for elm in elements[cfg["𝓒"]]]
+        # else
+        #     elements[name] = [Type(sp(elm,nodes),𝗠) for elm in elms_𝓖]
+        # end
         set𝓖!(elements[name],elms_𝓖)
 
         if haskey(cfg["𝓖"],"𝝭")
