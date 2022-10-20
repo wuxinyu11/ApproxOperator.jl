@@ -15,6 +15,9 @@ function set𝓖!(aps::Vector{T},s::Symbol) where T<:AbstractElement
         end
     end
     push!(getfield(aps[1].𝓖[1],:data),:x=>(2,zeros(nₑ*n)),:y=>(2,zeros(nₑ*n)),:z=>(2,zeros(nₑ*n)),:𝑤=>(2,zeros(nₑ*n)))
+    T <: AbstractElement{:Seg2} ? push!(getfield(aps[1].𝓖[1],:data),:𝐿=>(2,zeros(nₑ*n))) : nothing
+    T <: AbstractElement{:Tri3} ? push!(getfield(aps[1].𝓖[1],:data),:𝐴=>(2,zeros(nₑ*n))) : nothing
+    T <: AbstractElement{:Tet4} ? push!(getfield(aps[1].𝓖[1],:data),:𝑉=>(2,zeros(nₑ*n))) : nothing
     setgeometry!.(aps)
 end
 

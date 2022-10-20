@@ -1166,7 +1166,8 @@ cal𝗚!
 function cal𝗚!(ap::ReproducingKernel{:Quadratic1D,𝑠,𝜙,:Seg2}) where {𝑠,𝜙}
     𝗚⁻¹ = ap.𝗠[:∇̃]
     fill!(𝗚⁻¹,0.0)
-    𝐿 = get𝐿(ap)
+    # 𝐿 = get𝐿(ap)
+    𝐿 = ap.𝓖[1].𝐿
     𝗚⁻¹[1] =  4.0/𝐿
     𝗚⁻¹[2] = -6.0/𝐿
     𝗚⁻¹[3] = 12.0/𝐿
@@ -1176,7 +1177,8 @@ end
 function cal𝗚!(ap::ReproducingKernel{:Cubic1D,𝑠,𝜙,:Seg2}) where {𝑠,𝜙}
     𝗚⁻¹ = ap.𝗠[:∇̃]
     fill!(𝗚⁻¹,0.0)
-    𝐿 = get𝐿(ap)
+    # 𝐿 = get𝐿(ap)
+    𝐿 = ap.𝓖[1].𝐿
     𝗚⁻¹[1] =    9.0/𝐿
     𝗚⁻¹[2] =  -36.0/𝐿
     𝗚⁻¹[3] =  192.0/𝐿
@@ -1189,7 +1191,8 @@ end
 function cal𝗚!(ap::ReproducingKernel{:Linear2D,𝑠,𝜙,:Tri3}) where {𝑠,𝜙}
     𝗚⁻¹ = ap.𝗠[:∇̃]
     fill!(𝗚⁻¹,0.0)
-    𝐴 = get𝐴(ap)
+    # 𝐴 = get𝐴(ap)
+    𝐴 = ap.𝓖[1].𝐴
     𝗚⁻¹[1] = 1.0/𝐴
     return 𝗚⁻¹
 end
@@ -1197,7 +1200,8 @@ end
 function cal𝗚!(ap::ReproducingKernel{:Quadratic2D,𝑠,𝜙,:Tri3}) where {𝑠,𝜙}
     𝗚⁻¹ = ap.𝗠[:∇̃]
     fill!(𝗚⁻¹,0.0)
-    𝐴 = get𝐴(ap)
+    # 𝐴 = get𝐴(ap)
+    𝐴 = ap.𝓖[1].𝐴
     𝗚⁻¹[1] =   9.0/𝐴
     𝗚⁻¹[2] = -12.0/𝐴
     𝗚⁻¹[3] =  24.0/𝐴
@@ -1210,7 +1214,8 @@ end
 function cal𝗚!(ap::ReproducingKernel{:Cubic2D,𝑠,𝜙,:Tri3}) where {𝑠,𝜙}
     𝗚⁻¹ = ap.𝗠[:∇̃]
     fill!(𝗚⁻¹,0.0)
-    𝐴 = get𝐴(ap)
+    # 𝐴 = get𝐴(ap)
+    𝐴 = ap.𝓖[1].𝐴
     𝗚⁻¹[1] =   36.0/𝐴
     𝗚⁻¹[2] = -120.0/𝐴
     𝗚⁻¹[3] =  600.0/𝐴
@@ -1238,7 +1243,8 @@ end
 function cal𝗚₂!(ap::ReproducingKernel{:Quadratic2D,𝑠,𝜙,:Tri3}) where {𝑠,𝜙}
     𝗚⁻¹ = ap.𝗠[:∇̃²]
     fill!(𝗚⁻¹,0.0)
-    𝐴 = get𝐴(ap)
+    # 𝐴 = get𝐴(ap)
+    𝐴 = ap.𝓖[1].𝐴
     𝗚⁻¹[1] = 1.0/𝐴
     return 𝗚⁻¹
 end
@@ -1246,7 +1252,8 @@ end
 function cal𝗚₂!(ap::ReproducingKernel{:Cubic2D,𝑠,𝜙,:Tri3}) where {𝑠,𝜙}
     𝗚⁻¹ = ap.𝗠[:∇̃²]
     fill!(𝗚⁻¹,0.0)
-    𝐴 = get𝐴(ap)
+    # 𝐴 = get𝐴(ap)
+    𝐴 = ap.𝓖[1].𝐴
     𝗚⁻¹[1] =   9.0/𝐴
     𝗚⁻¹[2] = -12.0/𝐴
     𝗚⁻¹[3] =  24.0/𝐴
