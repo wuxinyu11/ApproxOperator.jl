@@ -204,7 +204,7 @@ for t in subtypes(SpatialPartition)
     function (sp::t)(ap::T,nodes::Vector{Node}) where T<:AbstractElement
         𝓒 = ap.𝓒; 𝓖 = ap.𝓖
         indices = Set{Int}()
-        for 𝒙 in 𝓒
+        for 𝒙 in 𝓖
             union!(indices,sp(𝒙.x*1.0,𝒙.y*1.0,𝒙.z*1.0))
         end
         return [nodes[i] for i in indices]

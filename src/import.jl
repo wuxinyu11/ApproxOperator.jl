@@ -203,20 +203,42 @@ end
 
 function importmsh(filename1::String,filename2::String,config::Dict{Any,Any})
     elms, nodes_ = importmsh(filename1)
-    ~, nodes = importmsh(filename2)
+    elms_, nodes = importmsh(filename2)
     elements = Dict{String,Any}()
     cfg = config["RegularGrid"]
     sp = RegularGrid(nodes[:x],nodes[:y],nodes[:z];n=cfg["n"],γ=cfg["γ"])
     delete!(config,"RegularGrid")
     nodes = Node(nodes...)
     nodes_ = Node(nodes_...)
+    if haskey(config,"Ωᴳ")
+        cfg = config["Ωᴳ"]
+        Type = eval(Meta.parse(cfg["type"]))
+        𝗠 = Dict{Symbol,SymMat}()
+        elements["Ωᴳ"] = [Type([nodes[i] for i in s[2]],𝗠) for s in elms_[cfg["𝓒"]["tag"]]]
+        sp(elements["Ωᴳ"])
+        QType = Meta.parse(cfg["𝓖"]["type"])
+        set𝓖!(elements["Ωᴳ"],QType)
+        ss = Meta.parse.(cfg["𝓖"]["𝝭"])
+        Type<:ReproducingKernel ? set_memory_𝗠!(elements["Ωᴳ"],ss...) : nothing
+        set_memory_𝝭!(elements["Ωᴳ"],ss...)
+        delete!(config,"Ωᴳ")
+    end
+
     for (name,cfg) in config
         Type = eval(Meta.parse(cfg["type"]))
         𝗠 = Dict{Symbol,SymMat}()
-        QType = Meta.parse(cfg["𝓖"]["type"])
         elms_𝓖 = [Element{s[1]}([nodes_[i] for i in s[2]]) for s in elms[cfg["𝓖"]["tag"]]]
-        set𝓖!(elms_𝓖,QType)
-        elements[name] = [Type(sp(elm,nodes),𝗠) for elm in elms_𝓖]
+        if haskey(cfg,"𝓒")
+            QType = Meta.parse(config[cfg["𝓒"]["tag"]]["𝓖"]["type"])
+            set𝓖!(elms_𝓖,QType)
+            elements[name] = [Type(sp(elm,nodes),𝗠) for elm in elms_𝓖]
+            QType = Meta.parse(cfg["𝓖"]["type"])
+            set𝓖!(elms_𝓖,QType)
+        else
+            QType = Meta.parse(cfg["𝓖"]["type"])
+            set𝓖!(elms_𝓖,QType)
+            elements[name] = [Type(sp(elm,nodes),𝗠) for elm in elms_𝓖]
+        end
         set𝓖!(elements[name],elms_𝓖)
 
         if haskey(cfg["𝓖"],"𝝭")
