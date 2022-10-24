@@ -239,6 +239,8 @@ function importmsh(filename::String,::Val{:test})
     for (dof,i) in dofs
         elements["∂Ω"][i] = Element{:Seg2}([nodes[j] for j in dof])
     end
+    set𝓖!(elements["∂Ω"],:SegGI2)
+    elements["Γ_λ"] = Element{:Tri3}[]
     elements["Ω"] = DBelement{:Tri3}[]
     elements["Γ"] = DBelement{:Tri3}[]
     haskey(elems,"Γᵗ") ? elements["Γᵗ"] = DBelement{:Tri3}[] : nothing
@@ -247,10 +249,12 @@ function importmsh(filename::String,::Val{:test})
         union!(gnodes,𝓒)
         push!(elements["Ω"],DBelement{:Tri3}(𝓒))
         push!(elements["Γ"],DBelement{:Tri3}(𝓒))
+        push!(elements["Γ_λ"],Element{:Tri3}([nodes[i] for i in nodeList]))
         haskey(elems,"Γᵗ") ? push!(elements["Γᵗ"],DBelement{:Tri3}(𝓒)) : nothing
     end
     set𝓖!(elements["Ω"],:TriGI13)
     set𝓖_DB!(elements["Γ"],:SegGI2)
+    set𝓖_DB!(elements["Γ_λ"],:SegGI2)
     if haskey(elems,"Γᵗ")
         elms_𝓖 = [Element{type}([nodes[i] for i in nodeList])     for (type,nodeList) in elems["Γᵗ"]]
         elements["Γᵗ"] = elements["Γᵗ"]∩elms_𝓖

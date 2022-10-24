@@ -210,6 +210,26 @@ function (op::Operator{:∫λgdΓ})(ap1::T,ap2::S,g::AbstractMatrix{Float64},q::
     end
 end
 
+function (op::Operator{:∫λₙgdΓ})(ap1::T,ap2::S,g::AbstractMatrix{Float64},q::AbstractVector{Float64}) where {T<:AbstractElement,S<:AbstractElement}
+    for j in 1:length(ap1.𝓖)
+        ξ₁ = ap1.𝓖[j]
+        ξ₂ = ap2.𝓖[j]
+        𝑤 = ξ₁.𝑤
+        N = ξ₁[:𝝭]
+        N̄ = ξ₂[:𝝭]
+        ḡ = ξ₁.g
+        sn = sign(ξ₁.n₁ + ξ₂.n₂)
+        for (k,xₖ) in enumerate(ap2.𝓒)
+            K = xₖ.𝐼
+            for (i,xᵢ) in enumerate(ap1.𝓒)
+                I = xᵢ.𝐼
+                g[I,K] -= sn*N[i]*N̄[k]*𝑤
+            end
+            q[K] -= sn*N̄[k]*ḡ*𝑤
+        end
+    end
+end
+
 function (op::Operator{:∫∇𝑛vgdΓ})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     kᶜ = op.k
