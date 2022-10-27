@@ -256,6 +256,7 @@ end
 
 function (op::Operator{:∫∇̄𝑛vgdΓ})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    kᶜ = op.k
     for ξ in 𝓖
         𝑤 = ξ.𝑤
         N = ξ[:𝝭]
@@ -270,9 +271,9 @@ function (op::Operator{:∫∇̄𝑛vgdΓ})(ap::T,k::AbstractMatrix{Float64},f::
             I = xᵢ.𝐼
             for (j,xⱼ) in enumerate(𝓒)
                 J = xⱼ.𝐼
-                k[I,J] += (B₁[i]*n₁+B₂[i]*n₂+B₃[i]*n₃)*N[j]*𝑤
+                k[I,J] += kᶜ*(B₁[i]*n₁+B₂[i]*n₂+B₃[i]*n₃)*N[j]*𝑤
             end
-            f[I] += (B₁[i]*n₁+B₂[i]*n₂+B₃[i]*n₃)*g*𝑤
+            f[I] += kᶜ*(B₁[i]*n₁+B₂[i]*n₂+B₃[i]*n₃)*g*𝑤
         end
     end
 end

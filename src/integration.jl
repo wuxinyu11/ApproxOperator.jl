@@ -1,4 +1,6 @@
 
+empty𝓖!(ap::AbstractElement) = empty!(ap.𝓖)
+
 function set𝓖!(aps::Vector{T},s::Symbol) where T<:AbstractElement
     data_ = quadraturerule(s)
     n = length(data_[:w])
@@ -30,6 +32,7 @@ function set𝓖!(aps::Vector{T},s::Symbol,fs::Symbol...) where T<:AbstractEleme
 end
 
 function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement,S<:AbstractElement}
+    empty𝓖!.(as)
     data = getfield(bs[1].𝓖[1],:data)
     s = 0
     nₑ = length(as)
@@ -46,6 +49,7 @@ function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement,S<:Abst
 end
 
 function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement{:Seg2},S<:AbstractElement{:Poi1}}
+    empty𝓖!.(as)
     data = Dict([:ξ=>(1,[-1.0,1.0]),:w=>(1,[1.0,1.0])])
     s = 0
     G = 0
@@ -63,6 +67,7 @@ end
 
 function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement{:Tri3},S<:AbstractElement{:Poi1}}
     unique!(as)
+    empty𝓖!.(as)
     nₑ = 0
     for b in bs
         for a in as
@@ -126,9 +131,10 @@ end
 
 function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement{:Tri3},S<:AbstractElement{:Seg2}}
     unique!(as)
+    empty𝓖!.(as)
     nₑ = length(bs)
     nᵢ = length(getfield(bs[1].𝓖[1],:data)[:w][2])
-    data = Dict([:ξ=>(2,zeros(nₑ*nᵢ)),:η=>(2,zeros(nₑ*nᵢ)),:w=>(2,zeros(nₑ*nᵢ)),:x=>(2,zeros(nₑ*nᵢ)),:y=>(2,zeros(nₑ*nᵢ)),:z=>(2,zeros(nₑ*nᵢ)),:𝑤=>(2,zeros(nₑ*nᵢ)),:n₁=>(2,zeros(nₑ*nᵢ)),:n₂=>(2,zeros(nₑ*nᵢ)),:s₁=>(2,zeros(nₑ*nᵢ)),:s₂=>(2,zeros(nₑ*nᵢ))])
+    data = Dict([:ξ=>(2,zeros(nₑ*nᵢ)),:η=>(2,zeros(nₑ*nᵢ)),:w=>(2,zeros(nₑ*nᵢ)),:x=>(2,zeros(nₑ*nᵢ)),:y=>(2,zeros(nₑ*nᵢ)),:z=>(2,zeros(nₑ*nᵢ)),:𝑤=>(2,zeros(nₑ*nᵢ)),:n₁=>(2,zeros(nₑ*nᵢ)),:n₂=>(2,zeros(nₑ*nᵢ)),:s₁=>(2,zeros(nₑ*nᵢ)),:s₂=>(2,zeros(nₑ*nᵢ)),:𝐴=>(2,zeros(nₑ*nᵢ))])
     G = 0
     s = 0
     for b in bs
@@ -136,6 +142,7 @@ function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement{:Tri3},
             i = T<:DBelement ? findfirst(x->x.𝑖==b.𝓒[1].𝐼, a.𝓒) : findfirst(x->x.𝐼==b.𝓒[1].𝐼, a.𝓒)
             j = T<:DBelement ? findfirst(x->x.𝑖==b.𝓒[2].𝐼, a.𝓒) : findfirst(x->x.𝐼==b.𝓒[2].𝐼, a.𝓒)
             if i ≠ nothing && j ≠ nothing && i ≤ 3 && j ≤ 3
+                𝐴 = get𝐴(a)
                 𝐿 = get𝐿(b)
                 x₁ = a.𝓒[1].x
                 y₁ = a.𝓒[1].y
@@ -174,6 +181,7 @@ function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement{:Tri3},
                     ξ.z = ξ_.z
                     ξ.w = 0.5*ξ_.w
                     ξ.𝑤 = 0.5*ξ_.w*𝐿
+                    ξ.𝐴 = 𝐴
                     push!(a.𝓖,ξ)
                 end
             end

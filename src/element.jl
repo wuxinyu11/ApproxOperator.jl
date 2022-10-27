@@ -240,6 +240,41 @@ end
 #     end
 # end
 
+"""
+set𝑛ᵢⱼ!
+"""
+set𝑛ᵢⱼ!(aps::Vector{T}) where T<:AbstractElement = nothing
+
+function set𝑛ᵢⱼ!(aps::Vector{T}) where T<:AbstractElement{:Tri3}
+    data = getfield(aps[1].𝓖[1],:data)
+    n = length(data[:x][2])
+    push!(data,:n₁₁=>(2,zeros(n)))
+    push!(data,:n₁₂=>(2,zeros(n)))
+    push!(data,:n₂₁=>(2,zeros(n)))
+    push!(data,:n₂₂=>(2,zeros(n)))
+    push!(data,:n₃₁=>(2,zeros(n)))
+    push!(data,:n₃₂=>(2,zeros(n)))
+    for ap in aps
+        set𝑛ᵢⱼ!(ap)
+    end
+end
+
+function set𝑛ᵢⱼ!(ap::T) where T<:AbstractElement{:Tri3}
+    x₁ = ap.𝓒[1].x;y₁ = ap.𝓒[1].y
+    x₂ = ap.𝓒[2].x;y₂ = ap.𝓒[2].y
+    x₃ = ap.𝓒[3].x;y₃ = ap.𝓒[3].y
+    n₁₁ = y₃-y₂;n₂₁ = y₁-y₃;n₃₁ = y₂-y₁
+    n₁₂ = x₂-x₃;n₂₂ = x₃-x₁;n₃₂ = x₁-x₂
+    for ξ in ap.𝓖
+        ξ.n₁₁ = n₁₁
+        ξ.n₁₂ = n₁₂
+        ξ.n₂₁ = n₂₁
+        ξ.n₂₂ = n₂₂
+        ξ.n₃₁ = n₃₁
+        ξ.n₃₂ = n₃₂
+    end
+end
+
 ## shape functions
 """
 set𝝭!
