@@ -393,6 +393,11 @@ function quadraturerule(s::Symbol)
                   0.865063366688984510732096688424,
                   0.973906528517171720077964012085]
         ])
+    elseif s == :SegRG100
+        return Dict([
+            :w=>ones(100)/100,
+            :ξ=>collect(-1.0:2/99:1.0)
+        ])
     elseif s == :TriGI1
         return Dict([
             :w=>[1.0],
