@@ -19,9 +19,8 @@ for (𝝭,𝒑,list) in ((:check𝝭,:get𝒑,:list𝝭),
         function $𝝭(a::T,f::Matrix{Float64},𝒑::Matrix{Float64},𝒑ʰ::Matrix{Float64}) where T<:AbstractElement
             n = get𝑛𝒑(a)
             for ξ in a.𝓖
-                𝒙 = get𝒙(a,ξ)
                 𝑤 = ξ.𝑤
-                𝒑s = $𝒑(a,𝒙)
+                𝒑s = $𝒑(a,(ξ.x,ξ.y,ξ.z))
                 for i in 1:n
                     for (j,𝒑_) in enumerate(𝒑s)
                         𝒑[i,j] = 𝒑_[i]

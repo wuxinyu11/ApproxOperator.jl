@@ -13,6 +13,22 @@ function setgeometry!(ap::T) where T<:AbstractElement
         x.z = 𝒙[3]
         x.𝑤 = 𝑤
     end
+    if T<:AbstractElement{:Seg2}
+        𝐿 = get𝐿(ap)
+        for x in 𝓖
+            x.𝐿 = 𝐿
+        end
+    elseif T<:AbstractElement{:Tri3}
+        𝐴 = get𝐴(ap)
+        for x in 𝓖
+            x.𝐴 = 𝐴
+        end
+    elseif T<:AbstractElement{:Tet4}
+        𝑉 = get𝑉(ap)
+        for x in 𝓖
+            x.𝑉 = 𝑉
+        end
+    end
 end
 
 """
@@ -187,20 +203,69 @@ end
 
 function importmsh(filename1::String,filename2::String,config::Dict{Any,Any})
     elms, nodes_ = importmsh(filename1)
-    ~, nodes = importmsh(filename2)
+    elms_, nodes = importmsh(filename2)
     elements = Dict{String,Any}()
     cfg = config["RegularGrid"]
     sp = RegularGrid(nodes[:x],nodes[:y],nodes[:z];n=cfg["n"],γ=cfg["γ"])
     delete!(config,"RegularGrid")
     nodes = Node(nodes...)
+    nodes_ = Node(nodes_...)
+    if haskey(config,"Ωᴳ")
+        cfg = config["Ωᴳ"]
+        Type = eval(Meta.parse(cfg["type"]))
+        𝗠 = Dict{Symbol,SymMat}()
+        elements["Ωᴳ"] = [Type([nodes[i] for i in s[2]],𝗠) for s in elms_[cfg["𝓒"]["tag"]]]
+        sp(elements["Ωᴳ"])
+        QType = Meta.parse(cfg["𝓖"]["type"])
+        set𝓖!(elements["Ωᴳ"],QType)
+        ss = Meta.parse.(cfg["𝓖"]["𝝭"])
+        Type<:ReproducingKernel ? set_memory_𝗠!(elements["Ωᴳ"],ss...) : nothing
+        set_memory_𝝭!(elements["Ωᴳ"],ss...)
+        delete!(config,"Ωᴳ")
+    end
+
     for (name,cfg) in config
         Type = eval(Meta.parse(cfg["type"]))
         𝗠 = Dict{Symbol,SymMat}()
-        QType = Meta.parse(cfg["𝓖"]["type"])
-        elms_𝓖 = [Element{s[1]}([nodes[i] for i in s[2]]) for s in elms[cfg["𝓖"]["tag"]]]
-        set𝓖!(elms_𝓖,QType)
-        elements[name] = [Type(sp(elm,nodes),𝗠) for elm in elms_𝓖]
-        set𝓖!(elements[name],elms_𝓖)
+        elms_𝓖 = [Element{s[1]}([nodes_[i] for i in s[2]]) for s in elms[cfg["𝓖"]["tag"]]]
+        if haskey(cfg,"𝓒")
+            Type_ = eval(Meta.parse(config[cfg["𝓒"]["tag"]]["type"]))
+            if supertype(Type_) ≠ supertype(typeof(elms_𝓖[1]))
+                𝗠_ = Dict{Symbol,SymMat}()
+                QType_ = Meta.parse(config[cfg["𝓒"]["tag"]]["𝓖"]["type"])
+                elms_𝓖_ = [Type_([nodes_[i] for i in s[2]],𝗠_) for s in elms[cfg["𝓒"]["tag"]]]
+                elms_𝓖_ = elms_𝓖_∩elms_𝓖
+                set𝓖!(elms_𝓖_,QType_)
+                unique!(elms_𝓖_)
+                set𝑛ᵢⱼ!(elms_𝓖_)
+                elements[name] = [Type(sp(elm,nodes),𝗠) for elm in elms_𝓖_]
+                name_ = cfg["𝓒"]["tag"]*"∩"*name
+                elements[name_] = [Type_(sp(elm,nodes),𝗠_) for elm in elms_𝓖_] 
+                QType = Meta.parse(cfg["𝓖"]["type"])
+                set𝓖!(elements[name_],elms_𝓖_)
+                set𝓖!(elms_𝓖,QType)
+                set𝓖!(elms_𝓖_,elms_𝓖)
+                set𝓖!(elements[name],elms_𝓖_)
+                if haskey(config[cfg["𝓒"]["tag"]]["𝓖"],"𝝭")
+                    ss = Meta.parse.(config[cfg["𝓒"]["tag"]]["𝓖"]["𝝭"])
+                    Type<:ReproducingKernel ? set_memory_𝗠!(elements[name_],ss...) : nothing
+                    set_memory_𝝭!(elements[name_],ss...)
+                end
+            else
+                QType = Meta.parse(config[cfg["𝓒"]["tag"]]["𝓖"]["type"])
+                set𝓖!(elms_𝓖,QType)
+                elements[name] = [Type(sp(elm,nodes),𝗠) for elm in elms_𝓖]
+                QType = Meta.parse(cfg["𝓖"]["type"])
+                set𝓖!(elms_𝓖,QType)
+                set𝓖!(elements[name],elms_𝓖)
+            end
+        else
+            QType = Meta.parse(cfg["𝓖"]["type"])
+            set𝓖!(elms_𝓖,QType)
+            set𝑛ᵢⱼ!(elms_𝓖)
+            elements[name] = [Type(sp(elm,nodes),𝗠) for elm in elms_𝓖]
+            set𝓖!(elements[name],elms_𝓖)
+        end
 
         if haskey(cfg["𝓖"],"𝝭")
             ss = Meta.parse.(cfg["𝓖"]["𝝭"])
@@ -222,18 +287,24 @@ function importmsh(filename::String,::Val{:test})
     for (dof,i) in dofs
         elements["∂Ω"][i] = Element{:Seg2}([nodes[j] for j in dof])
     end
+    set𝓖!(elements["∂Ω"],:SegGI2)
+    elements["Γ_λ"] = Element{:Tri3}[]
     elements["Ω"] = DBelement{:Tri3}[]
     elements["Γ"] = DBelement{:Tri3}[]
+    elements["Γᵍ"] = DBelement{:Tri3}[]
     haskey(elems,"Γᵗ") ? elements["Γᵗ"] = DBelement{:Tri3}[] : nothing
     for (type,nodeList) in elems["Ω"]
         𝓒 = [GNode((dofs[Set(setdiff(nodeList,i))],i),data) for i in nodeList]
         union!(gnodes,𝓒)
         push!(elements["Ω"],DBelement{:Tri3}(𝓒))
         push!(elements["Γ"],DBelement{:Tri3}(𝓒))
+        push!(elements["Γ_λ"],Element{:Tri3}([nodes[i] for i in nodeList]))
+        push!(elements["Γᵍ"],DBelement{:Tri3}(𝓒))
         haskey(elems,"Γᵗ") ? push!(elements["Γᵗ"],DBelement{:Tri3}(𝓒)) : nothing
     end
     set𝓖!(elements["Ω"],:TriGI13)
     set𝓖_DB!(elements["Γ"],:SegGI2)
+    set𝓖_DB!(elements["Γ_λ"],:SegGI2)
     if haskey(elems,"Γᵗ")
         elms_𝓖 = [Element{type}([nodes[i] for i in nodeList])     for (type,nodeList) in elems["Γᵗ"]]
         elements["Γᵗ"] = elements["Γᵗ"]∩elms_𝓖
@@ -241,14 +312,19 @@ function importmsh(filename::String,::Val{:test})
         set𝓖!(elements["Γᵗ"],elms_𝓖)
     end
 
-    elements["Γᵍ"] = DBelement{:Seg2}[]
-    for (type,nodeList) in elems["Γᵍ"]
-        𝐼 = dofs[Set(nodeList)]
-        𝓒 = [GNode((0,i),data) for i in nodeList]
-        push!(𝓒,GNode((𝐼,0),data))
-        push!(elements["Γᵍ"],DBelement{:Seg2}(𝓒))
-    end
-    set𝓖!(elements["Γᵍ"],:SegGI2)
+    elms_𝓖 = [Element{type}([nodes[i] for i in nodeList])     for (type,nodeList) in elems["Γᵍ"]]
+    elements["Γᵍ"] = elements["Γᵍ"]∩elms_𝓖
+    set𝓖!(elms_𝓖,:SegGI2)
+    set𝓖!(elements["Γᵍ"],elms_𝓖)
+
+    # elements["Γᵍ"] = DBelement{:Tri3}[]
+    # for (type,nodeList) in elems["Γᵍ"]
+    #     𝐼 = dofs[Set(nodeList)]
+    #     𝓒 = [GNode((0,i),data) for i in nodeList]
+    #     push!(𝓒,GNode((𝐼,0),data))
+    #     push!(elements["Γᵍ"],DBelement{:Seg2}(𝓒))
+    # end
+    # set𝓖!(elements["Γᵍ"],:SegGI2)
 
     set_memory_𝝭!(elements["Ω"],:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂𝝭∂z)
     haskey(elems,"Γᵗ") ? set_memory_𝝭!(elements["Γᵗ"],:𝝭) : nothing

@@ -190,7 +190,7 @@ for t in subtypes(SpatialPartition)
     function (sp::t)(ap::T) where T<:AbstractElement
         𝓒 = ap.𝓒; 𝓖 = ap.𝓖
         indices = Set{Int}()
-        for 𝒙 in 𝓖
+        for 𝒙 in 𝓒
             union!(indices,sp(𝒙.x*1.0,𝒙.y*1.0,𝒙.z*1.0))
         end
         union!(𝓒,(Node(i,getfield(𝓒[1],:data)) for i in indices))
@@ -1163,10 +1163,20 @@ end
 """
 cal𝗚!
 """
+function cal𝗚!(ap::ReproducingKernel{:Linear1D,𝑠,𝜙,:Seg2}) where {𝑠,𝜙}
+    𝗚⁻¹ = ap.𝗠[:∇̃]
+    fill!(𝗚⁻¹,0.0)
+    # 𝐿 = get𝐿(ap)
+    𝐿 = ap.𝓖[1].𝐿
+    𝗚⁻¹[1] =  1.0/𝐿
+    return 𝗚⁻¹
+end
+
 function cal𝗚!(ap::ReproducingKernel{:Quadratic1D,𝑠,𝜙,:Seg2}) where {𝑠,𝜙}
     𝗚⁻¹ = ap.𝗠[:∇̃]
     fill!(𝗚⁻¹,0.0)
-    𝐿 = get𝐿(ap)
+    # 𝐿 = get𝐿(ap)
+    𝐿 = ap.𝓖[1].𝐿
     𝗚⁻¹[1] =  4.0/𝐿
     𝗚⁻¹[2] = -6.0/𝐿
     𝗚⁻¹[3] = 12.0/𝐿
@@ -1176,7 +1186,8 @@ end
 function cal𝗚!(ap::ReproducingKernel{:Cubic1D,𝑠,𝜙,:Seg2}) where {𝑠,𝜙}
     𝗚⁻¹ = ap.𝗠[:∇̃]
     fill!(𝗚⁻¹,0.0)
-    𝐿 = get𝐿(ap)
+    # 𝐿 = get𝐿(ap)
+    𝐿 = ap.𝓖[1].𝐿
     𝗚⁻¹[1] =    9.0/𝐿
     𝗚⁻¹[2] =  -36.0/𝐿
     𝗚⁻¹[3] =  192.0/𝐿
@@ -1189,7 +1200,8 @@ end
 function cal𝗚!(ap::ReproducingKernel{:Linear2D,𝑠,𝜙,:Tri3}) where {𝑠,𝜙}
     𝗚⁻¹ = ap.𝗠[:∇̃]
     fill!(𝗚⁻¹,0.0)
-    𝐴 = get𝐴(ap)
+    # 𝐴 = get𝐴(ap)
+    𝐴 = ap.𝓖[1].𝐴
     𝗚⁻¹[1] = 1.0/𝐴
     return 𝗚⁻¹
 end
@@ -1197,7 +1209,8 @@ end
 function cal𝗚!(ap::ReproducingKernel{:Quadratic2D,𝑠,𝜙,:Tri3}) where {𝑠,𝜙}
     𝗚⁻¹ = ap.𝗠[:∇̃]
     fill!(𝗚⁻¹,0.0)
-    𝐴 = get𝐴(ap)
+    # 𝐴 = get𝐴(ap)
+    𝐴 = ap.𝓖[1].𝐴
     𝗚⁻¹[1] =   9.0/𝐴
     𝗚⁻¹[2] = -12.0/𝐴
     𝗚⁻¹[3] =  24.0/𝐴
@@ -1210,7 +1223,8 @@ end
 function cal𝗚!(ap::ReproducingKernel{:Cubic2D,𝑠,𝜙,:Tri3}) where {𝑠,𝜙}
     𝗚⁻¹ = ap.𝗠[:∇̃]
     fill!(𝗚⁻¹,0.0)
-    𝐴 = get𝐴(ap)
+    # 𝐴 = get𝐴(ap)
+    𝐴 = ap.𝓖[1].𝐴
     𝗚⁻¹[1] =   36.0/𝐴
     𝗚⁻¹[2] = -120.0/𝐴
     𝗚⁻¹[3] =  600.0/𝐴
@@ -1238,7 +1252,8 @@ end
 function cal𝗚₂!(ap::ReproducingKernel{:Quadratic2D,𝑠,𝜙,:Tri3}) where {𝑠,𝜙}
     𝗚⁻¹ = ap.𝗠[:∇̃²]
     fill!(𝗚⁻¹,0.0)
-    𝐴 = get𝐴(ap)
+    # 𝐴 = get𝐴(ap)
+    𝐴 = ap.𝓖[1].𝐴
     𝗚⁻¹[1] = 1.0/𝐴
     return 𝗚⁻¹
 end
@@ -1246,7 +1261,8 @@ end
 function cal𝗚₂!(ap::ReproducingKernel{:Cubic2D,𝑠,𝜙,:Tri3}) where {𝑠,𝜙}
     𝗚⁻¹ = ap.𝗠[:∇̃²]
     fill!(𝗚⁻¹,0.0)
-    𝐴 = get𝐴(ap)
+    # 𝐴 = get𝐴(ap)
+    𝐴 = ap.𝓖[1].𝐴
     𝗚⁻¹[1] =   9.0/𝐴
     𝗚⁻¹[2] = -12.0/𝐴
     𝗚⁻¹[3] =  24.0/𝐴
@@ -1690,7 +1706,7 @@ function set∇̃𝝭!(gp::ReproducingKernel{𝒑,𝑠,𝜙,:Seg2},ap::Reproduci
     𝓒 = gp.𝓒
     𝓖 = gp.𝓖
     for ξ̂ in 𝓖
-        𝒒̂ = get𝒒(gp,ξ̂)
+        𝒒̂ = get𝒑₁(gp,ξ̂)
         𝗚⁻¹ = cal𝗚!(gp)
         𝒒̂ᵀ𝗚⁻¹ = 𝒒̂*𝗚⁻¹
         ∂𝝭∂x = ξ̂[:∂𝝭∂x]
@@ -1704,7 +1720,7 @@ function set∇̃𝝭!(gp::ReproducingKernel{𝒑,𝑠,𝜙,:Seg2},ap::Reproduci
             nᵇ₁ += ξ.ξ ==  1.0 ? n₁ : 0.0
             nᵇ₁ += ξ.ξ == -1.0 ? n₂ : 0.0
             𝝭 = ξ[:𝝭]
-            𝒒, ∂𝒒∂ξ = get∇𝒒(gp,ξ)
+            𝒒, ∂𝒒∂ξ = get∇𝒑₁(gp,ξ)
             W₁ = 𝒒̂ᵀ𝗚⁻¹*𝒒*nᵇ₁*wᵇ + 𝒒̂ᵀ𝗚⁻¹*∂𝒒∂ξ*n₁*w
             for i in 1:length(𝓒)
                 ∂𝝭∂x[i] += 𝝭[i]*W₁
@@ -1714,11 +1730,11 @@ function set∇̃𝝭!(gp::ReproducingKernel{𝒑,𝑠,𝜙,:Seg2},ap::Reproduci
 end
 
 function set∇̃𝝭!(gp::ReproducingKernel{𝒑,𝑠,𝜙,:Tri3},ap::ReproducingKernel{𝒑,𝑠,𝜙,:Tri3}) where {𝒑,𝑠,𝜙}
-    x₁ = gp.𝓒[1].x;y₁ = gp.𝓒[1].y
-    x₂ = gp.𝓒[2].x;y₂ = gp.𝓒[2].y
-    x₃ = gp.𝓒[3].x;y₃ = gp.𝓒[3].y
-    n₁₁ = y₃-y₂;n₂₁ = y₁-y₃;n₃₁ = y₂-y₁
-    n₁₂ = x₂-x₃;n₂₂ = x₃-x₁;n₃₂ = x₁-x₂
+    # x₁ = gp.𝓒[1].x;y₁ = gp.𝓒[1].y
+    # x₂ = gp.𝓒[2].x;y₂ = gp.𝓒[2].y
+    # x₃ = gp.𝓒[3].x;y₃ = gp.𝓒[3].y
+    # n₁₁ = y₃-y₂;n₂₁ = y₁-y₃;n₃₁ = y₂-y₁
+    # n₁₂ = x₂-x₃;n₂₂ = x₃-x₁;n₃₂ = x₁-x₂
     𝓒 = gp.𝓒
     𝓖 = gp.𝓖
     for ξ̂ in 𝓖
@@ -1739,6 +1755,13 @@ function set∇̃𝝭!(gp::ReproducingKernel{𝒑,𝑠,𝜙,:Tri3},ap::Reproduci
             𝒒̂ᵀ𝗚⁻¹𝒒 =  𝒒̂ᵀ𝗚⁻¹*𝒒
             𝒒̂ᵀ𝗚⁻¹∂𝒒∂ξ = 𝒒̂ᵀ𝗚⁻¹*∂𝒒∂ξ
             𝒒̂ᵀ𝗚⁻¹∂𝒒∂η = 𝒒̂ᵀ𝗚⁻¹*∂𝒒∂η
+            # nᵇ₁ = ξ.nᵇ₁;nᵇ₂ = ξ.nᵇ₂
+            n₁₁ = ξ.n₁₁
+            n₁₂ = ξ.n₁₂
+            n₂₁ = ξ.n₂₁
+            n₂₂ = ξ.n₂₂
+            n₃₁ = ξ.n₃₁
+            n₃₂ = ξ.n₃₂
             nᵇ₁ = 0.0;nᵇ₂ = 0.0
             ξ.ξ == 0.0 ? (nᵇ₁ += n₁₁;nᵇ₂ += n₁₂) : nothing
             ξ.η == 0.0 ? (nᵇ₁ += n₂₁;nᵇ₂ += n₂₂) : nothing
@@ -2216,7 +2239,7 @@ function set∇̄𝝭!(ap::ReproducingKernel{𝒑,𝑠,𝜙,:Seg2}) where {𝒑,
         𝒒̂ = get𝒑₁(ap,ξ̂)
         𝗚⁻¹ = cal𝗚!(ap)
         𝒒̂ᵀ𝗚⁻¹ = 𝒒̂*𝗚⁻¹
-        ∂𝝭∂x = ξ̂[:∂𝝭∂x]
+        ∂𝝭∂x = ξ̂[:∂𝝭∂x_]
         fill!(∂𝝭∂x,0.0)
         for ξ in ap.𝓖
             w = ξ.w
@@ -2238,8 +2261,8 @@ function set∇̄𝝭!(ap::ReproducingKernel{𝒑,𝑠,𝜙,:Tri3}) where {𝒑,
         𝒒̂ = get𝒑₁(ap,ξ̂)
         𝗚⁻¹ = cal𝗚!(ap)
         𝒒̂ᵀ𝗚⁻¹ = 𝒒̂*𝗚⁻¹
-        ∂𝝭∂x = ξ̂[:∂𝝭∂x]
-        ∂𝝭∂y = ξ̂[:∂𝝭∂y]
+        ∂𝝭∂x = ξ̂[:∂𝝭∂x_]
+        ∂𝝭∂y = ξ̂[:∂𝝭∂y_]
         for i in 1:length(𝓒)
             ∂𝝭∂x[i] = 0.0
             ∂𝝭∂y[i] = 0.0
@@ -2639,6 +2662,12 @@ for set𝝭 in (:set∇̃𝝭!,:set∇̃²𝝭!,:set∇∇̃²𝝭!)
                 end
             end
         end
+    end
+end
+
+function set∇̄𝝭!(aps::Vector{T}) where T<:ReproducingKernel
+    for ap in aps
+        set∇̄𝝭!(ap)
     end
 end
 
