@@ -1163,6 +1163,15 @@ end
 """
 cal𝗚!
 """
+function cal𝗚!(ap::ReproducingKernel{:Linear1D,𝑠,𝜙,:Seg2}) where {𝑠,𝜙}
+    𝗚⁻¹ = ap.𝗠[:∇̃]
+    fill!(𝗚⁻¹,0.0)
+    # 𝐿 = get𝐿(ap)
+    𝐿 = ap.𝓖[1].𝐿
+    𝗚⁻¹[1] =  1.0/𝐿
+    return 𝗚⁻¹
+end
+
 function cal𝗚!(ap::ReproducingKernel{:Quadratic1D,𝑠,𝜙,:Seg2}) where {𝑠,𝜙}
     𝗚⁻¹ = ap.𝗠[:∇̃]
     fill!(𝗚⁻¹,0.0)
