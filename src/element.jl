@@ -15,62 +15,6 @@ end
 Element{T}(𝓒::Vector{Node}) where T = Element{T}(𝓒,SNode[])
 Element{T}(a::S) where {T,S<:AbstractElement} = Element{T}(a.𝓒)
 
-# function Element{T}(as::Vector{S};renumbering::Bool=false) where {T,S<:AbstractElement}
-#     aps = Element{T}[]
-#     if renumbering
-#         index, data = renumber(as)
-#         for a in as
-#             𝓒 = [Node(index[x.id],data) for x in a.𝓒]
-#             𝓖 = Node[]
-#             push!(aps,Element{T}(𝓒,𝓖))
-#         end
-#     else
-#         for a in as
-#             push!(aps,Element{T}(a))
-#         end
-#     end
-#     return aps
-# end
-
-# function Element{T}(a::AbstractElement,b::AbstractElement) where T
-#     𝓒 = a.𝓒
-#     𝓖 = get𝓖(a,b)
-#     𝓖 ≠ nothing ? Element{T}(𝓒,𝓖) : nothing
-# end
-
-# function Element{T}(as::Vector{A},bs::Vector{B}) where {T,A<:AbstractElement,B<:AbstractElement}
-#     aps = Element{T}[]
-#     for a in as
-#         for b in bs
-#             ap = Element{T}(a,b)
-#             ap ≠ nothing ? push!(aps,ap) : nothing
-#         end
-#     end
-#     return aps
-# end
-
-# function renumber(aps::Vector{T}) where T<:AbstractElement
-#     index = Dict{Int,Int}()
-#     n = 0
-#     for ap in aps
-#         for x in ap.𝓒
-#             I = x.id
-#             if ~haskey(index,I)
-#                 n += 1
-#                 index[I] = n
-#             end
-#         end
-#     end
-#     data_ = aps[1].𝓒[1].data
-#     data = Dict(:x=>zeros(n),:y=>zeros(n),:z=>zeros(n))
-#     for (j,i) in index
-#         data[:x][i] = data_[:x][j]
-#         data[:y][i] = data_[:y][j]
-#         data[:z][i] = data_[:z][j]
-#     end
-#     return index, data
-# end
-
 """
 get𝒙(ap::T,x::SNode) where T<:AbstractElement
 get𝒙(ap::T,ξ::Float64...) where T<:AbstractElement

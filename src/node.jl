@@ -52,7 +52,7 @@ struct SNode<:AbstractNode
     index::NTuple{3,Int}
     data::Dict{Symbol,Tuple{Int,Vector{Float64}}}
 end
-const SREF = (𝑔=1,𝐺=2,𝑠=3)
+const SREF = (𝑔=1,𝐺=2,𝐶=3,𝑠=4)
 
 """
 GNode
