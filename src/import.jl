@@ -151,6 +151,9 @@ function import_msh_2(fid::IO)
 end
 
 function importmsh(filename::String,config::Dict{Any,Any})
+    elms, nds = importmsh(filename)
+    for (name,cfg) in config
+function importmsh(filename::String,config::Dict{Any,Any})
     elms, nodes = importmsh(filename)
     elements = Dict{String,Any}()
     if haskey(config,"RegularGrid")
