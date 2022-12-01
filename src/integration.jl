@@ -8,18 +8,18 @@ function set𝓖!(aps::Vector{T},s::Symbol) where T<:AbstractElement
     G = 0
     s = 0
     data = Dict([s=>(1,v) for (s,v) in data_])
-    for ap in aps
+    for (C,ap) in enumerate(aps)
         empty!(ap.𝓖)
         for g in 1:n
             G += 1
-            push!(ap.𝓖,SNode((g,G,s),data))
+            push!(ap.𝓖,SNode((g,G,C,s),data))
             s += length(ap.𝓒)
         end
     end
     push!(getfield(aps[1].𝓖[1],:data),:x=>(2,zeros(nₑ*n)),:y=>(2,zeros(nₑ*n)),:z=>(2,zeros(nₑ*n)),:𝑤=>(2,zeros(nₑ*n)))
-    T <: AbstractElement{:Seg2} ? push!(getfield(aps[1].𝓖[1],:data),:𝐿=>(2,zeros(nₑ*n))) : nothing
-    T <: AbstractElement{:Tri3} ? push!(getfield(aps[1].𝓖[1],:data),:𝐴=>(2,zeros(nₑ*n))) : nothing
-    T <: AbstractElement{:Tet4} ? push!(getfield(aps[1].𝓖[1],:data),:𝑉=>(2,zeros(nₑ*n))) : nothing
+    T <: AbstractElement{:Seg2} ? push!(getfield(aps[1].𝓖[1],:data),:𝐿=>(3,zeros(nₑ))) : nothing
+    T <: AbstractElement{:Tri3} ? push!(getfield(aps[1].𝓖[1],:data),:𝐴=>(3,zeros(nₑ))) : nothing
+    T <: AbstractElement{:Tet4} ? push!(getfield(aps[1].𝓖[1],:data),:𝑉=>(3,zeros(nₑ))) : nothing
     setgeometry!.(aps)
 end
 

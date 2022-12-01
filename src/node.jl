@@ -65,6 +65,10 @@ const GREF = (𝐼=1,𝑖=2)
 
 for (t,ref) in ((:Node,:REF),(:SNode,:SREF),(:GNode,:GREF))
     @eval begin
+        function $t(data::Dict{Symbol,Tuple{Int,Vector{Float64}}},𝐼s::Pair{Symbol,Int}...)
+            index = (haskey(𝐼s,s) ? 𝐼s[s] : 0 for (s,i) in $ref)
+            return $t(index,data)
+        end
 
         function Base.getproperty(p::$t,f::Symbol)
             if haskey($ref,f)

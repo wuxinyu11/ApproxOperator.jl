@@ -1,4 +1,6 @@
-
+"""
+SymMat
+"""
 struct SymMat
     n::Int
     m::Vector{Float64}
@@ -94,8 +96,16 @@ function cholesky!(A::SymMat)
     return A
 end
 
-## Spatial Partition
-# -------------- RegularGrid ------------------
+function get𝗠(ap::ReproducingKernel,s::Symbol)
+    n = get𝑛𝑝(ap)
+    data = getfield(ap.𝓖[1],:data)
+    fill!(data[s][2],0.)
+    return SymMat(n,data[s][s])
+end
+"""
+Spatial Partition
+RegularGrid 
+"""
 struct RegularGrid<:SpatialPartition
     xmin::Vector{Float64}
     dx::Vector{Float64}
@@ -222,10 +232,7 @@ ReproducingKernel
 struct ReproducingKernel{𝑝,𝑠,𝜙,T}<:AbstractElement{T}
     𝓒::Vector{Node}
     𝓖::Vector{SNode}
-    𝗠::Dict{Symbol,SymMat}
 end
-
-ReproducingKernel{𝒑,𝑠,𝜙,T}(𝓒::Vector{Node},𝗠::Dict{Symbol,SymMat}) where {𝒑,𝑠,𝜙,T} = ReproducingKernel{𝒑,𝑠,𝜙,T}(𝓒,SNode[],𝗠)
 
 """
 Basis function
@@ -702,9 +709,8 @@ end
 
 function cal𝗠!(ap::ReproducingKernel,x::SNode)
     𝓒 = ap.𝓒
-    𝗠 = ap.𝗠[:𝝭]
+    𝗠 = get𝗠(ap,:𝗠)
     n = get𝑛𝒑(ap)
-    fill!(𝗠,0.)
     for xᵢ in 𝓒
         Δx = x - xᵢ
         𝒑 = get𝒑(ap,Δx)
@@ -718,6 +724,7 @@ function cal𝗠!(ap::ReproducingKernel,x::SNode)
     cholesky!(𝗠)
     inverse!(𝗠)
     UUᵀ!(𝗠)
+    return 𝗠
 end
 
 # function cal∇₁𝗠!(ap::ReproducingKernel,x::NTuple{3,Float64})
@@ -747,13 +754,10 @@ end
 
 function cal∇₂𝗠!(ap::ReproducingKernel,x::SNode)
     𝓒 = ap.𝓒
-    𝗠 = ap.𝗠[:𝝭]
-    ∂𝗠∂x = ap.𝗠[:∂𝝭∂x]
-    ∂𝗠∂y = ap.𝗠[:∂𝝭∂y]
+    𝗠 = get𝗠(ap,:𝗠)
+    ∂𝗠∂x = get𝗠(ap,:∂𝗠∂x)
+    ∂𝗠∂y = get𝗠(ap,:∂𝗠∂y)
     n = get𝑛𝒑(ap)
-    fill!(𝗠,0.)
-    fill!(∂𝗠∂x,0.)
-    fill!(∂𝗠∂y,0.)
     for xᵢ in 𝓒
         Δx = x - xᵢ
         𝒑, ∂𝒑∂x, ∂𝒑∂y = get∇𝒑(ap,Δx)
