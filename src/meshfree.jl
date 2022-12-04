@@ -200,8 +200,8 @@ for t in subtypes(SpatialPartition)
     function (sp::t)(ap::T) where T<:AbstractElement
         𝓒 = ap.𝓒; 𝓖 = ap.𝓖
         indices = Set{Int}()
-        for 𝒙 in 𝓒
-            union!(indices,sp(𝒙.x*1.0,𝒙.y*1.0,𝒙.z*1.0))
+        for 𝒙 in isempty(𝓖) ? 𝓒 : 𝓖
+            union!(indices,sp(𝒙.x,𝒙.y,𝒙.z))
         end
         union!(𝓒,(Node(i,getfield(𝓒[1],:data)) for i in indices))
     end
@@ -209,13 +209,12 @@ for t in subtypes(SpatialPartition)
         for ap in aps
             sp(ap)
         end
-        T<:ReproducingKernel ? set_memory_𝝭!(aps) : nothing
     end
     function (sp::t)(ap::T,nodes::Vector{Node}) where T<:AbstractElement
         𝓒 = ap.𝓒; 𝓖 = ap.𝓖
         indices = Set{Int}()
-        for 𝒙 in 𝓖
-            union!(indices,sp(𝒙.x*1.0,𝒙.y*1.0,𝒙.z*1.0))
+        for 𝒙 in isempty(𝓖) ? 𝓒 : 𝓖
+            union!(indices,sp(𝒙.x,𝒙.y,𝒙.z))
         end
         return [nodes[i] for i in indices]
     end

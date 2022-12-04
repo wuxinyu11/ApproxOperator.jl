@@ -122,6 +122,7 @@ function import_msh_2(fid::IO)
             nodes[:x] = x
             nodes[:y] = y
             nodes[:z] = z
+            nodes = Node(nodes...)
             readline(fid)
         elseif line == "\$Elements"
             line = readline(fid)
@@ -143,26 +144,81 @@ function import_msh_2(fid::IO)
                 nodeList = parse.(Int,l_)
                 name = physicalnames[phyTag]
                 type = etype[elmType]
-                push!(elements[name],nodeList)
+                push!(elements[name],Element{type}([nodes[i] for i in nodeList]))
             end
         end
     end
     return elements, nodes
 end
 
-# function importmsh(filename::String,config::Dict{Any,Any})
-    # elms, nds = importmsh(filename)
-    # sp = haskey(config,"RegularGrid") ? RegularGrid(nds[:x],nds[:y],nds[:z],n = config["RegularGrid"]["n"],γ = config["RegularGrid"]["γ"]) : nothing
-    # nodes = Node(nds...)
-    # elements = Dict{String,Any}()
-    # for (name,cfg) in config["elements"]
-        # # set 𝓒
-        # element_type = eval(Meta.parse(cfg["𝓒"]["type"]))
-        # element_tag = cfg["𝓒"]["tag"]
-        # for nodeList in elms[element_tag]
-        # end
-    # end
-# end
+function importmsh(filename::String,config::Dict{Any,Any})
+    elms, nodes = importmsh(filename)
+    if haskey(config,"RegularGrid")
+        x = getfield(nodes[1],:data)[:x][2]
+        y = getfield(nodes[1],:data)[:y][2]
+        z = getfield(nodes[1],:data)[:z][2]
+        n = config["RegularGrid"]["n"]
+        γ = config["RegularGrid"]["γ"]
+        sp = RegularGrid(x,y,z,n=n,γ=γ)
+        delete!(config,"RegularGrid")
+    else
+        sp = nothing
+    end
+    if haskey(config,"IndependentDofs")
+        for (k,v) in config["IndependentDofs"]
+            dofs = Set{Int}()
+            for (type,nodeList) in elms[v]
+                union!(dofs,Set(nodeList))
+            end
+            elms[k] = [(:Poi1,[dof]) for dof in dofs]
+        end
+        delete!(config,"IndependentDofs")
+    end
+
+    elements = Dict{String,Any}()
+    for (name,cfg) in config["elements"]
+         # set𝓖
+        element_tag = Meta.parse(cfg["𝓒"]["type"])
+        integration_type = Meta.parse(cfg["𝓖"]["type"])
+        integration_tag = haskey(cfg["𝓖"],"tag") ? elms[cfg["𝓖"]["tag"]] : element_tag
+        set𝓖!(elms[integration_tag],integration_type)
+        setgeometry!(elms[integration_tag])
+        if integration_tag ≠ element_tag
+            elms[element_tag*"∩"*integration_tag] = unique!(elms[element_tag]∩elms[integration_tag])
+            element_tag = element_tag*"∩"*integration_tag
+            set𝓖!(elms[element_tag],elms[integration_tag])
+        end
+
+        # set 𝓒
+        type = eval(Meta.parse(cfg["type"]))
+        if element_type <: Element
+            elements[name] = [type([elm.𝓒],elm.𝓖) for elm in elms[element_tag]]
+        elseif element_type <: ReproducingKernel
+            if haskey(cfg["𝓒"],"type")
+                elements[name] = [type(Node[],elm.𝓖) for elm in elms[element_tag]]
+                position_type= Meta.parse(cfg["𝓒"]["type"])
+                set𝓖!(elms[element_tag],position_type)
+            else
+                empty!.(elm.𝓖 for elms[element_tag])
+            end
+            elements[name] = [type(sp(elm,nodes)) elm in elms[element_tag]]
+        end
+
+        # set𝓖
+        integration_type = Meta.parse(cfg["𝓖"]["type"])
+        integration_tag = haskey(cfg["𝓖"],"tag") ? elms[cfg["𝓖"]["tag"]] : element_tag
+        set𝓖!(elms[integration_tag],integration_type)
+        setgeometry!(elms[integration_tag])
+        if integration_tag ≠ element_tag
+            set𝓖!(elms[element_tag],elms[integration_tag])
+            set𝓖!(elements[name],elms[element_tag])
+        else
+            set𝓖!(elements[name],elms[integration_tag])
+        end
+
+        # set memory
+    end
+end
 
 function importmsh(filename::String,config::Dict{Any,Any})
     elms, nds = importmsh(filename)

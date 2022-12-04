@@ -36,13 +36,13 @@ function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement,S<:Abst
     data = getfield(bs[1].𝓖[1],:data)
     s = 0
     nₑ = length(as)
-    for i in 1:nₑ
-        a = as[i]
-        b = bs[i]
+    for c in 1:nₑ
+        a = as[c]
+        b = bs[c]
         for ξ_ in b.𝓖
             g = ξ_.𝑔
             G = ξ_.𝐺
-            push!(a.𝓖,SNode((g,G,s),data))
+            push!(a.𝓖,SNode((g,G,c,s),data))
             s += length(a.𝓒)
         end
     end
@@ -54,11 +54,11 @@ function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement{:Seg2},
     s = 0
     G = 0
     for b in bs
-        for a in as
+        for (c,a) in enumerate(as)
             g = findfirst(x->x.𝐼==b.𝓒[1].𝐼, a.𝓒)
             if i ≠ nothing && i ≤ 2
                 G += 1
-                push!(a.𝓖,SNode((g,G,s),data))
+                push!(a.𝓖,SNode((g,G,c,s),data))
                 s += length(a.𝓒)
             end
         end
@@ -82,7 +82,7 @@ function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement{:Tri3},
     s = 0
     G = 0
     for b in bs
-        for a in as
+        for (c,a) in enumerate(as)
             g = findfirst(x->x.𝐼==b.𝓒[1].𝐼, a.𝓒)
             if g ≠ nothing && g ≤ 3
                 G += 1
@@ -99,7 +99,7 @@ function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement{:Tri3},
                 𝐿₁² = n₁₁^2+n₁₂^2
                 𝐿₂² = n₂₁^2+n₂₂^2
                 𝐿₃² = n₃₁^2+n₃₂^2
-                ξ = SNode((g,G,s),data)
+                ξ = SNode((g,G,c,s),data)
                 s += length(a.𝓒)
                 if g == 1
                     ξ.x = a.𝓒[1].x
@@ -138,7 +138,7 @@ function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement{:Tri3},
     G = 0
     s = 0
     for b in bs
-        for a in as
+        for (c,a) in enumerate(as)
             i = T<:DBelement ? findfirst(x->x.𝑖==b.𝓒[1].𝐼, a.𝓒) : findfirst(x->x.𝐼==b.𝓒[1].𝐼, a.𝓒)
             j = T<:DBelement ? findfirst(x->x.𝑖==b.𝓒[2].𝐼, a.𝓒) : findfirst(x->x.𝐼==b.𝓒[2].𝐼, a.𝓒)
             if i ≠ nothing && j ≠ nothing && i ≤ 3 && j ≤ 3
@@ -152,7 +152,7 @@ function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement{:Tri3},
                 y₃ = a.𝓒[3].y
                 for ξ_ in b.𝓖
                     G += 1
-                    ξ = SNode((ξ_.𝑔,G,s),data)
+                    ξ = SNode((ξ_.𝑔,G,c,s),data)
                     s += length(a.𝓒)
                     if i == 1
                         ξ.ξ = (1.0-ξ_.ξ)/2.0
