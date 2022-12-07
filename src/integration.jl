@@ -1,44 +1,31 @@
 
-empty𝓖!(ap::AbstractElement) = empty!(ap.𝓖)
-
-function set𝓖!(aps::Vector{T},s::Symbol) where T<:AbstractElement
+function set𝓖!(as::Vector{T},s::Symbol) where T<:AbstractElement
     data_ = quadraturerule(s)
     n = length(data_[:w])
-    nₑ = length(aps)
     G = 0
     s = 0
     data = Dict([s=>(1,v) for (s,v) in data_])
-    for (C,ap) in enumerate(aps)
-        empty!(ap.𝓖)
+    for (c,a) in enumerate(as)
+        empty!(a.𝓖)
         for g in 1:n
             G += 1
-            push!(ap.𝓖,SNode((g,G,C,s),data))
-            s += length(ap.𝓒)
+            push!(a.𝓖,SNode((g,G,c,s),data))
+            s += length(a.𝓒)
         end
     end
-    push!(getfield(aps[1].𝓖[1],:data),:x=>(2,zeros(nₑ*n)),:y=>(2,zeros(nₑ*n)),:z=>(2,zeros(nₑ*n)),:𝑤=>(2,zeros(nₑ*n)))
-    T <: AbstractElement{:Seg2} ? push!(getfield(aps[1].𝓖[1],:data),:𝐿=>(3,zeros(nₑ))) : nothing
-    T <: AbstractElement{:Tri3} ? push!(getfield(aps[1].𝓖[1],:data),:𝐴=>(3,zeros(nₑ))) : nothing
-    T <: AbstractElement{:Tet4} ? push!(getfield(aps[1].𝓖[1],:data),:𝑉=>(3,zeros(nₑ))) : nothing
-    setgeometry!.(aps)
-end
-
-function set𝓖!(aps::Vector{T},s::Symbol,fs::Symbol...) where T<:AbstractElement
-    set𝓖!(aps,s)
-    n = aps[end].𝓖[end].𝑠 + length(aps[end].𝓒)
-    for f in fs
-        push!(getfield(aps[1].𝓖[1],:data),f=>(3,zeros(n)))
-    end
+    set𝒙!(as)
+    set𝑤!(as)
+    if s ∈ RKQuadratureRule set𝑫!(aps) end
 end
 
 function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement,S<:AbstractElement}
-    empty𝓖!.(as)
     data = getfield(bs[1].𝓖[1],:data)
     s = 0
     nₑ = length(as)
     for c in 1:nₑ
         a = as[c]
         b = bs[c]
+        empty!(a.𝓖)
         for ξ_ in b.𝓖
             g = ξ_.𝑔
             G = ξ_.𝐺
@@ -49,16 +36,21 @@ function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement,S<:Abst
 end
 
 function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement{:Seg2},S<:AbstractElement{:Poi1}}
-    empty𝓖!.(as)
-    data = Dict([:ξ=>(1,[-1.0,1.0]),:w=>(1,[1.0,1.0])])
+    nₑ = length(bs)
+    data = Dict([:ξ=>(1,[-1.0,1.0]),:w=>(1,[1.0,1.0])],:x=>(2,zeros(nₑ)),:y=>(2,zeros(nₑ)),:z=>(2,zeros(nₑ)))
     s = 0
     G = 0
-    for b in bs
-        for (c,a) in enumerate(as)
+    for (c,a) in enumerate(as)
+        empty!(a.𝓖)
+        for b in bs
             g = findfirst(x->x.𝐼==b.𝓒[1].𝐼, a.𝓒)
             if i ≠ nothing && i ≤ 2
                 G += 1
-                push!(a.𝓖,SNode((g,G,c,s),data))
+                ξ = SNode((g,G,c,s),data)
+                ξ.x = b.𝓖[1].x
+                ξ.y = b.𝓖[1].y
+                ξ.z = b.𝓖[1].z
+                push!(a.𝓖,)
                 s += length(a.𝓒)
             end
         end
@@ -66,8 +58,6 @@ function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement{:Seg2},
 end
 
 function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement{:Tri3},S<:AbstractElement{:Poi1}}
-    unique!(as)
-    empty𝓖!.(as)
     nₑ = 0
     for b in bs
         for a in as
@@ -75,30 +65,28 @@ function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement{:Tri3},
             g ≠ nothing && g ≤ 3 ? nₑ += 1 : nothing
         end
     end
-    data = Dict([:ξ=>(1,[1.0,0.0,0.0]),:η=>(1,[0.0,1.0,0.0]),:w=>(1,[1.0,1.0,1.0]),:x=>(2,zeros(nₑ)),:y=>(2,zeros(nₑ)),:z=>(2,zeros(nₑ))])
-    push!(data,:Δn₁s₁=>(2,zeros(nₑ)))
-    push!(data,:Δn₁s₂n₂s₁=>(2,zeros(nₑ)))
-    push!(data,:Δn₂s₂=>(2,zeros(nₑ)))
+    data = Dict([:ξ=>(1,[1.0,0.0,0.0]),:η=>(1,[0.0,1.0,0.0]),:w=>(1,[1.0,1.0,1.0])],:x=>(2,zeros(nₑ)),:y=>(2,zeros(nₑ)),:z=>(2,zeros(nₑ)),:Δn₁s₁=>(2,zeros(nₑ)),:Δn₁s₂n₂s₁=>(2,zeros(nₑ)),:Δn₂s₂=>(2,zeros(nₑ)))
     s = 0
     G = 0
-    for b in bs
-        for (c,a) in enumerate(as)
+    for (c,a) in enumerate(as)
+        empty!(a.𝓖)
+        x₁ = a.𝓒[1].x
+        y₁ = a.𝓒[1].y
+        x₂ = a.𝓒[2].x
+        y₂ = a.𝓒[2].y
+        x₃ = a.𝓒[3].x
+        y₃ = a.𝓒[3].y
+        n₁₁ = y₃-y₂;n₂₁ = y₁-y₃;n₃₁ = y₂-y₁
+        n₁₂ = x₂-x₃;n₂₂ = x₃-x₁;n₃₂ = x₁-x₂
+        s₁₁ = -n₁₂;s₂₁ = -n₂₂;s₃₁ = -n₃₂
+        s₁₂ =  n₁₁;s₂₂ =  n₂₁;s₃₂ =  n₃₁
+        𝐿₁² = n₁₁^2+n₁₂^2
+        𝐿₂² = n₂₁^2+n₂₂^2
+        𝐿₃² = n₃₁^2+n₃₂^2
+        for b in bs
             g = findfirst(x->x.𝐼==b.𝓒[1].𝐼, a.𝓒)
             if g ≠ nothing && g ≤ 3
                 G += 1
-                x₁ = a.𝓒[1].x
-                y₁ = a.𝓒[1].y
-                x₂ = a.𝓒[2].x
-                y₂ = a.𝓒[2].y
-                x₃ = a.𝓒[3].x
-                y₃ = a.𝓒[3].y
-                n₁₁ = y₃-y₂;n₂₁ = y₁-y₃;n₃₁ = y₂-y₁
-                n₁₂ = x₂-x₃;n₂₂ = x₃-x₁;n₃₂ = x₁-x₂
-                s₁₁ = -n₁₂;s₂₁ = -n₂₂;s₃₁ = -n₃₂
-                s₁₂ =  n₁₁;s₂₂ =  n₂₁;s₃₂ =  n₃₁
-                𝐿₁² = n₁₁^2+n₁₂^2
-                𝐿₂² = n₂₁^2+n₂₂^2
-                𝐿₃² = n₃₁^2+n₃₂^2
                 ξ = SNode((g,G,c,s),data)
                 s += length(a.𝓒)
                 if g == 1
@@ -130,26 +118,18 @@ function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement{:Tri3},
 end
 
 function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement{:Tri3},S<:AbstractElement{:Seg2}}
-    unique!(as)
-    empty𝓖!.(as)
     nₑ = length(bs)
     nᵢ = length(getfield(bs[1].𝓖[1],:data)[:w][2])
-    data = Dict([:ξ=>(2,zeros(nₑ*nᵢ)),:η=>(2,zeros(nₑ*nᵢ)),:w=>(2,zeros(nₑ*nᵢ)),:x=>(2,zeros(nₑ*nᵢ)),:y=>(2,zeros(nₑ*nᵢ)),:z=>(2,zeros(nₑ*nᵢ)),:𝑤=>(2,zeros(nₑ*nᵢ)),:n₁=>(2,zeros(nₑ*nᵢ)),:n₂=>(2,zeros(nₑ*nᵢ)),:s₁=>(2,zeros(nₑ*nᵢ)),:s₂=>(2,zeros(nₑ*nᵢ)),:𝐴=>(2,zeros(nₑ*nᵢ))])
+    data = Dict([:ξ=>(2,zeros(nₑ*nᵢ)),:η=>(2,zeros(nₑ*nᵢ)),:w=>(2,zeros(nₑ*nᵢ)),:x=>(2,zeros(nₑ*nᵢ)),:y=>(2,zeros(nₑ*nᵢ)),:z=>(2,zeros(nₑ*nᵢ)),:𝑤=>(2,zeros(nₑ*nᵢ)),:n₁=>(2,zeros(nₑ*nᵢ)),:n₂=>(2,zeros(nₑ*nᵢ)),:𝐴=>(3,zeros(nₑ))])
     G = 0
     s = 0
-    for b in bs
-        for (c,a) in enumerate(as)
+    for (c,a) in enumerate(as)
+        empty!(a.𝓖)
+        for b in bs
             i = T<:DBelement ? findfirst(x->x.𝑖==b.𝓒[1].𝐼, a.𝓒) : findfirst(x->x.𝐼==b.𝓒[1].𝐼, a.𝓒)
             j = T<:DBelement ? findfirst(x->x.𝑖==b.𝓒[2].𝐼, a.𝓒) : findfirst(x->x.𝐼==b.𝓒[2].𝐼, a.𝓒)
             if i ≠ nothing && j ≠ nothing && i ≤ 3 && j ≤ 3
                 𝐴 = get𝐴(a)
-                𝐿 = get𝐿(b)
-                x₁ = a.𝓒[1].x
-                y₁ = a.𝓒[1].y
-                x₂ = a.𝓒[2].x
-                y₂ = a.𝓒[2].y
-                x₃ = a.𝓒[3].x
-                y₃ = a.𝓒[3].y
                 for ξ_ in b.𝓖
                     G += 1
                     ξ = SNode((ξ_.𝑔,G,c,s),data)
@@ -157,30 +137,20 @@ function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement{:Tri3},
                     if i == 1
                         ξ.ξ = (1.0-ξ_.ξ)/2.0
                         ξ.η = 1.0-ξ.ξ
-                        ξ.n₁ = (y₂-y₁)/𝐿
-                        ξ.n₂ = (x₁-x₂)/𝐿
-                        ξ.s₁ = (x₂-x₁)/𝐿
-                        ξ.s₂ = (y₂-y₁)/𝐿
                     elseif i == 2
                         ξ.η = (1.0-ξ_.ξ)/2.0
                         ξ.ξ = 0.0
-                        ξ.n₁ = (y₃-y₂)/𝐿
-                        ξ.n₂ = (x₂-x₃)/𝐿
-                        ξ.s₁ = (x₃-x₂)/𝐿
-                        ξ.s₂ = (y₃-y₂)/𝐿
                     else
                         ξ.ξ = (1.0+ξ_.ξ)/2.0
                         ξ.η = 0.0
-                        ξ.n₁ = (y₁-y₃)/𝐿
-                        ξ.n₂ = (x₃-x₁)/𝐿
-                        ξ.s₁ = (x₁-x₃)/𝐿
-                        ξ.s₂ = (y₁-y₃)/𝐿
                     end
                     ξ.x = ξ_.x
                     ξ.y = ξ_.y
                     ξ.z = ξ_.z
                     ξ.w = 0.5*ξ_.w
-                    ξ.𝑤 = 0.5*ξ_.w*𝐿
+                    ξ.𝑤 = 0.5*ξ_.𝑤
+                    ξ.n₁ = ξ_.n₁
+                    ξ.n₂ = ξ_.n₂
                     ξ.𝐴 = 𝐴
                     push!(a.𝓖,ξ)
                 end
@@ -254,6 +224,7 @@ end
 """
 quadraturerule(s::Symbol)
 """
+const RKQuadratureRule = (:SegRK2,:SegRK3,:SegRK4,:SegRK5,:TriRK3,:TriRK6,:TriRK13)
 function quadraturerule(s::Symbol)
     if s == :PoiGI1
         return Dict([:w=>[1.0],:ξ=>[1.0]])

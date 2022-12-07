@@ -1,9 +1,21 @@
 
 """
-getnₚ
+getnₚ,getnᵢ,getnₛ
 """
 getnₚ(ap::T) where T<:AbstractElement = length(getfield(ap.𝓒[1],:data)[:x][2])
 @inline getnₚ(aps::Vector{T}) where T<:AbstractElement = getnₚ(aps[1])
+
+function getnᵢ(aps::Vector{T}) where T<:AbstractElement
+    ap = aps[end]
+    ξ = ap.𝓖[end]
+    return ξ.𝐺
+end
+
+function getnₛ(aps::Vector{T}) where T<:AbstractElement
+    ap = aps[end]
+    ξ = ap.𝓖[end]
+    return ξ.𝑠 + length(ap.𝓒)
+end
 
 """
 # Element
@@ -16,9 +28,24 @@ Element{T}(𝓒::Vector{Node}) where T = Element{T}(𝓒,SNode[])
 Element{T}(a::S) where {T,S<:AbstractElement} = Element{T}(a.𝓒)
 
 """
-get𝒙(ap::T,x::SNode) where T<:AbstractElement
+set𝒙!(ap::T,x::SNode) where T<:AbstractElement
 get𝒙(ap::T,ξ::Float64...) where T<:AbstractElement
 """
+function set𝒙!(aps::Vector{T}) where T<:AbstractElement
+    nᵢ = getnᵢ(aps)
+    data = getfield(aps[end].𝓖[end],:data)
+    push!(data,:x=>(2,zeros(nᵢ)),:y=>(2,zeros(nᵢ)),:z=>(2,zeros(nᵢ)))
+    set𝒙!.(aps)
+end
+function set𝒙!(ap::T) where T<:AbstractElement
+    𝓖 = ap.𝓖
+    for ξ in 𝓖
+        x,y,z = get𝒙(ap,ξ)
+        ξ.x = x
+        ξ.y = y
+        ξ.z = z
+    end
+end
 @inline get𝒙(ap::T,::Any) where T<:AbstractElement{:Poi1} = (ap.𝓒[1].x,ap.𝓒[1].y,ap.𝓒[1].z)
 @inline get𝒙(ap::T,ξ::SNode) where T<:AbstractElement{:Seg2} = get𝒙(ap,ξ.ξ)
 @inline get𝒙(ap::T,ξ::SNode) where T<:AbstractElement{:Tri3} = get𝒙(ap,ξ.ξ,ξ.η)
@@ -98,8 +125,22 @@ get𝐽(ap::T,x::SNode) where T<:AbstractElement
 end
 
 """
+set𝑤!(ap::T) where T<:AbstractElement
 get𝑤(ap::T,x::SNode) where T<:AbstractElement
 """
+function set𝑤!(aps::Vector{T}) where T<:AbstractElement
+    nᵢ = getnᵢ(aps)
+    data = getfield(aps[end].𝓖[end],:data)
+    push!(data,:𝑤=>(2,zeros(nᵢ)))
+    set𝑤!.(aps)
+end
+function set𝑤!(ap::T) where T<:AbstractElement
+    𝓖 = ap.𝓖
+    for ξ in 𝓖
+        𝑤 = get𝑤(ap,ξ)
+        ξ.𝑤 = 𝑤
+    end
+end
 @inline get𝑤(  ::T,::Any) where T<:AbstractElement{:Poi1} = 1.0
 @inline get𝑤(ap::T,ξ::SNode) where T<:AbstractElement{:Seg2} = 0.5*get𝐿(ap)*ξ.w
 @inline get𝑤(ap::T,ξ::SNode) where T<:AbstractElement{:Tri3} = get𝐴(ap)*ξ.w
@@ -108,6 +149,44 @@ get𝑤(ap::T,x::SNode) where T<:AbstractElement
 """
 get𝐿,get𝐴,get𝑉
 """
+function set𝐿!(aps::Vector{T}) where T<:AbstractElement{:Seg2}
+    nₑ = length(aps)
+    push!(getfield(aps[1].𝓖[1],:data),:𝐿=>(3,zeros(nₑ)))
+    set𝐿!.(aps)
+end
+function set𝐿!(ap::T) where T<:AbstractElement{:Seg2}
+    𝓖 = ap.𝓖
+    𝐿 = get𝐿(ap)
+    for ξ in 𝓖
+        ξ.𝐿 = 𝐿
+    end
+end
+function set𝐴!(aps::Vector{T}) where T<:AbstractElement{:Tri3}
+    nₑ = length(aps)
+    push!(getfield(aps[1].𝓖[1],:data),:𝐿=>(3,zeros(nₑ)))
+    set𝐴!.(aps)
+end
+function set𝐴!(ap::T) where T<:AbstractElement{:Tri3}
+    𝓖 = ap.𝓖
+    𝐴 = get𝐴(ap)
+    for ξ in 𝓖
+        ξ.𝐴 = 𝐴
+    end
+end
+function set𝑉!(aps::Vector{T}) where T<:AbstractElement{:Tet4}
+    nₑ = length(aps)
+    push!(getfield(aps[1].𝓖[1],:data),:𝐿=>(3,zeros(nₑ)))
+    set𝑉!.(aps)
+end
+function set𝑉!(ap::T) where T<:AbstractElement{:Tet4}
+    𝓖 = ap.𝓖
+    𝑉 = get𝑉(ap)
+    for ξ in 𝓖
+        ξ.𝑉 = 𝑉
+    end
+end
+
+
 @inline function get𝐿(ap::T) where T<:AbstractElement{:Seg2}
     x₁ = ap.𝓒[1].x
     y₁ = ap.𝓒[1].y
@@ -160,66 +239,59 @@ function set𝒏!(ap::T) where T<:AbstractElement{:Seg2}
     end
 end
 
-# function get𝒏(ap::T,ξ::SNode) where T<:AbstractElement
-
-
-# ## set𝒏!
-# function set𝒏!(aps::Vector{T}) where T<:AbstractElement
-#     for ap in aps
-#         set𝒏!(ap)
-#     end
-# end
-
-# function set𝒏!(ap::T) where T<:AbstractElement{:Seg2}
-#     𝓖 = ap.𝓖
-#     for ξ in 𝓖
-#         ξ.n₁ = get𝒏(ap,ξ)
-#     end
-# end
-
-# function set𝒏!(ap::T) where T<:AbstractElement{:Tri3}
-#     𝓖 = ap.𝓖
-#     for ξ in 𝓖
-#         ξ.n₁, ξ.n₂ = get𝒏(ap,ξ)
-#     end
-# end
-
 """
-set𝑛ᵢⱼ!
+set𝐷!
 """
-set𝑛ᵢⱼ!(aps::Vector{T}) where T<:AbstractElement = nothing
-
-function set𝑛ᵢⱼ!(aps::Vector{T}) where T<:AbstractElement{:Tri3}
+function set𝑫!(aps::Vector{T}) where T<:AbstractElement{:Seg2}
+    n = getnᵢ(aps)
     data = getfield(aps[1].𝓖[1],:data)
-    n = length(data[:x][2])
-    push!(data,:n₁₁=>(2,zeros(n)))
-    push!(data,:n₁₂=>(2,zeros(n)))
-    push!(data,:n₂₁=>(2,zeros(n)))
-    push!(data,:n₂₂=>(2,zeros(n)))
-    push!(data,:n₃₁=>(2,zeros(n)))
-    push!(data,:n₃₂=>(2,zeros(n)))
+    push!(data,:D₁=>(2,zeros(n)))
     for ap in aps
-        set𝑛ᵢⱼ!(ap)
+        set𝑫!(ap)
     end
 end
 
-function set𝑛ᵢⱼ!(ap::T) where T<:AbstractElement{:Tri3}
-    x₁ = ap.𝓒[1].x;y₁ = ap.𝓒[1].y
-    x₂ = ap.𝓒[2].x;y₂ = ap.𝓒[2].y
-    x₃ = ap.𝓒[3].x;y₃ = ap.𝓒[3].y
-    n₁₁ = y₃-y₂;n₂₁ = y₁-y₃;n₃₁ = y₂-y₁
-    n₁₂ = x₂-x₃;n₂₂ = x₃-x₁;n₃₂ = x₁-x₂
+function set𝑫!(ap::T) where T<:AbstractElement{:Seg2}
     for ξ in ap.𝓖
-        ξ.n₁₁ = n₁₁
-        ξ.n₁₂ = n₁₂
-        ξ.n₂₁ = n₂₁
-        ξ.n₂₂ = n₂₂
-        ξ.n₃₁ = n₃₁
-        ξ.n₃₂ = n₃₂
+        ξ.D₁ = ξ.ξ == -1 ? -1 : 0.0
+        ξ.D₁ = ξ.ξ ==  1 ?  1 : 0.0
     end
 end
 
-## shape functions
+function set𝑫!(aps::Vector{T}) where T<:AbstractElement{:Tri3}
+    data = getfield(aps[1].𝓖[1],:data)
+    n = getnᵢ(aps)
+    push!(data,:D₁=>(2,zeros(n)))
+    push!(data,:D₂=>(2,zeros(n)))
+    for ap in aps
+        set𝑫!(ap)
+    end
+end
+
+function set𝑫!(ap::T) where T<:AbstractElement{:Tri3}
+    x₁ = ap.𝓒[1].x
+    y₁ = ap.𝓒[1].y
+    x₂ = ap.𝓒[2].x
+    y₂ = ap.𝓒[2].y
+    x₃ = ap.𝓒[3].x
+    y₃ = ap.𝓒[3].y
+    D₁₁ = y₃-y₂
+    D₁₂ = y₁-y₃
+    D₁₃ = y₂-y₁
+    D₁₁ = x₂-x₃
+    D₁₂ = x₃-x₁
+    D₁₃ = x₁-x₂
+    for ξ in ap.𝓖
+        γ = 1-ξ.ξ-ξ.η
+        if ξ.ξ == 0 ξ.D₁ += D₁₁ end
+        if ξ.ξ == 0 ξ.D₂ += D₂₁ end
+        if ξ.η == 0 ξ.D₁ += D₁₂ end 
+        if ξ.η == 0 ξ.D₂ += D₂₂ end
+        if   γ == 0 ξ.D₁ += D₁₂ end
+        if   γ == 0 ξ.D₂ += D₂₂ end
+    end
+end
+
 """
 set𝝭!
 """

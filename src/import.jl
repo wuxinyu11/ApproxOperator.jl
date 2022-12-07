@@ -1,51 +1,51 @@
-
-
 """
 setgeometry!(ap::T) where T<:AbstractElement
 """
-function setgeometry!(ap::T) where T<:AbstractElement
-    𝓖 = ap.𝓖
-    for x in 𝓖
-        𝒙 = get𝒙(ap,x)
-        𝑤 = get𝑤(ap,x)
-        x.x = 𝒙[1]
-        x.y = 𝒙[2]
-        x.z = 𝒙[3]
-        x.𝑤 = 𝑤
-    end
+function setgeometry!(aps::T) where T<:AbstractElement
+    set𝒙!(aps)
+    set𝑤!(aps)
     if T<:AbstractElement{:Seg2}
-        𝐿 = get𝐿(ap)
-        for x in 𝓖
-            x.𝐿 = 𝐿
-        end
+        set𝐿!(aps)
     elseif T<:AbstractElement{:Tri3}
-        𝐴 = get𝐴(ap)
-        for x in 𝓖
-            x.𝐴 = 𝐴
-        end
+        set𝐴!(aps)
     elseif T<:AbstractElement{:Tet4}
-        𝑉 = get𝑉(ap)
-        for x in 𝓖
-            x.𝑉 = 𝑉
-        end
+        set𝑉!(aps)
     end
 end
 
 """
 set_memory_𝝭!(ap::T,ss::Symbol...) where T<:AbstractElement
 """
+const shape_function = (
+    𝝭=>[:𝝭],∇𝝭=>[:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂𝝭∂z],∇₂𝝭=>[:𝝭,:∂𝝭∂x,:∂𝝭∂y],∇̃₂𝝭=>[:∂𝝭∂x,:∂𝝭∂y,:∂𝝭∂z],
+    ∇²𝝭=>[:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂𝝭∂z,:∂²𝝭∂x²,:∂²𝝭∂x∂y,:∂²𝝭∂y²,:∂²𝝭∂x∂z,:∂²𝝭∂y∂z,:∂²𝝭∂z²],
+    ∇²₂𝝭=>[:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂²𝝭∂x²,:∂²𝝭∂x∂y,:∂²𝝭∂y²],∇̃²𝝭=>[:∂²𝝭∂x²,:∂²𝝭∂x∂y,:∂²𝝭∂y²],
+    ∇³𝝭=>[:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂²𝝭∂x²,:∂²𝝭∂x∂y,:∂²𝝭∂y²,:∂³𝝭∂x³,:∂³𝝭∂x²∂y,:∂³𝝭∂x∂y²,:∂³𝝭∂y³]
+)
+const moment_matrix = (
+    𝝭=>[:𝝭],∇𝝭=>[:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂𝝭∂z],∇₂𝝭=>[:𝝭,:∂𝝭∂x,:∂𝝭∂y],∇̃₂𝝭=>[:∇̃],
+    ∇²𝝭=>[:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂𝝭∂z,:∂²𝝭∂x²,:∂²𝝭∂x∂y,:∂²𝝭∂y²,:∂²𝝭∂x∂z,:∂²𝝭∂y∂z,:∂²𝝭∂z²],
+    ∇²₂𝝭=>[:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂²𝝭∂x²,:∂²𝝭∂x∂y,:∂²𝝭∂y²],∇̃²𝝭=>[:∇̃²],
+    ∇³𝝭=>[:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂²𝝭∂x²,:∂²𝝭∂x∂y,:∂²𝝭∂y²,:∂³𝝭∂x³,:∂³𝝭∂x²∂y,:∂³𝝭∂x∂y²,:∂³𝝭∂y³]
+)
 function set_memory_𝝭!(aps::Vector{T},ss::Symbol...) where T<:AbstractElement
-    n = sum(length(ap.𝓒)*length(ap.𝓖) for ap in aps)
+    n = getnₛ(aps)
+    data = getfield(aps[1].𝓖[1],:data)
     for s in ss
-        push!(getfield(aps[1].𝓖[1],:data),s=>(3,zeros(n)))
+        push!(data,s=>(4,zeros(n)))
     end
 end
 
 """
-set_memory_𝗠!(aps::Vector{T},ss::Symbol... = keys(aps[1].𝗠)...) where T<:ReproducingKernel
+set_memory_𝗠!(aps::Vector{T},ss::Symbol...) where T<:ReproducingKernel
 """
-function set_memory_𝗠!(aps::Vector{T},ss::Symbol... = keys(aps[1].𝗠)...) where T<:ReproducingKernel
-    set_memory_𝗠!(aps[1],ss...)
+function set_memory_𝗠!(aps::Vector{T},ss::Symbol...) where T<:ReproducingKernel
+    n = get𝑛𝒑(ap)
+    m = Int(n*(n+1)/2)
+    data = getfield(aps[1].𝓖[1],:data)
+    for s in ss
+        push!(data,s=>(0,zeros(m)))
+    end
 end
 
 function set_memory_𝗠!(ap::T,ss::Symbol... = keys(ap[1].𝗠)...) where T<:ReproducingKernel
@@ -182,41 +182,47 @@ function importmsh(filename::String,config::Dict{Any,Any})
         integration_type = Meta.parse(cfg["𝓖"]["type"])
         integration_tag = haskey(cfg["𝓖"],"tag") ? elms[cfg["𝓖"]["tag"]] : element_tag
         set𝓖!(elms[integration_tag],integration_type)
-        setgeometry!(elms[integration_tag])
         if integration_tag ≠ element_tag
             elms[element_tag*"∩"*integration_tag] = unique!(elms[element_tag]∩elms[integration_tag])
             element_tag = element_tag*"∩"*integration_tag
             set𝓖!(elms[element_tag],elms[integration_tag])
         end
+        if haskey(cfg["𝓖"],"normal") set𝒏!(elms[element_tag]) end
 
         # set 𝓒
         type = eval(Meta.parse(cfg["type"]))
-        if element_type <: Element
-            elements[name] = [type([elm.𝓒],elm.𝓖) for elm in elms[element_tag]]
-        elseif element_type <: ReproducingKernel
+        elements[name] = type[]
+        nₑ = length(elms[element_tag])
+        if element_type<:Element
+            for (c,elm) in enumerate(elms[element_tag])
+                𝓒 = [x for x in elm.𝓒]
+                𝓖 = [ξ for ξ in elm.𝓖]
+                elements[name][c] = type(𝓒,𝓖)
+            end
+        elseif element_type<:ReproducingKernel
             if haskey(cfg["𝓒"],"type")
-                elements[name] = [type(Node[],elm.𝓖) for elm in elms[element_tag]]
+                for (c,elm) in enumerate(elms[element_tag])
+                    𝓖 = [ξ for ξ in elm.𝓖]
+                    elements[name][c] = type(Node[],𝓖)
+                end
                 position_type= Meta.parse(cfg["𝓒"]["type"])
                 set𝓖!(elms[element_tag],position_type)
+                for (c,elm) in enumerate(elms[element_tag])
+                    𝓒 = [nodes[i] for i in sp(elm.𝓖)]
+                    push!(elements[name][c].𝓒,𝓒...)
+                end
             else
-                empty!.(elm.𝓖 for elms[element_tag])
+                for (c,elm) in enumerate(elms[element_tag])
+                    𝓒 = [nodes[i] for i in sp(elm.𝓒)]
+                    𝓖 = [ξ for ξ in elm.𝓖]
+                    elements[name][c] = type(𝓒,𝓖)
+                end
             end
-            elements[name] = [type(sp(elm,nodes)) elm in elms[element_tag]]
         end
 
-        # set𝓖
-        integration_type = Meta.parse(cfg["𝓖"]["type"])
-        integration_tag = haskey(cfg["𝓖"],"tag") ? elms[cfg["𝓖"]["tag"]] : element_tag
-        set𝓖!(elms[integration_tag],integration_type)
-        setgeometry!(elms[integration_tag])
-        if integration_tag ≠ element_tag
-            set𝓖!(elms[element_tag],elms[integration_tag])
-            set𝓖!(elements[name],elms[element_tag])
-        else
-            set𝓖!(elements[name],elms[integration_tag])
-        end
-
-        # set memory
+        # set shape memory
+        set_memory_𝝭!(elements[name],shape_function[cfg["𝝭"]]) 
+        if type<:ReproducingKernel set_memory_𝗠!(elements[name],moment_matrix[cfg["𝝭"]]) end
     end
 end
 
