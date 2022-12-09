@@ -49,7 +49,7 @@ end
 SNode
 """
 struct SNode<:AbstractNode
-    index::NTuple{3,Int}
+    index::NTuple{4,Int}
     data::Dict{Symbol,Tuple{Int,Vector{Float64}}}
 end
 const SREF = (𝑔=1,𝐺=2,𝐶=3,𝑠=4)

@@ -96,12 +96,6 @@ function cholesky!(A::SymMat)
     return A
 end
 
-function get𝗠(ap::ReproducingKernel,s::Symbol)
-    n = get𝑛𝑝(ap)
-    data = getfield(ap.𝓖[1],:data)
-    fill!(data[s][2],0.)
-    return SymMat(n,data[s][s])
-end
 """
 Spatial Partition
 RegularGrid 
@@ -231,6 +225,13 @@ ReproducingKernel
 struct ReproducingKernel{𝑝,𝑠,𝜙,T}<:AbstractElement{T}
     𝓒::Vector{Node}
     𝓖::Vector{SNode}
+end
+
+function get𝗠(ap::ReproducingKernel,s::Symbol)
+    n = get𝑛𝑝(ap)
+    data = getfield(ap.𝓖[1],:data)
+    fill!(data[s][2],0.)
+    return SymMat(n,data[s][s])
 end
 
 """

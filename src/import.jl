@@ -17,16 +17,16 @@ end
 set_memory_𝝭!(ap::T,ss::Symbol...) where T<:AbstractElement
 """
 const shape_function = (
-    𝝭=>[:𝝭],∇𝝭=>[:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂𝝭∂z],∇₂𝝭=>[:𝝭,:∂𝝭∂x,:∂𝝭∂y],∇̃₂𝝭=>[:∂𝝭∂x,:∂𝝭∂y,:∂𝝭∂z],
-    ∇²𝝭=>[:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂𝝭∂z,:∂²𝝭∂x²,:∂²𝝭∂x∂y,:∂²𝝭∂y²,:∂²𝝭∂x∂z,:∂²𝝭∂y∂z,:∂²𝝭∂z²],
-    ∇²₂𝝭=>[:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂²𝝭∂x²,:∂²𝝭∂x∂y,:∂²𝝭∂y²],∇̃²𝝭=>[:∂²𝝭∂x²,:∂²𝝭∂x∂y,:∂²𝝭∂y²],
-    ∇³𝝭=>[:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂²𝝭∂x²,:∂²𝝭∂x∂y,:∂²𝝭∂y²,:∂³𝝭∂x³,:∂³𝝭∂x²∂y,:∂³𝝭∂x∂y²,:∂³𝝭∂y³]
+    𝝭=:𝝭,∇𝝭=(:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂𝝭∂z),∇₂𝝭=(:𝝭,:∂𝝭∂x,:∂𝝭∂y),∇̃₂𝝭=(:∂𝝭∂x,:∂𝝭∂y,:∂𝝭∂z),
+    ∇²𝝭=(:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂𝝭∂z,:∂²𝝭∂x²,:∂²𝝭∂x∂y,:∂²𝝭∂y²,:∂²𝝭∂x∂z,:∂²𝝭∂y∂z,:∂²𝝭∂z²),
+    ∇²₂𝝭=(:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂²𝝭∂x²,:∂²𝝭∂x∂y,:∂²𝝭∂y²),∇̃²𝝭=(:∂²𝝭∂x²,:∂²𝝭∂x∂y,:∂²𝝭∂y²),
+    ∇³𝝭=(:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂²𝝭∂x²,:∂²𝝭∂x∂y,:∂²𝝭∂y²,:∂³𝝭∂x³,:∂³𝝭∂x²∂y,:∂³𝝭∂x∂y²,:∂³𝝭∂y³)
 )
 const moment_matrix = (
-    𝝭=>[:𝝭],∇𝝭=>[:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂𝝭∂z],∇₂𝝭=>[:𝝭,:∂𝝭∂x,:∂𝝭∂y],∇̃₂𝝭=>[:∇̃],
-    ∇²𝝭=>[:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂𝝭∂z,:∂²𝝭∂x²,:∂²𝝭∂x∂y,:∂²𝝭∂y²,:∂²𝝭∂x∂z,:∂²𝝭∂y∂z,:∂²𝝭∂z²],
-    ∇²₂𝝭=>[:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂²𝝭∂x²,:∂²𝝭∂x∂y,:∂²𝝭∂y²],∇̃²𝝭=>[:∇̃²],
-    ∇³𝝭=>[:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂²𝝭∂x²,:∂²𝝭∂x∂y,:∂²𝝭∂y²,:∂³𝝭∂x³,:∂³𝝭∂x²∂y,:∂³𝝭∂x∂y²,:∂³𝝭∂y³]
+    𝝭=(:𝝭),∇𝝭=(:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂𝝭∂z),∇₂𝝭=(:𝝭,:∂𝝭∂x,:∂𝝭∂y),∇̃₂𝝭=(:∇̃),
+    ∇²𝝭=(:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂𝝭∂z,:∂²𝝭∂x²,:∂²𝝭∂x∂y,:∂²𝝭∂y²,:∂²𝝭∂x∂z,:∂²𝝭∂y∂z,:∂²𝝭∂z²),
+    ∇²₂𝝭=(:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂²𝝭∂x²,:∂²𝝭∂x∂y,:∂²𝝭∂y²),∇̃²𝝭=(:∇̃²),
+    ∇³𝝭=(:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂²𝝭∂x²,:∂²𝝭∂x∂y,:∂²𝝭∂y²,:∂³𝝭∂x³,:∂³𝝭∂x²∂y,:∂³𝝭∂x∂y²,:∂³𝝭∂y³)
 )
 function set_memory_𝝭!(aps::Vector{T},ss::Symbol...) where T<:AbstractElement
     n = getnₛ(aps)
@@ -89,7 +89,7 @@ function import_msh_4(fid::IO) end
 function import_msh_2(fid::IO)
     etype = Dict(1=>:Seg2,2=>:Tri3,3=>:Quad,15=>:Poi1)
     nodes = Dict{Symbol,Vector{Float64}}()
-    elements = Dict{String,Vector{Int}}()
+    elements = Dict{String,Any}()
     physicalnames = Dict{Int,String}()
     for line in eachline(fid)
         if line == "\$PhysicalNames"
@@ -102,7 +102,6 @@ function import_msh_2(fid::IO)
                 physicalTag = parse(Int,p_)
                 name = strip(n_,'\"')
                 physicalnames[physicalTag] = name
-                elements[name] = Vector{Tuple{Symbol,Vector{Int}}}()
             end
             readline(fid)
         elseif line == "\$Nodes"
@@ -144,6 +143,7 @@ function import_msh_2(fid::IO)
                 nodeList = parse.(Int,l_)
                 name = physicalnames[phyTag]
                 type = etype[elmType]
+                haskey(elements,name) ? push!(elements[name],Element{type}([nodes[i] for i in nodeList])) : elements[name]=Element{type}[Element{type}([nodes[i] for i in nodeList])]
                 push!(elements[name],Element{type}([nodes[i] for i in nodeList]))
             end
         end
@@ -151,7 +151,7 @@ function import_msh_2(fid::IO)
     return elements, nodes
 end
 
-function importmsh(filename::String,config::Dict{Any,Any})
+function importmsh(filename::String,config::Dict{T,Any}) where T<:Any
     elms, nodes = importmsh(filename)
     if haskey(config,"RegularGrid")
         x = getfield(nodes[1],:data)[:x][2]
@@ -176,11 +176,11 @@ function importmsh(filename::String,config::Dict{Any,Any})
     end
 
     elements = Dict{String,Any}()
-    for (name,cfg) in config["elements"]
+    for (name,cfg) in config
          # set𝓖
-        element_tag = Meta.parse(cfg["𝓒"]["type"])
+        element_tag = cfg["𝓒"]["tag"]
         integration_type = Meta.parse(cfg["𝓖"]["type"])
-        integration_tag = haskey(cfg["𝓖"],"tag") ? elms[cfg["𝓖"]["tag"]] : element_tag
+        integration_tag = haskey(cfg["𝓖"],"tag") ? cfg["𝓒"]["tag"] : element_tag
         set𝓖!(elms[integration_tag],integration_type)
         if integration_tag ≠ element_tag
             elms[element_tag*"∩"*integration_tag] = unique!(elms[element_tag]∩elms[integration_tag])
@@ -190,20 +190,20 @@ function importmsh(filename::String,config::Dict{Any,Any})
         if haskey(cfg["𝓖"],"normal") set𝒏!(elms[element_tag]) end
 
         # set 𝓒
-        type = eval(Meta.parse(cfg["type"]))
-        elements[name] = type[]
+        element_type = eval(Meta.parse(cfg["𝓒"]["type"]))
+        elements[name] = element_type[]
         nₑ = length(elms[element_tag])
         if element_type<:Element
-            for (c,elm) in enumerate(elms[element_tag])
+            for elm in elms[element_tag]
                 𝓒 = [x for x in elm.𝓒]
                 𝓖 = [ξ for ξ in elm.𝓖]
-                elements[name][c] = type(𝓒,𝓖)
+                push!(elements[name],element_type(𝓒,𝓖))
             end
         elseif element_type<:ReproducingKernel
             if haskey(cfg["𝓒"],"type")
-                for (c,elm) in enumerate(elms[element_tag])
+                for elm in elms[element_tag]
                     𝓖 = [ξ for ξ in elm.𝓖]
-                    elements[name][c] = type(Node[],𝓖)
+                    push!(elements[name],element_type(Node[],𝓖))
                 end
                 position_type= Meta.parse(cfg["𝓒"]["type"])
                 set𝓖!(elms[element_tag],position_type)
@@ -212,59 +212,19 @@ function importmsh(filename::String,config::Dict{Any,Any})
                     push!(elements[name][c].𝓒,𝓒...)
                 end
             else
-                for (c,elm) in enumerate(elms[element_tag])
+                for elm in elms[element_tag]
                     𝓒 = [nodes[i] for i in sp(elm.𝓒)]
                     𝓖 = [ξ for ξ in elm.𝓖]
-                    elements[name][c] = type(𝓒,𝓖)
+                    push!(elements[name],element_type(𝓒,𝓖))
                 end
             end
         end
 
         # set shape memory
-        set_memory_𝝭!(elements[name],shape_function[cfg["𝝭"]]) 
-        if type<:ReproducingKernel set_memory_𝗠!(elements[name],moment_matrix[cfg["𝝭"]]) end
+        set_memory_𝝭!(elements[name],shape_function[Meta.parse(cfg["𝝭"])]...) 
+        if element_type<:ReproducingKernel set_memory_𝗠!(elements[name],moment_matrix[Meta.parse(cfg["𝝭"])]...) end
     end
-end
-
-function importmsh(filename::String,config::Dict{Any,Any})
-    elms, nds = importmsh(filename)
-    elements = Dict{String,Any}()
-    if haskey(config,"RegularGrid")
-        cfg = config["RegularGrid"]
-        sp = RegularGrid(nds[:x],nds[:y],nds[:z];n=cfg["n"],γ=cfg["γ"])
-        delete!(config,"RegularGrid")
-    else
-        sp = nothing
-    end
-    if haskey(config,"IndependentDofs")
-        for (k,v) in config["IndependentDofs"]
-            dofs = Set{Int}()
-            for (type,nodeList) in elms[v]
-                union!(dofs,Set(nodeList))
-            end
-            elms[k] = [(:Poi1,[dof]) for dof in dofs]
-        end
-        delete!(config,"IndependentDofs")
-    end
-
-    nodes = Node(nds...)
-    for (name,cfg) in config
-        Type = eval(Meta.parse(cfg["type"]))
-        elements[name] = [Type([nodes[i] for i in s[2]]) for s in elms[cfg["𝓒"]["tag"]]]
-        sp ≠ nothing ? sp(elements[name]) : nothing
-        if haskey(cfg,"𝓖")
-            QType = Meta.parse(cfg["𝓖"]["type"])
-            if haskey(cfg["𝓖"],"tag")
-                elms_𝓖 = [Element{s[1]}([nodes[i] for i in s[2]]) for s in elms[cfg["𝓖"]["tag"]]]
-                elements[name] = elements[name]∩elms_𝓖
-                set𝓖!(elms_𝓖,QType)
-                set𝓖!(elements[name],elms_𝓖)
-            else
-                set𝓖!(elements[name],QType)
-            end
-        end
-    end
-    return elements, nodes
+    return elements,nodes
 end
 
 function importmsh(filename1::String,filename2::String,config::Dict{Any,Any})
