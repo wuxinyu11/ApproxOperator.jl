@@ -64,7 +64,9 @@ function set_memory_𝗠!(ap::T,ss::Symbol... = keys(ap[1].𝗠)...) where T<:Re
     end
 end
 
-## ---------------- msh ---------------
+"""
+importmsh
+"""
 function importmsh(filename::String)
     fid = open(filename,"r")
     readline(fid)
@@ -87,7 +89,7 @@ end
 function import_msh_4(fid::IO) end
 
 function import_msh_2(fid::IO)
-    etype = Dict(1=>:Seg2,2=>:Tri3,3=>:Quad,15=>:Poi1)
+    etype = Dict(1=>:Seg2,2=>:Tri3,3=>:Quad,9=>:Tri6,15=>:Poi1)
     nodes = Dict{Symbol,Vector{Float64}}()
     elements = Dict{String,Any}()
     physicalnames = Dict{Int,String}()
@@ -218,6 +220,13 @@ function importmsh(filename::String,config::Dict{T,Any}) where T<:Any
                     push!(elements[name],element_type(𝓒,𝓖))
                 end
             end
+        elseif element_type<:DiscreteElemensct
+            if ~@isdefined dofs dofs = getboundarydofs(elms["Ω"]) end
+            data = getfield(nodes[1],:data)
+            nodeList = (x.𝐼 for x in elm.𝓒)
+            𝓒 = [GNode((dofs[Set(setdiff(nodeList,i))],i),data) for i in nodeList]
+            𝓖 = [ξ for ξ in elm.𝓖]
+            push!(elements[name],element_type(𝓒,𝓖))
         end
 
         # set shape memory
@@ -348,13 +357,14 @@ function importmsh(filename::String,::Val{:test})
     return elements, gnodes
 end
 
-function getboundarydofs2D(elements::Vector{Tuple{Symbol,Vector{Int}}})
+function getboundarydofs(elements::Vector{T}) where T<:AbstractElement{:Tri3}
     dofs = Dict{Set{Int},Int}()
-    idBoundaries = (Tri3=((1,2),(2,3),(3,1)),)
+    idBoundaries = ((1,2),(2,3),(3,1))
     n = 0
-    for (type,nodeList) in elements
-        for bc in idBoundaries[type]
-            dof = Set(nodeList[i] for i in bc)
+    for elm in elements
+        𝓒 = elm.𝓒
+        for bc in idBoundaries
+            dof = Set(𝓒[i].𝐼 for i in bc)
             if ~haskey(dofs,dof)
                 n += 1
                 dofs[dof] = n

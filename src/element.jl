@@ -149,36 +149,36 @@ end
 """
 get𝐿,get𝐴,get𝑉
 """
-function set𝐿!(aps::Vector{T}) where T<:AbstractElement{:Seg2}
+function set𝐿!(aps::Vector{T}) where T<:AbstractElement
     nₑ = length(aps)
     push!(getfield(aps[1].𝓖[1],:data),:𝐿=>(3,zeros(nₑ)))
     set𝐿!.(aps)
 end
-function set𝐿!(ap::T) where T<:AbstractElement{:Seg2}
+function set𝐿!(ap::T) where T<:AbstractElement
     𝓖 = ap.𝓖
     𝐿 = get𝐿(ap)
     for ξ in 𝓖
         ξ.𝐿 = 𝐿
     end
 end
-function set𝐴!(aps::Vector{T}) where T<:AbstractElement{:Tri3}
+function set𝐴!(aps::Vector{T}) where T<:AbstractElement
     nₑ = length(aps)
-    push!(getfield(aps[1].𝓖[1],:data),:𝐿=>(3,zeros(nₑ)))
+    push!(getfield(aps[1].𝓖[1],:data),:𝐴=>(3,zeros(nₑ)))
     set𝐴!.(aps)
 end
-function set𝐴!(ap::T) where T<:AbstractElement{:Tri3}
+function set𝐴!(ap::T) where T<:AbstractElement
     𝓖 = ap.𝓖
     𝐴 = get𝐴(ap)
     for ξ in 𝓖
         ξ.𝐴 = 𝐴
     end
 end
-function set𝑉!(aps::Vector{T}) where T<:AbstractElement{:Tet4}
+function set𝑉!(aps::Vector{T}) where T<:AbstractElement
     nₑ = length(aps)
-    push!(getfield(aps[1].𝓖[1],:data),:𝐿=>(3,zeros(nₑ)))
+    push!(getfield(aps[1].𝓖[1],:data),:𝑉=>(3,zeros(nₑ)))
     set𝑉!.(aps)
 end
-function set𝑉!(ap::T) where T<:AbstractElement{:Tet4}
+function set𝑉!(ap::T) where T<:AbstractElement
     𝓖 = ap.𝓖
     𝑉 = get𝑉(ap)
     for ξ in 𝓖
@@ -187,7 +187,7 @@ function set𝑉!(ap::T) where T<:AbstractElement{:Tet4}
 end
 
 
-@inline function get𝐿(ap::T) where T<:AbstractElement{:Seg2}
+@inline function get𝐿(ap::T) where T<:AbstractElement
     x₁ = ap.𝓒[1].x
     y₁ = ap.𝓒[1].y
     z₁ = ap.𝓒[1].z
@@ -196,7 +196,7 @@ end
     z₂ = ap.𝓒[2].z
     return ((x₂-x₁)^2+(y₂-y₁)^2+(z₂-z₁)^2)^0.5
 end
-function get𝐴(ap::T) where T<:AbstractElement{:Tri3}
+function get𝐴(ap::T) where T<:AbstractElement
     x₁ = ap.𝓒[1].x
     y₁ = ap.𝓒[1].y
     z₁ = ap.𝓒[1].z
@@ -360,6 +360,44 @@ function set∇𝝭!(ap::Element{:Tri3},x::SNode)
     ∂𝝭∂y[3] = (x₂-x₁)/2.0/𝐴
 end
 
+# ------------- Tri6 ---------------
+function set𝝭!(ap::Element{:Tri6},x::SNode)
+    𝝭 = x[:𝝭]
+    ξ = x.ξ
+    η = x.η
+    γ = 1.0-ξ-η
+    𝝭[1] = ξ*(2*ξ-1)
+    𝝭[2] = η*(2*η-1)
+    𝝭[3] = γ*(2*γ-1)
+    𝝭[4] = 4*ξ*η
+    𝝭[5] = 4*η*γ
+    𝝭[6] = 4*γ*ξ
+end
+function set∇𝝭!(ap::Element{:Tri3},x::SNode)
+    𝐴 = get𝐴(ap)
+    x₁ = ap.𝓒[1].x
+    x₂ = ap.𝓒[2].x
+    x₃ = ap.𝓒[3].x
+    y₁ = ap.𝓒[1].y
+    y₂ = ap.𝓒[2].y
+    y₃ = ap.𝓒[3].y
+    J₁₁ = 
+    ∂𝝭∂x = x[:∂𝝭∂x]
+    ∂𝝭∂y = x[:∂𝝭∂y]
+    ∂𝝭∂x[1] = (y₂-y₃)/2.0/𝐴
+    ∂𝝭∂x[2] = (y₃-y₁)/2.0/𝐴
+    ∂𝝭∂x[3] = (y₁-y₂)/2.0/𝐴
+    ∂𝝭∂x[4] = (y₂-y₃)/2.0/𝐴
+    ∂𝝭∂x[5] = (y₃-y₁)/2.0/𝐴
+    ∂𝝭∂x[6] = (y₁-y₂)/2.0/𝐴
+    ∂𝝭∂y[1] = (x₃-x₂)/2.0/𝐴
+    ∂𝝭∂y[2] = (x₁-x₃)/2.0/𝐴
+    ∂𝝭∂y[3] = (x₂-x₁)/2.0/𝐴
+    ∂𝝭∂y[4] = (x₃-x₂)/2.0/𝐴
+    ∂𝝭∂y[5] = (x₁-x₃)/2.0/𝐴
+    ∂𝝭∂y[6] = (x₂-x₁)/2.0/𝐴
+end
+
 # ------------- Quad ---------------
 function set𝝭!(ap::Element{:Quad},x::SNode)
     ξ = x.ξ
@@ -421,13 +459,13 @@ end
 """
  Discontinuous boundary element
 """
-struct DBelement{T}<:AbstractElement{T}
+struct DiscreteElement{T}<:AbstractElement{T}
     𝓒::Vector{GNode}
     𝓖::Vector{SNode}
 end
-DBelement{T}(𝓒::Vector{GNode}) where T = DBelement{T}(𝓒,SNode[])
+DiscreteElement{T}(𝓒::Vector{GNode}) where T = DBelement{T}(𝓒,SNode[])
 
-function set𝝭!(ap::DBelement{:Tri3},x::SNode)
+function set𝝭!(ap::DiscreteElement{:Tri3},x::SNode)
     ξ₁ = x.ξ
     ξ₂ = x.η
     ξ₃ = 1.0-x.ξ-x.η
@@ -440,7 +478,7 @@ function set𝝭!(ap::DBelement{:Tri3},x::SNode)
     𝝭[3] = N₃
 end
 
-function set∇𝝭!(ap::DBelement{:Tri3},x::SNode)
+function set∇𝝭!(ap::DiscreteElement{:Tri3},x::SNode)
     x₁ = ap.𝓒[1].x
     x₂ = ap.𝓒[2].x
     x₃ = ap.𝓒[3].x
