@@ -17,13 +17,13 @@ end
 set_memory_𝝭!(ap::T,ss::Symbol...) where T<:AbstractElement
 """
 const shape_function = (
-    𝝭=:𝝭,∇𝝭=(:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂𝝭∂z),∇₂𝝭=(:𝝭,:∂𝝭∂x,:∂𝝭∂y),∇̃₂𝝭=(:∂𝝭∂x,:∂𝝭∂y,:∂𝝭∂z),
+    𝝭=(:𝝭,),∇𝝭=(:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂𝝭∂z),∇₂𝝭=(:𝝭,:∂𝝭∂x,:∂𝝭∂y),∇̃₂𝝭=(:∂𝝭∂x,:∂𝝭∂y,:∂𝝭∂z),
     ∇²𝝭=(:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂𝝭∂z,:∂²𝝭∂x²,:∂²𝝭∂x∂y,:∂²𝝭∂y²,:∂²𝝭∂x∂z,:∂²𝝭∂y∂z,:∂²𝝭∂z²),
     ∇²₂𝝭=(:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂²𝝭∂x²,:∂²𝝭∂x∂y,:∂²𝝭∂y²),∇̃²𝝭=(:∂²𝝭∂x²,:∂²𝝭∂x∂y,:∂²𝝭∂y²),
     ∇³𝝭=(:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂²𝝭∂x²,:∂²𝝭∂x∂y,:∂²𝝭∂y²,:∂³𝝭∂x³,:∂³𝝭∂x²∂y,:∂³𝝭∂x∂y²,:∂³𝝭∂y³)
 )
 const moment_matrix = (
-    𝝭=(:𝝭),∇𝝭=(:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂𝝭∂z),∇₂𝝭=(:𝝭,:∂𝝭∂x,:∂𝝭∂y),∇̃₂𝝭=(:∇̃),
+    𝝭=(:𝝭,),∇𝝭=(:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂𝝭∂z),∇₂𝝭=(:𝝭,:∂𝝭∂x,:∂𝝭∂y),∇̃₂𝝭=(:∇̃,),
     ∇²𝝭=(:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂𝝭∂z,:∂²𝝭∂x²,:∂²𝝭∂x∂y,:∂²𝝭∂y²,:∂²𝝭∂x∂z,:∂²𝝭∂y∂z,:∂²𝝭∂z²),
     ∇²₂𝝭=(:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂²𝝭∂x²,:∂²𝝭∂x∂y,:∂²𝝭∂y²),∇̃²𝝭=(:∇̃²),
     ∇³𝝭=(:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂²𝝭∂x²,:∂²𝝭∂x∂y,:∂²𝝭∂y²,:∂³𝝭∂x³,:∂³𝝭∂x²∂y,:∂³𝝭∂x∂y²,:∂³𝝭∂y³)
@@ -89,7 +89,7 @@ end
 function import_msh_4(fid::IO) end
 
 function import_msh_2(fid::IO)
-    etype = Dict(1=>:Seg2,2=>:Tri3,3=>:Quad,9=>:Tri6,15=>:Poi1)
+    etype = Dict(1=>:Seg2,2=>:Tri3,3=>:Quad,8=>:Seg3,9=>:Tri6,15=>:Poi1)
     nodes = Dict{Symbol,Vector{Float64}}()
     elements = Dict{String,Any}()
     physicalnames = Dict{Int,String}()
@@ -146,7 +146,6 @@ function import_msh_2(fid::IO)
                 name = physicalnames[phyTag]
                 type = etype[elmType]
                 haskey(elements,name) ? push!(elements[name],Element{type}([nodes[i] for i in nodeList])) : elements[name]=Element{type}[Element{type}([nodes[i] for i in nodeList])]
-                push!(elements[name],Element{type}([nodes[i] for i in nodeList]))
             end
         end
     end
@@ -221,7 +220,9 @@ function importmsh(filename::String,config::Dict{T,Any}) where T<:Any
                 end
             end
         elseif element_type<:DiscreteElemensct
-            if ~@isdefined dofs dofs = getboundarydofs(elms["Ω"]) end
+            if ~@isdefined dofs
+                dofs = getboundarydofs(elms["Ω"])
+            end
             data = getfield(nodes[1],:data)
             nodeList = (x.𝐼 for x in elm.𝓒)
             𝓒 = [GNode((dofs[Set(setdiff(nodeList,i))],i),data) for i in nodeList]

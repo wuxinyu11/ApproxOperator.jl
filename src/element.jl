@@ -48,7 +48,9 @@ function set𝒙!(ap::T) where T<:AbstractElement
 end
 @inline get𝒙(ap::T,::Any) where T<:AbstractElement{:Poi1} = (ap.𝓒[1].x,ap.𝓒[1].y,ap.𝓒[1].z)
 @inline get𝒙(ap::T,ξ::SNode) where T<:AbstractElement{:Seg2} = get𝒙(ap,ξ.ξ)
+@inline get𝒙(ap::T,ξ::SNode) where T<:AbstractElement{:Seg3} = get𝒙(ap,ξ.ξ)
 @inline get𝒙(ap::T,ξ::SNode) where T<:AbstractElement{:Tri3} = get𝒙(ap,ξ.ξ,ξ.η)
+@inline get𝒙(ap::T,ξ::SNode) where T<:AbstractElement{:Tri6} = get𝒙(ap,ξ.ξ,ξ.η)
 @inline get𝒙(ap::T,ξ::SNode) where T<:AbstractElement{:Quad} = get𝒙(ap,ξ.ξ,ξ.η)
 
 function get𝒙(ap::T,ξ::Float64) where T<:AbstractElement{:Seg2}
@@ -58,10 +60,26 @@ function get𝒙(ap::T,ξ::Float64) where T<:AbstractElement{:Seg2}
     x₂ = ap.𝓒[2].x
     y₂ = ap.𝓒[2].y
     z₂ = ap.𝓒[2].z
-    N₁ = 0.5*(1-ξ)
-    N₂ = 0.5*(1+ξ)
+    N₁ = 0.5*(1.0-ξ)
+    N₂ = 0.5*(1.0+ξ)
     return (x₁*N₁+x₂*N₂,y₁*N₁+y₂*N₂,z₁*N₁+z₂*N₂)
 end
+function get𝒙(ap::T,ξ::Float64) where T<:AbstractElement{:Seg3}
+    x₁ = ap.𝓒[1].x
+    y₁ = ap.𝓒[1].y
+    z₁ = ap.𝓒[1].z
+    x₂ = ap.𝓒[2].x
+    y₂ = ap.𝓒[2].y
+    z₂ = ap.𝓒[2].z
+    x₃ = ap.𝓒[3].x
+    y₃ = ap.𝓒[3].y
+    z₃ = ap.𝓒[3].z
+    N₁ = 0.5*ξ*(ξ-1.0)
+    N₂ = 1.0-ξ^2
+    N₃ = 0.5*ξ*(ξ+1.0)
+    return (x₁*N₁+x₂*N₂+x₃*N₃,y₁*N₁+y₂*N₂+y₃*N₃,z₁*N₁+z₂*N₂+z₃*N₃)
+end
+
 function get𝒙(ap::T,ξ::Float64,η::Float64) where T<:AbstractElement{:Tri3}
     x₁ = ap.𝓒[1].x
     y₁ = ap.𝓒[1].y
@@ -76,6 +94,25 @@ function get𝒙(ap::T,ξ::Float64,η::Float64) where T<:AbstractElement{:Tri3}
     N₂ = η
     N₃ = 1.0-ξ-η
     return (x₁*N₁+x₂*N₂+x₃*N₃,y₁*N₁+y₂*N₂+y₃*N₃,z₁*N₁+z₂*N₂+z₃*N₃)
+end
+
+function get𝒙(ap::T,ξ::Float64,η::Float64) where T<:AbstractElement{:Tri6}
+    γ = 1.0-ξ-η
+    x₁ = ap.𝓒[1].x;y₁ = ap.𝓒[1].y;z₁ = ap.𝓒[1].z
+    x₂ = ap.𝓒[2].x;y₂ = ap.𝓒[2].y;z₂ = ap.𝓒[2].z
+    x₃ = ap.𝓒[3].x;y₃ = ap.𝓒[3].y;z₃ = ap.𝓒[3].z
+    x₄ = ap.𝓒[4].x;y₄ = ap.𝓒[4].y;z₄ = ap.𝓒[4].z
+    x₅ = ap.𝓒[5].x;y₅ = ap.𝓒[5].y;z₅ = ap.𝓒[5].z
+    x₆ = ap.𝓒[6].x;y₆ = ap.𝓒[6].y;z₆ = ap.𝓒[6].z
+    N₁ = ξ*(2*ξ-1)
+    N₂ = η*(2*η-1)
+    N₃ = γ*(2*γ-1)
+    N₄ = 4*ξ*η
+    N₅ = 4*η*γ
+    N₆ = 4*γ*ξ
+    return (x₁*N₁+x₂*N₂+x₃*N₃+x₄*N₄+x₅*N₅+x₆*N₆,
+            y₁*N₁+y₂*N₂+y₃*N₃+y₄*N₄+y₅*N₅+y₆*N₆,
+            z₁*N₁+z₂*N₂+z₃*N₃+z₄*N₄+z₅*N₅+z₆*N₆)
 end
 
 function get𝒙(ap::T,ξ::Float64,η::Float64) where T<:AbstractElement{:Quad}
@@ -143,7 +180,9 @@ function set𝑤!(ap::T) where T<:AbstractElement
 end
 @inline get𝑤(  ::T,::Any) where T<:AbstractElement{:Poi1} = 1.0
 @inline get𝑤(ap::T,ξ::SNode) where T<:AbstractElement{:Seg2} = 0.5*get𝐿(ap)*ξ.w
+@inline get𝑤(ap::T,ξ::SNode) where T<:AbstractElement{:Seg3} = 0.5*get𝐿(ap)*ξ.w
 @inline get𝑤(ap::T,ξ::SNode) where T<:AbstractElement{:Tri3} = get𝐴(ap)*ξ.w
+@inline get𝑤(ap::T,ξ::SNode) where T<:AbstractElement{:Tri6} = get𝐴(ap)*ξ.w
 @inline get𝑤(ap::T,ξ::SNode) where T<:AbstractElement{:Quad} = get𝐽(ap,ξ)*ξ.w
 
 """
@@ -187,7 +226,7 @@ function set𝑉!(ap::T) where T<:AbstractElement
 end
 
 
-@inline function get𝐿(ap::T) where T<:AbstractElement
+function get𝐿(ap::T) where T<:AbstractElement{:Seg2}
     x₁ = ap.𝓒[1].x
     y₁ = ap.𝓒[1].y
     z₁ = ap.𝓒[1].z
@@ -196,7 +235,32 @@ end
     z₂ = ap.𝓒[2].z
     return ((x₂-x₁)^2+(y₂-y₁)^2+(z₂-z₁)^2)^0.5
 end
-function get𝐴(ap::T) where T<:AbstractElement
+function get𝐿(ap::T) where T<:AbstractElement{:Seg3}
+    x₁ = ap.𝓒[1].x
+    y₁ = ap.𝓒[1].y
+    z₁ = ap.𝓒[1].z
+    x₂ = ap.𝓒[3].x
+    y₂ = ap.𝓒[3].y
+    z₂ = ap.𝓒[3].z
+    return ((x₂-x₁)^2+(y₂-y₁)^2+(z₂-z₁)^2)^0.5
+end
+
+function get𝐴(ap::T) where T<:AbstractElement{:Tri3}
+    x₁ = ap.𝓒[1].x
+    y₁ = ap.𝓒[1].y
+    z₁ = ap.𝓒[1].z
+    x₂ = ap.𝓒[2].x
+    y₂ = ap.𝓒[2].y
+    z₂ = ap.𝓒[2].z
+    x₃ = ap.𝓒[3].x
+    y₃ = ap.𝓒[3].y
+    z₃ = ap.𝓒[3].z
+    𝐴₁ = 0.5*(y₁*z₂+y₂*z₃+y₃*z₁-y₂*z₁-y₃*z₂-y₁*z₃)
+    𝐴₂ = 0.5*(z₁*x₂+z₂*x₃+z₃*x₁-z₂*x₁-z₃*x₂-z₁*x₃)
+    𝐴₃ = 0.5*(x₁*y₂+x₂*y₃+x₃*y₁-x₂*y₁-x₃*y₂-x₁*y₃)
+    return (𝐴₁^2 + 𝐴₂^2 + 𝐴₃^2)^0.5
+end
+function get𝐴(ap::T) where T<:AbstractElement{:Tri6}
     x₁ = ap.𝓒[1].x
     y₁ = ap.𝓒[1].y
     z₁ = ap.𝓒[1].z
@@ -278,17 +342,14 @@ function set𝑫!(ap::T) where T<:AbstractElement{:Tri3}
     D₁₁ = y₃-y₂
     D₁₂ = y₁-y₃
     D₁₃ = y₂-y₁
-    D₁₁ = x₂-x₃
-    D₁₂ = x₃-x₁
-    D₁₃ = x₁-x₂
+    D₂₁ = x₂-x₃
+    D₂₂ = x₃-x₁
+    D₂₃ = x₁-x₂
     for ξ in ap.𝓖
         γ = 1-ξ.ξ-ξ.η
-        if ξ.ξ == 0 ξ.D₁ += D₁₁ end
-        if ξ.ξ == 0 ξ.D₂ += D₂₁ end
-        if ξ.η == 0 ξ.D₁ += D₁₂ end 
-        if ξ.η == 0 ξ.D₂ += D₂₂ end
-        if   γ == 0 ξ.D₁ += D₁₂ end
-        if   γ == 0 ξ.D₂ += D₂₂ end
+        if ξ.ξ == 0 (ξ.D₁ += D₁₁;ξ.D₂ += D₂₁) end
+        if ξ.η == 0 (ξ.D₁ += D₁₂;ξ.D₂ += D₂₂) end 
+        if   γ == 0 (ξ.D₁ += D₁₃;ξ.D₂ += D₂₃) end
     end
 end
 
@@ -335,6 +396,28 @@ function set∇𝝭!(ap::Element{:Seg2},x::SNode)
     ∂𝝭∂x[2] = 1.0/𝐿
 end
 
+# ------------- Seg3 ---------------
+function set𝝭!(ap::Element{:Seg3},x::SNode)
+    𝝭 = x[:𝝭]
+    ξ = x.ξ
+    𝝭[1] = 0.5*ξ*(ξ-1.0)
+    𝝭[2] = 1.0-ξ^2
+    𝝭[3] = 0.5*ξ*(ξ+1.0)
+end
+
+function set∇𝝭!(ap::Element{:Seg2},x::SNode)
+    𝐿 = get𝐿(ap)
+    ∂𝝭∂x = x[:∂𝝭∂x]
+    x₁ = ap.𝓒[1].x
+    x₂ = ap.𝓒[2].x
+    x₃ = ap.𝓒[3].x
+    ξ = x.ξ
+    ∂𝝭∂x[1] = (ξ-0.5)*2/𝐿
+    ∂𝝭∂x[2] = -2.0*ξ*2/𝐿
+    ∂𝝭∂x[3] = (ξ+0.5)*2/𝐿
+end
+
+
 # ------------- Tri3 ---------------
 function set𝝭!(ap::Element{:Tri3},x::SNode)
     𝝭 = x[:𝝭]
@@ -373,29 +456,37 @@ function set𝝭!(ap::Element{:Tri6},x::SNode)
     𝝭[5] = 4*η*γ
     𝝭[6] = 4*γ*ξ
 end
-function set∇𝝭!(ap::Element{:Tri3},x::SNode)
+function set∇𝝭!(ap::Element{:Tri6},x::SNode)
     𝐴 = get𝐴(ap)
+    ξ = x.ξ
+    η = x.η
+    γ = 1.0-ξ-η
     x₁ = ap.𝓒[1].x
     x₂ = ap.𝓒[2].x
     x₃ = ap.𝓒[3].x
     y₁ = ap.𝓒[1].y
     y₂ = ap.𝓒[2].y
     y₃ = ap.𝓒[3].y
-    J₁₁ = 
+    J₁₁ = (y₂-y₃)/2.0/𝐴
+    J₂₁ = (y₃-y₁)/2.0/𝐴
+    J₃₁ = (y₁-y₂)/2.0/𝐴
+    J₁₂ = (x₃-x₂)/2.0/𝐴
+    J₂₂ = (x₁-x₃)/2.0/𝐴
+    J₃₂ = (x₂-x₁)/2.0/𝐴
     ∂𝝭∂x = x[:∂𝝭∂x]
     ∂𝝭∂y = x[:∂𝝭∂y]
-    ∂𝝭∂x[1] = (y₂-y₃)/2.0/𝐴
-    ∂𝝭∂x[2] = (y₃-y₁)/2.0/𝐴
-    ∂𝝭∂x[3] = (y₁-y₂)/2.0/𝐴
-    ∂𝝭∂x[4] = (y₂-y₃)/2.0/𝐴
-    ∂𝝭∂x[5] = (y₃-y₁)/2.0/𝐴
-    ∂𝝭∂x[6] = (y₁-y₂)/2.0/𝐴
-    ∂𝝭∂y[1] = (x₃-x₂)/2.0/𝐴
-    ∂𝝭∂y[2] = (x₁-x₃)/2.0/𝐴
-    ∂𝝭∂y[3] = (x₂-x₁)/2.0/𝐴
-    ∂𝝭∂y[4] = (x₃-x₂)/2.0/𝐴
-    ∂𝝭∂y[5] = (x₁-x₃)/2.0/𝐴
-    ∂𝝭∂y[6] = (x₂-x₁)/2.0/𝐴
+    ∂𝝭∂x[1] = (4.0*ξ-1.0)*J₁₁
+    ∂𝝭∂x[2] = (4.0*η-1.0)*J₂₁
+    ∂𝝭∂x[3] = (4.0*γ-1.0)*J₃₁
+    ∂𝝭∂x[4] = 4.0*(η*J₁₁+ξ*J₂₁)
+    ∂𝝭∂x[5] = 4.0*(γ*J₂₁+η*J₃₁)
+    ∂𝝭∂x[6] = 4.0*(ξ*J₃₁+γ*J₁₁)
+    ∂𝝭∂y[1] = (4.0*ξ-1.0)*J₁₂
+    ∂𝝭∂y[2] = (4.0*η-1.0)*J₂₂
+    ∂𝝭∂y[3] = (4.0*γ-1.0)*J₃₂
+    ∂𝝭∂y[4] = 4.0*(η*J₁₂+ξ*J₂₂)
+    ∂𝝭∂y[5] = 4.0*(γ*J₂₂+η*J₃₂)
+    ∂𝝭∂y[6] = 4.0*(ξ*J₃₂+γ*J₁₂)
 end
 
 # ------------- Quad ---------------
@@ -530,7 +621,7 @@ end
     j = findfirst(x->x==b.𝓒[2],a.𝓒)
     return i ≠ nothing && j ≠ nothing && i ≤ 3 && j ≤ 3 ? a : nothing
 end
-@inline function intersect(a::T,b::S) where {T<:DBelement{:Tri3},S<:AbstractElement{:Seg2}}
+@inline function intersect(a::T,b::S) where {T<:DiscreteElement{:Tri3},S<:AbstractElement{:Seg2}}
     i = findfirst(x->x.𝑖==b.𝓒[1].𝐼, a.𝓒)
     j = findfirst(x->x.𝑖==b.𝓒[2].𝐼, a.𝓒)
     return i ≠ nothing && j ≠ nothing && i ≤ 3 && j ≤ 3 ? a : nothing

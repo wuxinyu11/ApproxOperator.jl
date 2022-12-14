@@ -1,6 +1,6 @@
 
-function set𝓖!(as::Vector{T},s::Symbol) where T<:AbstractElement
-    data_ = quadraturerule(s)
+function set𝓖!(as::Vector{T},ss::Symbol) where T<:AbstractElement
+    data_ = quadraturerule(ss)
     n = length(data_[:w])
     G = 0
     s = 0
@@ -15,7 +15,7 @@ function set𝓖!(as::Vector{T},s::Symbol) where T<:AbstractElement
     end
     set𝒙!(as)
     set𝑤!(as)
-    if s ∈ RKQuadratureRule set𝑫!(aps) end
+    if ss ∈ RKQuadratureRule set𝑫!(as) end
 end
 
 function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement,S<:AbstractElement}

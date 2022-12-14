@@ -1337,7 +1337,7 @@ end
 #     end
 # end
 
-function (op::Operator{:∫udΓ})(ap::DBelement{:Seg2},k::AbstractMatrix{Float64},f::AbstractVector{Float64})
+function (op::Operator{:∫udΓ})(ap::DiscreteElement{:Seg2},k::AbstractMatrix{Float64},f::AbstractVector{Float64})
     x = ap.𝓒[3]
     j = x.𝐼
     g = op(ap)
