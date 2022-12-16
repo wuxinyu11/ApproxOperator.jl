@@ -13,8 +13,7 @@ function set𝓖!(as::Vector{T},ss::Symbol) where T<:AbstractElement
             s += length(a.𝓒)
         end
     end
-    set𝒙!(as)
-    set𝑤!(as)
+    setgeometry!(as)
     if ss ∈ RKQuadratureRule set𝑫!(as) end
 end
 

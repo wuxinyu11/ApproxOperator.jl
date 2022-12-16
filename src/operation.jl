@@ -147,6 +147,23 @@ function (op::Operator{:∫∇v∇udΩ})(ap::T,k::AbstractMatrix{Float64}) where
     end
 end
 
+function (op::Operator{:∫∫∇v∇udxdy})(ap::T,k::AbstractMatrix{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    kᶜ = op.k
+    for ξ in 𝓖
+        B₁ = ξ[:∂𝝭∂x]
+        B₂ = ξ[:∂𝝭∂y]
+        𝑤 = ξ.𝑤
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[I,J] += kᶜ*(B₁[i]*B₁[j] + B₂[i]*B₂[j])*𝑤
+            end
+        end
+    end
+end
+
 function (op::Operator{:∫vbdΩ})(ap::T,f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     for ξ in 𝓖
@@ -233,6 +250,7 @@ end
 function (op::Operator{:∫∇𝑛vgdΓ})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     kᶜ = op.k
+    α = op.α
     for ξ in 𝓖
         N = ξ[:𝝭]
         B₁ = ξ[:∂𝝭∂x]
@@ -247,9 +265,32 @@ function (op::Operator{:∫∇𝑛vgdΓ})(ap::T,k::AbstractMatrix{Float64},f::Ab
             I = xᵢ.𝐼
             for (j,xⱼ) in enumerate(𝓒)
                 J = xⱼ.𝐼
-                k[I,J] -= kᶜ*((B₁[i]*n₁+B₂[i]*n₂+B₃[i]*n₃)*N[j] + N[i]*(B₁[j]*n₁+B₂[j]*n₂+B₃[j]*n₃))*𝑤
+                k[I,J] += (-kᶜ*((B₁[i]*n₁+B₂[i]*n₂+B₃[i]*n₃)*N[j]+N[i]*(B₁[j]*n₁+B₂[j]*n₂+B₃[j]*n₃)) + α*N[i]*N[j])*𝑤
             end
-            f[I] -= kᶜ*(B₁[i]*n₁+B₂[i]*n₂+B₃[i]*n₃)*g*𝑤
+            f[I] += (-kᶜ*(B₁[i]*n₁+B₂[i]*n₂+B₃[i]*n₃) + α*N[i])*g*𝑤
+        end
+    end
+end
+
+function (op::Operator{:∫∇𝑛vgds})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒;𝓖 = ap.𝓖
+    kᶜ = op.k
+    α = op.α
+    for ξ in 𝓖
+        N = ξ[:𝝭]
+        B₁ = ξ[:∂𝝭∂x]
+        B₂ = ξ[:∂𝝭∂y]
+        𝑤 = ξ.𝑤
+        n₁ = ξ.n₁
+        n₂ = ξ.n₂
+        g = ξ.g
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[I,J] += (-kᶜ*((B₁[i]*n₁+B₂[i]*n₂)*N[j]+N[i]*(B₁[j]*n₁+B₂[j]*n₂)) + α*N[i]*N[j])*𝑤
+            end
+            f[I] += (-kᶜ*(B₁[i]*n₁+B₂[i]*n₂) + α*N[i])*g*𝑤
         end
     end
 end

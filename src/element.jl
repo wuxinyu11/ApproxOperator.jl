@@ -194,11 +194,8 @@ function set𝐿!(aps::Vector{T}) where T<:AbstractElement
     set𝐿!.(aps)
 end
 function set𝐿!(ap::T) where T<:AbstractElement
-    𝓖 = ap.𝓖
     𝐿 = get𝐿(ap)
-    for ξ in 𝓖
-        ξ.𝐿 = 𝐿
-    end
+    ap.𝓖[1].𝐿 = 𝐿
 end
 function set𝐴!(aps::Vector{T}) where T<:AbstractElement
     nₑ = length(aps)
@@ -206,11 +203,8 @@ function set𝐴!(aps::Vector{T}) where T<:AbstractElement
     set𝐴!.(aps)
 end
 function set𝐴!(ap::T) where T<:AbstractElement
-    𝓖 = ap.𝓖
     𝐴 = get𝐴(ap)
-    for ξ in 𝓖
-        ξ.𝐴 = 𝐴
-    end
+    ap.𝓖[1].𝐴 = 𝐴
 end
 function set𝑉!(aps::Vector{T}) where T<:AbstractElement
     nₑ = length(aps)
@@ -218,11 +212,8 @@ function set𝑉!(aps::Vector{T}) where T<:AbstractElement
     set𝑉!.(aps)
 end
 function set𝑉!(ap::T) where T<:AbstractElement
-    𝓖 = ap.𝓖
     𝑉 = get𝑉(ap)
-    for ξ in 𝓖
-        ξ.𝑉 = 𝑉
-    end
+    ap.𝓖[1].𝑉 = 𝑉
 end
 
 
@@ -281,9 +272,9 @@ set𝒏!
 """
 function set𝒏!(aps::Vector{T}) where T<:AbstractElement{:Seg2}
     data = getfield(aps[1].𝓖[1],:data)
-    n = length(data[:x][2])
-    push!(data,:n₁=>(2,zeros(n)))
-    push!(data,:n₂=>(2,zeros(n)))
+    n = length(aps)
+    push!(data,:n₁=>(3,zeros(n)))
+    push!(data,:n₂=>(3,zeros(n)))
     for ap in aps
         set𝒏!(ap)
     end
@@ -297,14 +288,13 @@ function set𝒏!(ap::T) where T<:AbstractElement{:Seg2}
     𝐿 = get𝐿(ap)
     n₁ = (y₂-y₁)/𝐿
     n₂ = (x₁-x₂)/𝐿
-    for ξ in ap.𝓖
-        ξ.n₁ = n₁
-        ξ.n₂ = n₂
-    end
+    ap.𝓖[1].n₁ = n₁
+    ap.𝓖[1].n₂ = n₂
 end
 
 """
 set𝐷!
+get𝐷!
 """
 function set𝑫!(aps::Vector{T}) where T<:AbstractElement{:Seg2}
     n = getnᵢ(aps)
@@ -317,16 +307,21 @@ end
 
 function set𝑫!(ap::T) where T<:AbstractElement{:Seg2}
     for ξ in ap.𝓖
-        ξ.D₁ = ξ.ξ == -1 ? -1 : 0.0
-        ξ.D₁ = ξ.ξ ==  1 ?  1 : 0.0
+        ξ.D₁ = ξ.ξ == -1.0 ? -1.0 : 0.0
+        ξ.D₁ = ξ.ξ ==  1.0 ?  1.0 : 0.0
     end
 end
 
 function set𝑫!(aps::Vector{T}) where T<:AbstractElement{:Tri3}
     data = getfield(aps[1].𝓖[1],:data)
     n = getnᵢ(aps)
+    nₑ = length(aps)
     push!(data,:D₁=>(2,zeros(n)))
     push!(data,:D₂=>(2,zeros(n)))
+    push!(data,:D₁₁=>(3,zeros(nₑ)))
+    push!(data,:D₁₂=>(3,zeros(nₑ)))
+    push!(data,:D₂₁=>(3,zeros(nₑ)))
+    push!(data,:D₂₂=>(3,zeros(nₑ)))
     for ap in aps
         set𝑫!(ap)
     end
@@ -340,16 +335,34 @@ function set𝑫!(ap::T) where T<:AbstractElement{:Tri3}
     x₃ = ap.𝓒[3].x
     y₃ = ap.𝓒[3].y
     D₁₁ = y₃-y₂
-    D₁₂ = y₁-y₃
-    D₁₃ = y₂-y₁
-    D₂₁ = x₂-x₃
+    D₂₁ = y₁-y₃
+    D₃₁ = y₂-y₁
+    D₁₂ = x₂-x₃
     D₂₂ = x₃-x₁
-    D₂₃ = x₁-x₂
+    D₃₂ = x₁-x₂
+    ap.𝓖[1].D₁₁ = D₁₁
+    ap.𝓖[1].D₂₁ = D₂₁
+    ap.𝓖[1].D₁₂ = D₁₂
+    ap.𝓖[1].D₂₂ = D₂₂
     for ξ in ap.𝓖
-        γ = 1-ξ.ξ-ξ.η
-        if ξ.ξ == 0 (ξ.D₁ += D₁₁;ξ.D₂ += D₂₁) end
-        if ξ.η == 0 (ξ.D₁ += D₁₂;ξ.D₂ += D₂₂) end 
-        if   γ == 0 (ξ.D₁ += D₁₃;ξ.D₂ += D₂₃) end
+        if ξ.ξ ≈ 0.0 (ξ.D₁ += D₁₁;ξ.D₂ += D₁₂) end
+        if ξ.η ≈ 0.0 (ξ.D₁ += D₂₁;ξ.D₂ += D₂₂) end 
+        if ξ.ξ+ξ.η ≈ 1.0 (ξ.D₁ += D₃₁;ξ.D₂ += D₃₂) end
+    end
+end
+
+"""
+setgeometry!(ap::T) where T<:AbstractElement
+"""
+function setgeometry!(aps::Vector{T}) where T<:AbstractElement
+    set𝒙!(aps)
+    set𝑤!(aps)
+    if T<:AbstractElement{:Seg2}
+        set𝐿!(aps)
+    elseif T<:AbstractElement{:Tri3}
+        set𝐴!(aps)
+    elseif T<:AbstractElement{:Tet4}
+        set𝑉!(aps)
     end
 end
 
