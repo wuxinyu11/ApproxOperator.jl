@@ -154,6 +154,7 @@ function importmsh(file_elements::String,file_nodes::String,config::Dict{T,Any})
     return generate(elms,nodes,config)
 end
 function generate(elms::Dict{String,Any},nodes::Vector{Node},config::Dict{T,Any}) where T<:Any
+    elements = Dict{String,Any}()
     if haskey(config,"RegularGrid")
         x = getfield(nodes[1],:data)[:x][2]
         y = getfield(nodes[1],:data)[:y][2]
@@ -175,25 +176,34 @@ function generate(elms::Dict{String,Any},nodes::Vector{Node},config::Dict{T,Any}
         end
         delete!(config,"IndependentDofs")
     end
+    if haskey(config,"BoundaryDofs")
+        dofs,ndofs = getboundarydofs(elms["Ω"])
+        cfg = config["BoundaryDofs"]
+        element_type = eval(Meta.parse(cfg["type"]))
+        elements["∂Ω"] = Vector{element_type}(undef,ndofs)
+        for (ids,n) in dofs
+            elements["∂Ω"][n] = element_type([nodes[i] for i in ids],SNode[])
+        end
+        integration_type = Meta.parse(cfg["𝓖"]["type"])
+        set𝓖!(elements["∂Ω"],integration_type)
+        delete!(config,"BoundaryDofs")
+    end
 
-    elements = Dict{String,Any}()
     for (name,cfg) in config
          # set𝓖
         element_tag = cfg["𝓒"]["tag"]
         element_type = eval(Meta.parse(cfg["type"]))
+        integration_tag = haskey(cfg["𝓖"],"tag") ? cfg["𝓖"]["tag"] : element_tag
+        integration_type = Meta.parse(cfg["𝓖"]["type"])
         elements[name] = element_type[]
-        if haskey(elms,element_tag)
-            if haskey(cfg,"𝓖")
-                integration_type = Meta.parse(cfg["𝓖"]["type"])
-                integration_tag = haskey(cfg["𝓖"],"tag") ? cfg["𝓒"]["tag"] : element_tag
-                set𝓖!(elms[integration_tag],integration_type)
-                if integration_tag ≠ element_tag
-                    elms[element_tag*"∩"*integration_tag] = unique!(elms[element_tag]∩elms[integration_tag])
-                    element_tag = element_tag*"∩"*integration_tag
-                    set𝓖!(elms[element_tag],elms[integration_tag])
-                end
-                if haskey(cfg["𝓖"],"normal") set𝒏!(elms[element_tag]) end
+        if haskey(elms,integration_tag)
+            set𝓖!(elms[integration_tag],integration_type)
+            if integration_tag ≠ element_tag
+                elms[element_tag*"∩"*integration_tag] = unique!(elms[element_tag]∩elms[integration_tag])
+                element_tag = element_tag*"∩"*integration_tag
+                set𝓖!(elms[element_tag],elms[integration_tag])
             end
+            if haskey(cfg["𝓖"],"normal") set𝒏!(elms[element_tag]) end
 
             # set 𝓒
             nₑ = length(elms[element_tag])
@@ -235,15 +245,14 @@ function generate(elms::Dict{String,Any},nodes::Vector{Node},config::Dict{T,Any}
                         s += n
                     end
                 end
-            elseif element_type<:DiscreteElemensct
-                if ~@isdefined dofs
-                    dofs = getboundarydofs(elms["Ω"])
-                end
+            elseif element_type<:DiscreteElement
                 data = getfield(nodes[1],:data)
-                nodeList = (x.𝐼 for x in elm.𝓒)
-                𝓒 = [GNode((dofs[Set(setdiff(nodeList,i))],i),data) for i in nodeList]
-                𝓖 = [ξ for ξ in elm.𝓖]
-                push!(elements[name],element_type(𝓒,𝓖))
+                for elm in elms[element_tag]
+                    nodeList = (x.𝐼 for x in elm.𝓒)
+                    𝓒 = [GNode((i,dofs[Set(setdiff(nodeList,i))]),data) for i in nodeList]
+                    𝓖 = [ξ for ξ in elm.𝓖]
+                    push!(elements[name],element_type(𝓒,𝓖))
+                end
             end
 
             # set shape memory
@@ -254,63 +263,6 @@ function generate(elms::Dict{String,Any},nodes::Vector{Node},config::Dict{T,Any}
         end
     end
     return elements,nodes
-end
-
-function importmsh(filename::String,::Val{:test})
-    elems,nodes = importmsh(filename)
-    data = Dict([s=>(2,v) for (s,v) in nodes])
-    dofs = getboundarydofs2D(elems["Ω"])
-    elements = Dict{String,Any}()
-    nodes = Node(nodes...)
-    gnodes = GNode[]
-    elements["∂Ω"] = Vector{Element{:Seg2}}(undef,length(dofs))
-    for (dof,i) in dofs
-        elements["∂Ω"][i] = Element{:Seg2}([nodes[j] for j in dof])
-    end
-    set𝓖!(elements["∂Ω"],:SegGI2)
-    elements["Γ_λ"] = Element{:Tri3}[]
-    elements["Ω"] = DBelement{:Tri3}[]
-    elements["Γ"] = DBelement{:Tri3}[]
-    elements["Γᵍ"] = DBelement{:Tri3}[]
-    haskey(elems,"Γᵗ") ? elements["Γᵗ"] = DBelement{:Tri3}[] : nothing
-    for (type,nodeList) in elems["Ω"]
-        𝓒 = [GNode((dofs[Set(setdiff(nodeList,i))],i),data) for i in nodeList]
-        union!(gnodes,𝓒)
-        push!(elements["Ω"],DBelement{:Tri3}(𝓒))
-        push!(elements["Γ"],DBelement{:Tri3}(𝓒))
-        push!(elements["Γ_λ"],Element{:Tri3}([nodes[i] for i in nodeList]))
-        push!(elements["Γᵍ"],DBelement{:Tri3}(𝓒))
-        haskey(elems,"Γᵗ") ? push!(elements["Γᵗ"],DBelement{:Tri3}(𝓒)) : nothing
-    end
-    set𝓖!(elements["Ω"],:TriGI13)
-    set𝓖_DB!(elements["Γ"],:SegGI2)
-    set𝓖_DB!(elements["Γ_λ"],:SegGI2)
-    if haskey(elems,"Γᵗ")
-        elms_𝓖 = [Element{type}([nodes[i] for i in nodeList])     for (type,nodeList) in elems["Γᵗ"]]
-        elements["Γᵗ"] = elements["Γᵗ"]∩elms_𝓖
-        set𝓖!(elms_𝓖,:SegGI2)
-        set𝓖!(elements["Γᵗ"],elms_𝓖)
-    end
-
-    elms_𝓖 = [Element{type}([nodes[i] for i in nodeList])     for (type,nodeList) in elems["Γᵍ"]]
-    elements["Γᵍ"] = elements["Γᵍ"]∩elms_𝓖
-    set𝓖!(elms_𝓖,:SegGI2)
-    set𝓖!(elements["Γᵍ"],elms_𝓖)
-
-    # elements["Γᵍ"] = DBelement{:Tri3}[]
-    # for (type,nodeList) in elems["Γᵍ"]
-    #     𝐼 = dofs[Set(nodeList)]
-    #     𝓒 = [GNode((0,i),data) for i in nodeList]
-    #     push!(𝓒,GNode((𝐼,0),data))
-    #     push!(elements["Γᵍ"],DBelement{:Seg2}(𝓒))
-    # end
-    # set𝓖!(elements["Γᵍ"],:SegGI2)
-
-    set_memory_𝝭!(elements["Ω"],:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂𝝭∂z)
-    haskey(elems,"Γᵗ") ? set_memory_𝝭!(elements["Γᵗ"],:𝝭) : nothing
-    set_memory_𝝭!(elements["Γᵍ"],:𝝭)
-    set_memory_𝝭!(elements["Γ"],:𝝭)
-    return elements, gnodes
 end
 
 function getboundarydofs(elements::Vector{T}) where T<:AbstractElement{:Tri3}
@@ -327,5 +279,5 @@ function getboundarydofs(elements::Vector{T}) where T<:AbstractElement{:Tri3}
             end
         end
     end
-    return dofs
+    return dofs,n
 end

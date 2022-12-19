@@ -1,22 +1,3 @@
-
-"""
-getnₚ,getnᵢ,getnₛ
-"""
-getnₚ(ap::T) where T<:AbstractElement = length(getfield(ap.𝓒[1],:data)[:x][2])
-@inline getnₚ(aps::Vector{T}) where T<:AbstractElement = getnₚ(aps[1])
-
-function getnᵢ(aps::Vector{T}) where T<:AbstractElement
-    ap = aps[end]
-    ξ = ap.𝓖[end]
-    return ξ.𝐺
-end
-
-function getnₛ(aps::Vector{T}) where T<:AbstractElement
-    ap = aps[end]
-    ξ = ap.𝓖[end]
-    return ξ.𝑠 + length(ap.𝓒)
-end
-
 """
 # Element
 """
@@ -649,3 +630,31 @@ function intersect(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement,S<:Abs
     end
     return aps
 end
+
+"""
+getnₚ,getnᵢ,getnₛ
+"""
+getnₚ(ap::T) where T<:AbstractElement = length(getfield(ap.𝓒[1],:data)[:x][2])
+@inline getnₚ(aps::Vector{T}) where T<:AbstractElement = getnₚ(aps[1])
+function getnₚ(aps::Vector{T}) where T<:DiscreteElement
+    nₚ = 0
+    for ap in aps
+        for x in ap.𝓒
+            nₚ = max(nₚ,x.𝐼)
+        end
+    end
+    return nₚ
+end
+
+function getnᵢ(aps::Vector{T}) where T<:AbstractElement
+    ap = aps[end]
+    ξ = ap.𝓖[end]
+    return ξ.𝐺
+end
+
+function getnₛ(aps::Vector{T}) where T<:AbstractElement
+    ap = aps[end]
+    ξ = ap.𝓖[end]
+    return ξ.𝑠 + length(ap.𝓒)
+end
+

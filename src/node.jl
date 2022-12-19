@@ -61,7 +61,7 @@ struct GNode<:AbstractNode
     index::NTuple{2,Int}
     data::Dict{Symbol,Tuple{Int,Vector{Float64}}}
 end
-const GREF = (𝐼=1,𝑖=2)
+const GREF = (𝑖=1,𝐼=2)
 
 for (t,ref) in ((:Node,:REF),(:SNode,:SREF),(:GNode,:GREF))
     @eval begin

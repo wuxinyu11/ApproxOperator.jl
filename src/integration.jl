@@ -125,8 +125,8 @@ function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement{:Tri3},
     for (c,a) in enumerate(as)
         empty!(a.𝓖)
         for b in bs
-            i = T<:DBelement ? findfirst(x->x.𝑖==b.𝓒[1].𝐼, a.𝓒) : findfirst(x->x.𝐼==b.𝓒[1].𝐼, a.𝓒)
-            j = T<:DBelement ? findfirst(x->x.𝑖==b.𝓒[2].𝐼, a.𝓒) : findfirst(x->x.𝐼==b.𝓒[2].𝐼, a.𝓒)
+            i = T<:DiscreteElement ? findfirst(x->x.𝑖==b.𝓒[1].𝐼, a.𝓒) : findfirst(x->x.𝐼==b.𝓒[1].𝐼, a.𝓒)
+            j = T<:DiscreteElement ? findfirst(x->x.𝑖==b.𝓒[2].𝐼, a.𝓒) : findfirst(x->x.𝐼==b.𝓒[2].𝐼, a.𝓒)
             if i ≠ nothing && j ≠ nothing && i ≤ 3 && j ≤ 3
                 𝐴 = get𝐴(a)
                 for ξ_ in b.𝓖
