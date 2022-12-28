@@ -1387,7 +1387,7 @@ function (op::Operator{:∫udΓ})(ap::T) where T<:AbstractElement{:Seg2}
     return d
 end
 
-function (op::Operator{:∫∇udΩ})(aps::Vector{T}) where T<:AbstractElement
+function (op::Operator{:∫∇udΓ})(aps::Vector{T}) where T<:AbstractElement
     ∂u∂x = zeros(length(aps))
     ∂u∂y = zeros(length(aps))
     for (i,ap) in enumerate(aps)
@@ -1398,10 +1398,10 @@ function (op::Operator{:∫∇udΩ})(aps::Vector{T}) where T<:AbstractElement
     return ∂u∂x,∂u∂y
 end
 
-function (op::Operator{:∫∇udΩ})(ap::T) where T<:AbstractElement
+function (op::Operator{:∫∇udΓ})(ap::T) where T<:AbstractElement
     𝓖 = ap.𝓖
-    ∂u∂x = sum(ξ.∂u∂x*ξ.w for ξ in 𝓖)
-    ∂u∂y = sum(ξ.∂u∂y*ξ.w for ξ in 𝓖)
+    ∂u∂x = sum(ξ.∂u∂x*ξ.w for ξ in 𝓖)/2
+    ∂u∂y = sum(ξ.∂u∂y*ξ.w for ξ in 𝓖)/2
     return ∂u∂x,∂u∂y
 end
 
@@ -1695,3 +1695,26 @@ function (op::Operator{:∫gsᵢnᵢdΓ})(ap::T,q::AbstractVector{Float64}) wher
     end
 end
 
+function (op::Operator{:∫tdΓ})(ap::T,f::AbstractVector{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒
+    𝓖 = ap.𝓖
+    for ξ in 𝓖
+        b𝑤 = ξ.b*ξ.𝑤
+        for x in 𝓒
+            I = x.𝐼
+            f[I] += b𝑤 
+        end
+    end
+end
+
+function (op::Operator{:∫bdΩ})(ap::T,f::AbstractVector{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒
+    𝓖 = ap.𝓖
+    for ξ in 𝓖
+        b𝑤 = ξ.b*ξ.𝑤
+        for x in 𝓒
+            I = x.𝐼
+            f[I] += b𝑤 
+        end
+    end
+end
