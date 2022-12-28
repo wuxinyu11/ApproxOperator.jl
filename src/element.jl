@@ -399,7 +399,7 @@ function set𝝭!(ap::Element{:Seg3},x::SNode)
     𝝭[3] = 0.5*ξ*(ξ+1.0)
 end
 
-function set∇𝝭!(ap::Element{:Seg2},x::SNode)
+function set∇𝝭!(ap::Element{:Seg3},x::SNode)
     𝐿 = get𝐿(ap)
     ∂𝝭∂x = x[:∂𝝭∂x]
     x₁ = ap.𝓒[1].x
@@ -573,15 +573,55 @@ function set∇𝝭!(ap::DiscreteElement{:Tri3},x::SNode)
     𝐴 = get𝐴(ap)
     ∂𝝭∂x = x[:∂𝝭∂x]
     ∂𝝭∂y = x[:∂𝝭∂y]
-    ∂𝝭∂x[1] = (y₂-y₃)/𝐴
-    ∂𝝭∂x[2] = (y₃-y₁)/𝐴
-    ∂𝝭∂x[3] = (y₁-y₂)/𝐴
+    ∂𝝭∂x[1] = (y₃-y₂)/𝐴
+    ∂𝝭∂x[2] = (y₁-y₃)/𝐴
+    ∂𝝭∂x[3] = (y₂-y₁)/𝐴
     ∂𝝭∂y[1] = (x₂-x₃)/𝐴
     ∂𝝭∂y[2] = (x₃-x₁)/𝐴
     ∂𝝭∂y[3] = (x₁-x₂)/𝐴
 end
 
-for set𝝭 in (:set𝝭!,:set∇𝝭!)
+function set𝝭𝑛!(ap::DiscreteElement{:Tri3},x::SNode)
+    ξ₁ = x.ξ
+    ξ₂ = x.η
+    ξ₃ = 1.0-x.ξ-x.η
+    N₁ = ξ₁
+    N₂ = ξ₂
+    N₃ = ξ₃
+    n₁ = x.n₁
+    n₂ = x.n₂
+    sn = sign(n₁+n₂)
+    𝝭 = x[:𝝭̄]
+    𝝭[1] = sn*N₁
+    𝝭[2] = sn*N₂
+    𝝭[3] = sn*N₃
+end
+
+function set𝝭̄!(ap::DiscreteElement{:Tri3},x::SNode)
+    𝝭 = x[:𝝭̄]
+    𝝭[1] = x.ξ
+    𝝭[2] = x.η
+    𝝭[3] = 1.0-x.ξ-x.η
+end
+function set∇̄𝝭!(ap::DiscreteElement{:Tri3},x::SNode)
+    𝐴 = get𝐴(ap)
+    x₁ = ap.𝓒[1].x
+    x₂ = ap.𝓒[2].x
+    x₃ = ap.𝓒[3].x
+    y₁ = ap.𝓒[1].y
+    y₂ = ap.𝓒[2].y
+    y₃ = ap.𝓒[3].y
+    ∂𝝭∂x = x[:∂𝝭̄∂x]
+    ∂𝝭∂y = x[:∂𝝭̄∂y]
+    ∂𝝭∂x[1] = (y₂-y₃)/2.0/𝐴
+    ∂𝝭∂x[2] = (y₃-y₁)/2.0/𝐴
+    ∂𝝭∂x[3] = (y₁-y₂)/2.0/𝐴
+    ∂𝝭∂y[1] = (x₃-x₂)/2.0/𝐴
+    ∂𝝭∂y[2] = (x₁-x₃)/2.0/𝐴
+    ∂𝝭∂y[3] = (x₂-x₁)/2.0/𝐴
+end
+
+for set𝝭 in (:set𝝭!,:set∇𝝭!,:set∇̄𝝭!,:set𝝭̄!, :set𝝭𝑛!)
     @eval begin
         function $set𝝭(aps::Vector{T}) where T<:AbstractElement
             for ap in aps

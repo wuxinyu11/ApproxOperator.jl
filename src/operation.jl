@@ -92,6 +92,21 @@ function (op::Operator{:𝑓𝑣})(ap::T,f::AbstractVector{Float64}) where T<:Ab
     end
 end
 
+function (op::Operator{:∫vudΩ})(ap::T,m::AbstractMatrix{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    for ξ in 𝓖
+        N = ξ[:𝝭]
+        𝑤 = ξ.𝑤
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                m[I,J] += N[i]*N[j]*𝑤
+            end
+        end
+    end
+end
+
 function (op::Operator{:∫∇v∇uvbdΩ})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
     𝓒 = ap.𝓒; 𝓖 = ap.𝓖
     kᶜ = op.k
@@ -1366,10 +1381,28 @@ function (op::Operator{:∫udΓ})(aps::Vector{T}) where T<:AbstractElement
     return d
 end
 
-function (op::Operator{:∫udΓ})(ap::T) where T<:AbstractElement
+function (op::Operator{:∫udΓ})(ap::T) where T<:AbstractElement{:Seg2}
     𝓖 = ap.𝓖
     d = sum(ξ.u*ξ.w for ξ in 𝓖)/2
     return d
+end
+
+function (op::Operator{:∫∇udΩ})(aps::Vector{T}) where T<:AbstractElement
+    ∂u∂x = zeros(length(aps))
+    ∂u∂y = zeros(length(aps))
+    for (i,ap) in enumerate(aps)
+        ∂u∂x_,∂u∂y_ = op(ap)
+        ∂u∂x[i] = ∂u∂x_
+        ∂u∂y[i] = ∂u∂y_
+    end
+    return ∂u∂x,∂u∂y
+end
+
+function (op::Operator{:∫∇udΩ})(ap::T) where T<:AbstractElement
+    𝓖 = ap.𝓖
+    ∂u∂x = sum(ξ.∂u∂x*ξ.w for ξ in 𝓖)
+    ∂u∂y = sum(ξ.∂u∂y*ξ.w for ξ in 𝓖)
+    return ∂u∂x,∂u∂y
 end
 
 # function (op::Operator{:∫udΓ})(aps::Vector{T},k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
@@ -1378,9 +1411,9 @@ end
 #     end
 # end
 
-function (op::Operator{:∫udΓ})(ap::DiscreteElement{:Seg2},k::AbstractMatrix{Float64},f::AbstractVector{Float64})
-    x = ap.𝓒[3]
-    j = x.𝐼
+function (op::Operator{:∫udΓ})(ap::AbstractElement,k::AbstractMatrix{Float64},f::AbstractVector{Float64})
+    ξ = ap.𝓖[1]
+    j = ξ.𝐶
     g = op(ap)
     for i in 1:length(f)
         f[i] -= k[i,j]*g
@@ -1421,3 +1454,244 @@ function (op::Operator{:Δ∫vtdΓ})(ap::T,f::AbstractVector{Float64}) where T<:
         end
     end
 end
+
+function (op::Operator{:∫vudΓ})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    α = op.α
+    for ξ in 𝓖
+        N = ξ[:𝝭]
+        𝑤 = ξ.𝑤
+        n₁ = ξ.n₁
+        n₂ = ξ.n₂
+        g = ξ.g
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[I,J] += α*N[i]*N[j]*sign(n₁+n₂)*𝑤
+                # k[I,J] += α*N[i]*N[j]*𝑤
+            end
+            f[I] += α*N[i]*g*sign(n₁+n₂)*𝑤
+            # f[I] += α*N[i]*g*𝑤
+        end
+    end
+end
+
+function (op::Operator{:∫uλdΓ})(ap::T,g::AbstractMatrix{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒
+    𝓖 = ap.𝓖
+    for ξ in 𝓖
+        𝑤 = ξ.𝑤
+        N = ξ[:𝝭]
+        N̄ = ξ[:𝝭̄]
+        for (k,xₖ) in enumerate(𝓒)
+            K = xₖ.𝑖
+            for (i,xᵢ) in enumerate(𝓒)
+                I = xᵢ.𝐼
+                g[I,K] -= N[i]*N̄[k]*𝑤
+            end
+        end
+    end
+end
+
+function (op::Operator{:∫uλ̄dΓ})(aps::Vector{T},g::AbstractMatrix{Float64}) where T<:AbstractElement
+    for (K,ap) in enumerate(aps)
+        𝓒 = ap.𝓒
+        𝓖 = ap.𝓖
+        for ξ in 𝓖
+            𝑤 = ξ.𝑤
+            N = ξ[:𝝭]
+            n₁ = ξ.n₁
+            n₂ = ξ.n₂
+            for (i,xᵢ) in enumerate(𝓒)
+                I = xᵢ.𝐼
+                g[I,K] -= sign(n₁+n₂)*N[i]*𝑤
+            end
+        end
+    end
+end
+
+function (op::Operator{:∫∇𝑛uvdΓ})(ap::T,g::AbstractMatrix{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒
+    𝓖 = ap.𝓖
+    for ξ in 𝓖
+        𝑤 = ξ.𝑤
+        N = ξ[:𝝭̄]
+        B₁ = ξ[:∂𝝭∂x]
+        B₂ = ξ[:∂𝝭∂y]
+        n₁ = ξ.n₁
+        n₂ = ξ.n₂
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (k,xₖ) in enumerate(𝓒)
+                K = xₖ.𝑖
+                g[I,K] -= (B₁[i]*n₁+B₂[i]*n₂)*N[k]*𝑤
+            end
+        end
+    end
+end
+
+function (op::Operator{:∫∇𝑛ugdΓ})(ap::T,g::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒;𝓖 = ap.𝓖
+    for ξ in 𝓖
+        N = ξ[:𝝭]
+        B₁ = ξ[:∂𝝭∂x]
+        B₂ = ξ[:∂𝝭∂y]
+        𝑤 = ξ.𝑤
+        n₁ = ξ.n₁
+        n₂ = ξ.n₂
+        ḡ = ξ.g
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (k,xₖ) in enumerate(𝓒)
+                K = xₖ.𝑖
+                g[I,K] += (B₁[i]*n₁+B₂[i]*n₂)*N[k]*𝑤
+            end
+            f[I] += (B₁[i]*n₁+B₂[i]*n₂)*ḡ*𝑤
+        end
+    end
+end
+
+function (op::Operator{:∫∇v̄∇udΩ})(ap::T,g::AbstractMatrix{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒;𝓖 = ap.𝓖
+    for ξ in 𝓖
+        B₁ = ξ[:∂𝝭∂x]
+        B₂ = ξ[:∂𝝭∂y]
+        B̄₁ = ξ[:∂𝝭̄∂x]
+        B̄₂ = ξ[:∂𝝭̄∂y]
+        𝑤 = ξ.𝑤
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (k,xₖ) in enumerate(𝓒)
+                K = xₖ.𝑖
+                g[I,K] += (B₁[i]*B̄₁[k]+B₂[i]*B̄₂[k])*𝑤
+            end
+        end
+    end
+end
+
+function (op::Operator{:∫vu𝑛dΓ})(ap::T,g::AbstractMatrix{Float64},q::AbstractVector{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒
+    𝓖 = ap.𝓖
+    for ξ in 𝓖
+        𝑤 = ξ.𝑤
+        N = ξ[:𝝭]
+        N̄ = ξ[:𝝭̄]
+        sn = sign(ξ.n₁+ξ.n₂)
+        u = ξ.u
+        for (k,xₖ) in enumerate(𝓒)
+            K = xₖ.𝑖
+            for (i,xᵢ) in enumerate(𝓒)
+                I = xᵢ.𝐼
+                g[I,K] -= sn*N[i]*N̄[k]*𝑤
+            end
+            q[K] -= sn*N̄[k]*u*𝑤
+        end
+    end
+end
+
+# function (op::Operator{:∫sᵢnᵢudΓ})(ap::T,g::AbstractMatrix{Float64}) where T<:AbstractElement
+#     𝓒 = ap.𝓒
+#     𝓖 = ap.𝓖
+#     for ξ in 𝓖
+#         𝑤 = ξ.𝑤
+#         N = ξ[:𝝭]
+#         N̄ = ξ[:𝝭̄]
+#         n₁ = ξ.n₁
+#         n₂ = ξ.n₂
+#         for (k,xₖ) in enumerate(𝓒)
+#             K = xₖ.𝑖
+#             for (i,xᵢ) in enumerate(𝓒)
+#                 I = xᵢ.𝐼
+#                 g[I,2*K-1] -= N̄[k]*N[i]*n₁*𝑤
+#                 g[I,2*K]   -= N̄[k]*N[i]*n₂*𝑤
+#             end
+#         end
+#     end
+# end
+
+function (op::Operator{:∫sᵢnᵢudΓ})(ap::T,g::AbstractMatrix{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒
+    𝓖 = ap.𝓖
+    for ξ in 𝓖
+        𝑤 = ξ.𝑤
+        N = ξ[:𝝭]
+        n₁ = ξ.n₁
+        n₂ = ξ.n₂
+        C = ξ.𝐶
+        for (k,xₖ) in enumerate(𝓒)
+            K = xₖ.𝐼
+            g[2*C-1,K] -= N[k]*n₁*𝑤
+            g[2*C,K]   -= N[k]*n₂*𝑤
+        end
+    end
+end
+
+# function (op::Operator{:∫sᵢnᵢgdΓ})(ap::T,q::AbstractVector{Float64}) where T<:AbstractElement
+#     𝓒 = ap.𝓒
+#     𝓖 = ap.𝓖
+#     for ξ in 𝓖
+#         𝑤 = ξ.𝑤
+#         N̄ = ξ[:𝝭̄]
+#         n₁ = ξ.n₁
+#         n₂ = ξ.n₂
+#         ḡ = ξ.g
+#         for (k,xₖ) in enumerate(𝓒)
+#             K = xₖ.𝑖
+#             q[2*K-1] -= N̄[k]*ḡ*n₁*𝑤
+#             q[2*K]   -= N̄[k]*ḡ*n₂*𝑤
+#         end
+#     end
+# end
+
+function (op::Operator{:∫sᵢnᵢgdΓ})(ap::T,g::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒
+    𝓖 = ap.𝓖
+    for ξ in 𝓖
+        𝑤 = ξ.𝑤
+        N = ξ[:𝝭]
+        n₁ = ξ.n₁
+        n₂ = ξ.n₂
+        C = ξ.𝐶
+        ḡ = ξ.g
+        for (k,xₖ) in enumerate(𝓒)
+            K = xₖ.𝐼
+            g[2*C-1,K] += N[k]*n₁*𝑤
+            g[2*C,K]   += N[k]*n₂*𝑤
+        end
+        f[2*C-1] += n₁*ḡ*𝑤 
+        f[2*C]   += n₂*ḡ*𝑤 
+    end
+end
+
+function (op::Operator{:∫usᵢnᵢdΓ})(ap::T,g::AbstractMatrix{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒
+    𝓖 = ap.𝓖
+    for ξ in 𝓖
+        𝑤 = ξ.𝑤
+        N = ξ[:𝝭]
+        n₁ = ξ.n₁
+        n₂ = ξ.n₂
+        C = ξ.𝐶
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            g[I,2*C-1] -= N[i]*n₁*𝑤
+            g[I,2*C]   -= N[i]*n₂*𝑤
+        end
+    end
+end
+
+function (op::Operator{:∫gsᵢnᵢdΓ})(ap::T,q::AbstractVector{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒
+    𝓖 = ap.𝓖
+    for ξ in 𝓖
+        𝑤 = ξ.𝑤
+        n₁ = ξ.n₁
+        n₂ = ξ.n₂
+        C = ξ.𝐶
+        g = ξ.g
+        q[2*C-1] -= n₁*g*𝑤 
+        q[2*C]   -= n₂*g*𝑤 
+    end
+end
+

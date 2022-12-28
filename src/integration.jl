@@ -1,4 +1,23 @@
 
+function set𝐶!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement,S<:AbstractElement}
+    for a in as
+        a_𝓒 = Set(a.𝓒)
+        data = getfield(a.𝓖[1],:data)
+        𝓖 = a.𝓖
+        for (𝐶,b) in enumerate(bs)
+            b_𝓒 = Set(b.𝓒)
+            if a_𝓒 == b_𝓒
+                for (i,ξ) in enumerate(𝓖)
+                    𝑔 = ξ.𝑔
+                    𝐺 = ξ.𝐺
+                    𝑠 = ξ.𝑠
+                    𝓖[i] = SNode((𝑔,𝐺,𝐶,𝑠),data)
+                end
+            end
+        end
+    end
+end
+
 function set𝓖!(as::Vector{T},ss::Symbol) where T<:AbstractElement
     data_ = quadraturerule(ss)
     n = length(data_[:w])
@@ -147,7 +166,7 @@ function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement{:Tri3},
                     ξ.y = ξ_.y
                     ξ.z = ξ_.z
                     ξ.w = 0.5*ξ_.w
-                    ξ.𝑤 = 0.5*ξ_.𝑤
+                    ξ.𝑤 = ξ_.𝑤
                     ξ.n₁ = ξ_.n₁
                     ξ.n₂ = ξ_.n₂
                     ξ.𝐴 = 𝐴
@@ -176,11 +195,11 @@ function set𝓖_DB!(aps::Vector{T},s::Symbol) where T<:AbstractElement
     end
     G = 0
     s = 0
-    for ap in aps
+    for (c,ap) in enumerate(aps)
         empty!(ap.𝓖)
         for g in 1:3*n
             G += 1
-            push!(ap.𝓖,SNode((g,G,s),data))
+            push!(ap.𝓖,SNode((g,G,c,s),data))
             s += length(ap.𝓒)
         end
         x₁ = ap.𝓒[1].x

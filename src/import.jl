@@ -198,12 +198,16 @@ function generate(elms::Dict{String,Any},nodes::Vector{Node},config::Dict{T,Any}
         elements[name] = element_type[]
         if haskey(elms,integration_tag)
             set𝓖!(elms[integration_tag],integration_type)
+            if haskey(cfg["𝓖"],"normal") set𝒏!(elms[integration_tag]) end
             if integration_tag ≠ element_tag
                 elms[element_tag*"∩"*integration_tag] = unique!(elms[element_tag]∩elms[integration_tag])
                 element_tag = element_tag*"∩"*integration_tag
                 set𝓖!(elms[element_tag],elms[integration_tag])
             end
-            if haskey(cfg["𝓖"],"normal") set𝒏!(elms[element_tag]) end
+            if haskey(cfg["𝓖"],"𝐶")
+                𝐶_tag = cfg["𝓖"]["𝐶"]
+                set𝐶!(elms[element_tag],elements[𝐶_tag])
+            end
 
             # set 𝓒
             nₑ = length(elms[element_tag])
