@@ -542,15 +542,14 @@ function get∂𝝭∂η(ap::Element{:Quad},ξ::Float64)
 end
 
 """
- Discontinuous boundary element
+Crouzeix-Raviart element
 """
-struct DiscreteElement{T}<:AbstractElement{T}
+struct TRElement{T}<:AbstractElement{T}
     𝓒::Vector{GNode}
     𝓖::Vector{SNode}
 end
-DiscreteElement{T}(𝓒::Vector{GNode}) where T = DBelement{T}(𝓒,SNode[])
 
-function set𝝭!(ap::DiscreteElement{:Tri3},x::SNode)
+function set𝝭!(ap::TRElement{:Tri3},x::SNode)
     ξ₁ = x.ξ
     ξ₂ = x.η
     ξ₃ = 1.0-x.ξ-x.η
@@ -563,7 +562,7 @@ function set𝝭!(ap::DiscreteElement{:Tri3},x::SNode)
     𝝭[3] = N₃
 end
 
-function set∇𝝭!(ap::DiscreteElement{:Tri3},x::SNode)
+function set∇𝝭!(ap::TRElement{:Tri3},x::SNode)
     x₁ = ap.𝓒[1].x
     x₂ = ap.𝓒[2].x
     x₃ = ap.𝓒[3].x
@@ -581,47 +580,32 @@ function set∇𝝭!(ap::DiscreteElement{:Tri3},x::SNode)
     ∂𝝭∂y[3] = (x₁-x₂)/𝐴
 end
 
-function set𝝭𝑛!(ap::DiscreteElement{:Tri3},x::SNode)
-    ξ₁ = x.ξ
-    ξ₂ = x.η
-    ξ₃ = 1.0-x.ξ-x.η
-    N₁ = ξ₁
-    N₂ = ξ₂
-    N₃ = ξ₃
-    n₁ = x.n₁
-    n₂ = x.n₂
-    sn = sign(n₁+n₂)
-    𝝭 = x[:𝝭̄]
-    𝝭[1] = sn*N₁
-    𝝭[2] = sn*N₂
-    𝝭[3] = sn*N₃
-end
-
-function set𝝭̄!(ap::DiscreteElement{:Tri3},x::SNode)
-    𝝭 = x[:𝝭̄]
-    𝝭[1] = x.ξ
-    𝝭[2] = x.η
-    𝝭[3] = 1.0-x.ξ-x.η
-end
-function set∇̄𝝭!(ap::DiscreteElement{:Tri3},x::SNode)
-    𝐴 = get𝐴(ap)
+function set∇̃𝝭!(ap::TRElement{:Tri3},x::SNode)
     x₁ = ap.𝓒[1].x
     x₂ = ap.𝓒[2].x
     x₃ = ap.𝓒[3].x
     y₁ = ap.𝓒[1].y
     y₂ = ap.𝓒[2].y
     y₃ = ap.𝓒[3].y
-    ∂𝝭∂x = x[:∂𝝭̄∂x]
-    ∂𝝭∂y = x[:∂𝝭̄∂y]
-    ∂𝝭∂x[1] = (y₂-y₃)/2.0/𝐴
-    ∂𝝭∂x[2] = (y₃-y₁)/2.0/𝐴
-    ∂𝝭∂x[3] = (y₁-y₂)/2.0/𝐴
-    ∂𝝭∂y[1] = (x₃-x₂)/2.0/𝐴
-    ∂𝝭∂y[2] = (x₁-x₃)/2.0/𝐴
-    ∂𝝭∂y[3] = (x₂-x₁)/2.0/𝐴
+    𝐴 = get𝐴(ap)
+    ∂𝝭∂x = x[:∂𝝭∂x]
+    ∂𝝭∂y = x[:∂𝝭∂y]
+    D₁₁ =  y₃-y₂
+    D₁₂ =  x₂-x₃
+    D₂₁ =  y₁-y₃
+    D₂₂ =  x₃-x₁
+    D₃₁ =  y₂-y₁
+    D₃₂ =  x₁-x₂
+    N = x[:𝝭]
+    ∂𝝭∂x[1] = (D₁₁*N[1]-D₂₁*N[2]-D₃₁*N[3])/𝐴
+    ∂𝝭∂x[2] = (D₂₁*N[1]-D₃₁*N[2]-D₁₁*N[3])/𝐴
+    ∂𝝭∂x[3] = (D₃₁*N[1]-D₁₁*N[2]-D₂₁*N[3])/𝐴
+    ∂𝝭∂y[1] = (D₁₂*N[1]-D₂₂*N[2]-D₃₂*N[3])/𝐴
+    ∂𝝭∂y[2] = (D₂₂*N[1]-D₃₂*N[2]-D₁₂*N[3])/𝐴
+    ∂𝝭∂y[3] = (D₃₂*N[1]-D₁₂*N[2]-D₂₂*N[3])/𝐴
 end
 
-for set𝝭 in (:set𝝭!,:set∇𝝭!,:set∇̄𝝭!,:set𝝭̄!, :set𝝭𝑛!)
+for set𝝭 in (:set𝝭!,:set∇𝝭!,:set∇̄𝝭!,:set𝝭̄!,:set∇̃𝝭!)
     @eval begin
         function $set𝝭(aps::Vector{T}) where T<:AbstractElement
             for ap in aps
@@ -655,7 +639,7 @@ end
     j = findfirst(x->x==b.𝓒[2],a.𝓒)
     return i ≠ nothing && j ≠ nothing && i ≤ 3 && j ≤ 3 ? a : nothing
 end
-@inline function intersect(a::T,b::S) where {T<:DiscreteElement{:Tri3},S<:AbstractElement{:Seg2}}
+@inline function intersect(a::T,b::S) where {T<:TRElement{:Tri3},S<:AbstractElement{:Seg2}}
     i = findfirst(x->x.𝑖==b.𝓒[1].𝐼, a.𝓒)
     j = findfirst(x->x.𝑖==b.𝓒[2].𝐼, a.𝓒)
     return i ≠ nothing && j ≠ nothing && i ≤ 3 && j ≤ 3 ? a : nothing
@@ -676,7 +660,7 @@ getnₚ,getnᵢ,getnₛ
 """
 getnₚ(ap::T) where T<:AbstractElement = length(getfield(ap.𝓒[1],:data)[:x][2])
 @inline getnₚ(aps::Vector{T}) where T<:AbstractElement = getnₚ(aps[1])
-function getnₚ(aps::Vector{T}) where T<:DiscreteElement
+function getnₚ(aps::Vector{T}) where T<:TRElement
     nₚ = 0
     for ap in aps
         for x in ap.𝓒

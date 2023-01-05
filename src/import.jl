@@ -249,7 +249,7 @@ function generate(elms::Dict{String,Any},nodes::Vector{Node},config::Dict{T,Any}
                         s += n
                     end
                 end
-            elseif element_type<:DiscreteElement
+            elseif element_type<:TRElement
                 data = getfield(nodes[1],:data)
                 for elm in elms[element_tag]
                     nodeList = (x.𝐼 for x in elm.𝓒)
