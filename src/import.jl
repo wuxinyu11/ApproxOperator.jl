@@ -1,51 +1,43 @@
 
-
-"""
-setgeometry!(ap::T) where T<:AbstractElement
-"""
-function setgeometry!(ap::T) where T<:AbstractElement
-    𝓖 = ap.𝓖
-    for x in 𝓖
-        𝒙 = get𝒙(ap,x)
-        𝑤 = get𝑤(ap,x)
-        x.x = 𝒙[1]
-        x.y = 𝒙[2]
-        x.z = 𝒙[3]
-        x.𝑤 = 𝑤
-    end
-    if T<:AbstractElement{:Seg2}
-        𝐿 = get𝐿(ap)
-        for x in 𝓖
-            x.𝐿 = 𝐿
-        end
-    elseif T<:AbstractElement{:Tri3}
-        𝐴 = get𝐴(ap)
-        for x in 𝓖
-            x.𝐴 = 𝐴
-        end
-    elseif T<:AbstractElement{:Tet4}
-        𝑉 = get𝑉(ap)
-        for x in 𝓖
-            x.𝑉 = 𝑉
-        end
-    end
-end
-
 """
 set_memory_𝝭!(ap::T,ss::Symbol...) where T<:AbstractElement
 """
+const shape_function = (
+    𝝭=(:𝝭,),∇𝝭=(:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂𝝭∂z),∇₂𝝭=(:𝝭,:∂𝝭∂x,:∂𝝭∂y),∇̃₂𝝭=(:∂𝝭∂x,:∂𝝭∂y),
+    ∇²𝝭=(:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂𝝭∂z,:∂²𝝭∂x²,:∂²𝝭∂x∂y,:∂²𝝭∂y²,:∂²𝝭∂x∂z,:∂²𝝭∂y∂z,:∂²𝝭∂z²),
+    ∇²₂𝝭=(:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂²𝝭∂x²,:∂²𝝭∂x∂y,:∂²𝝭∂y²),∇̃²𝝭=(:∂²𝝭∂x²,:∂²𝝭∂x∂y,:∂²𝝭∂y²),
+    ∇³𝝭=(:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂²𝝭∂x²,:∂²𝝭∂x∂y,:∂²𝝭∂y²,:∂³𝝭∂x³,:∂³𝝭∂x²∂y,:∂³𝝭∂x∂y²,:∂³𝝭∂y³)
+)
+const moment_matrix = (
+    𝝭=(:𝗠,),∇𝝭=(:𝗠,:∂𝗠∂x,:∂𝗠∂y,:∂𝗠∂z),∇₂𝝭=(:𝗠,:∂𝗠∂x,:∂𝗠∂y),∇̃₂𝝭=(:∇̃,),
+    ∇²𝝭=(:𝗠,:∂𝗠∂x,:∂𝗠∂y,:∂𝗠∂z,:∂²𝗠∂x²,:∂²𝗠∂x∂y,:∂²𝗠∂y²,:∂²𝗠∂x∂z,:∂²𝗠∂y∂z,:∂²𝗠∂z²),
+    ∇²₂𝝭=(:𝗠,:∂𝗠∂x,:∂𝗠∂y,:∂²𝗠∂x²,:∂²𝗠∂x∂y,:∂²𝗠∂y²),∇̃²𝝭=(:∇̃²),
+    ∇³𝝭=(:𝗠,:∂𝗠∂x,:∂𝗠∂y,:∂²𝗠∂x²,:∂²𝗠∂x∂y,:∂²𝗠∂y²,:∂³𝗠∂x³,:∂³𝗠∂x²∂y,:∂³𝗠∂x∂y²,:∂³𝗠∂y³)
+)
 function set_memory_𝝭!(aps::Vector{T},ss::Symbol...) where T<:AbstractElement
-    n = sum(length(ap.𝓒)*length(ap.𝓖) for ap in aps)
+    n = getnₛ(aps)
+    data = getfield(aps[1].𝓖[1],:data)
     for s in ss
-        push!(getfield(aps[1].𝓖[1],:data),s=>(3,zeros(n)))
+        push!(data,s=>(4,zeros(n)))
     end
 end
 
 """
-set_memory_𝗠!(aps::Vector{T},ss::Symbol... = keys(aps[1].𝗠)...) where T<:ReproducingKernel
+set_memory_𝗠!(aps::Vector{T},ss::Symbol...) where T<:ReproducingKernel
 """
-function set_memory_𝗠!(aps::Vector{T},ss::Symbol... = keys(aps[1].𝗠)...) where T<:ReproducingKernel
-    set_memory_𝗠!(aps[1],ss...)
+function set_memory_𝗠!(aps::Vector{T},ss::Symbol...) where T<:ReproducingKernel
+    data = getfield(aps[1].𝓖[1],:data)
+    for s in ss
+        if s == :∇̃
+            n = get𝑛𝒑₁(aps[1])
+        elseif s ∈ (:∇̃²,:∂∇̃²∂ξ,:∂∇̃²∂η)
+            n = get𝑛𝒑₂(aps[1])
+        else
+            n = get𝑛𝒑(aps[1])
+        end
+        m = Int(n*(n+1)/2)
+        push!(data,s=>(0,zeros(m)))
+    end
 end
 
 function set_memory_𝗠!(ap::T,ss::Symbol... = keys(ap[1].𝗠)...) where T<:ReproducingKernel
@@ -64,7 +56,9 @@ function set_memory_𝗠!(ap::T,ss::Symbol... = keys(ap[1].𝗠)...) where T<:Re
     end
 end
 
-## ---------------- msh ---------------
+"""
+importmsh
+"""
 function importmsh(filename::String)
     fid = open(filename,"r")
     readline(fid)
@@ -87,9 +81,9 @@ end
 function import_msh_4(fid::IO) end
 
 function import_msh_2(fid::IO)
-    etype = Dict(1=>:Seg2,2=>:Tri3,3=>:Quad,15=>:Poi1)
+    etype = Dict(1=>:Seg2,2=>:Tri3,3=>:Quad,8=>:Seg3,9=>:Tri6,15=>:Poi1)
     nodes = Dict{Symbol,Vector{Float64}}()
-    elements = Dict{String,Vector{Tuple{Symbol,Vector{Int}}}}()
+    elements = Dict{String,Any}()
     physicalnames = Dict{Int,String}()
     for line in eachline(fid)
         if line == "\$PhysicalNames"
@@ -102,7 +96,6 @@ function import_msh_2(fid::IO)
                 physicalTag = parse(Int,p_)
                 name = strip(n_,'\"')
                 physicalnames[physicalTag] = name
-                elements[name] = Vector{Tuple{Symbol,Vector{Int}}}()
             end
             readline(fid)
         elseif line == "\$Nodes"
@@ -122,6 +115,7 @@ function import_msh_2(fid::IO)
             nodes[:x] = x
             nodes[:y] = y
             nodes[:z] = z
+            nodes = Node(nodes...)
             readline(fid)
         elseif line == "\$Elements"
             line = readline(fid)
@@ -143,19 +137,31 @@ function import_msh_2(fid::IO)
                 nodeList = parse.(Int,l_)
                 name = physicalnames[phyTag]
                 type = etype[elmType]
-                push!(elements[name],(type,nodeList))
+                haskey(elements,name) ? push!(elements[name],Element{type}([nodes[i] for i in nodeList])) : elements[name]=Element{type}[Element{type}([nodes[i] for i in nodeList])]
             end
-            return elements, nodes
         end
     end
+    return elements, nodes
 end
 
-function importmsh(filename::String,config::Dict{Any,Any})
+function importmsh(filename::String,config::Dict{T,Any}) where T<:Any
     elms, nodes = importmsh(filename)
+    return generate(elms,nodes,config)
+end
+function importmsh(file_elements::String,file_nodes::String,config::Dict{T,Any}) where T<:Any
+    elms, nodes_ = importmsh(file_elements)
+    elms_, nodes = importmsh(file_nodes)
+    return generate(elms,nodes,config)
+end
+function generate(elms::Dict{String,Any},nodes::Vector{Node},config::Dict{T,Any}) where T<:Any
     elements = Dict{String,Any}()
     if haskey(config,"RegularGrid")
-        cfg = config["RegularGrid"]
-        sp = RegularGrid(nodes[:x],nodes[:y],nodes[:z];n=cfg["n"],γ=cfg["γ"])
+        x = getfield(nodes[1],:data)[:x][2]
+        y = getfield(nodes[1],:data)[:y][2]
+        z = getfield(nodes[1],:data)[:z][2]
+        n = config["RegularGrid"]["n"]
+        γ = config["RegularGrid"]["γ"]
+        sp = RegularGrid(x,y,z,n=n,γ=γ)
         delete!(config,"RegularGrid")
     else
         sp = nothing
@@ -170,181 +176,112 @@ function importmsh(filename::String,config::Dict{Any,Any})
         end
         delete!(config,"IndependentDofs")
     end
-
-    nodes = Node(nodes...)
-    for (name,cfg) in config
-        Type = eval(Meta.parse(cfg["type"]))
-        if Type <: ReproducingKernel
-            𝗠 = Dict{Symbol,SymMat}()
-            elements[name] = [Type([nodes[i] for i in s[2]],𝗠) for s in elms[cfg["𝓒"]["tag"]]]
-        else
-            elements[name] = [Type([nodes[i] for i in s[2]]) for s in elms[cfg["𝓒"]["tag"]]]
+    if haskey(config,"BoundaryDofs")
+        dofs,ndofs = getboundarydofs(elms["Ω"])
+        cfg = config["BoundaryDofs"]
+        element_type = eval(Meta.parse(cfg["type"]))
+        elements["∂Ω"] = Vector{element_type}(undef,ndofs)
+        for (ids,n) in dofs
+            elements["∂Ω"][n] = element_type([nodes[i] for i in ids],SNode[])
         end
-        sp ≠ nothing ? sp(elements[name]) : nothing
-        if haskey(cfg,"𝓖")
-            QType = Meta.parse(cfg["𝓖"]["type"])
-            if haskey(cfg["𝓖"],"tag")
-                elms_𝓖 = [Element{s[1]}([nodes[i] for i in s[2]]) for s in elms[cfg["𝓖"]["tag"]]]
-                elements[name] = elements[name]∩elms_𝓖
-                set𝓖!(elms_𝓖,QType)
-                set𝓖!(elements[name],elms_𝓖)
-            else
-                set𝓖!(elements[name],QType)
-            end
-            if haskey(cfg["𝓖"],"𝝭")
-                ss = Meta.parse.(cfg["𝓖"]["𝝭"])
-                Type<:ReproducingKernel ? set_memory_𝗠!(elements[name],ss...) : nothing
-                set_memory_𝝭!(elements[name],ss...)
-            end
-        end
-    end
-    return elements, nodes
-end
-
-function importmsh(filename1::String,filename2::String,config::Dict{Any,Any})
-    elms, nodes_ = importmsh(filename1)
-    elms_, nodes = importmsh(filename2)
-    elements = Dict{String,Any}()
-    cfg = config["RegularGrid"]
-    sp = RegularGrid(nodes[:x],nodes[:y],nodes[:z];n=cfg["n"],γ=cfg["γ"])
-    delete!(config,"RegularGrid")
-    nodes = Node(nodes...)
-    nodes_ = Node(nodes_...)
-    if haskey(config,"Ωᴳ")
-        cfg = config["Ωᴳ"]
-        Type = eval(Meta.parse(cfg["type"]))
-        𝗠 = Dict{Symbol,SymMat}()
-        elements["Ωᴳ"] = [Type([nodes[i] for i in s[2]],𝗠) for s in elms_[cfg["𝓒"]["tag"]]]
-        sp(elements["Ωᴳ"])
-        QType = Meta.parse(cfg["𝓖"]["type"])
-        set𝓖!(elements["Ωᴳ"],QType)
-        ss = Meta.parse.(cfg["𝓖"]["𝝭"])
-        Type<:ReproducingKernel ? set_memory_𝗠!(elements["Ωᴳ"],ss...) : nothing
-        set_memory_𝝭!(elements["Ωᴳ"],ss...)
-        delete!(config,"Ωᴳ")
+        integration_type = Meta.parse(cfg["𝓖"]["type"])
+        set𝓖!(elements["∂Ω"],integration_type)
+        delete!(config,"BoundaryDofs")
     end
 
     for (name,cfg) in config
-        Type = eval(Meta.parse(cfg["type"]))
-        𝗠 = Dict{Symbol,SymMat}()
-        elms_𝓖 = [Element{s[1]}([nodes_[i] for i in s[2]]) for s in elms[cfg["𝓖"]["tag"]]]
-        if haskey(cfg,"𝓒")
-            Type_ = eval(Meta.parse(config[cfg["𝓒"]["tag"]]["type"]))
-            if supertype(Type_) ≠ supertype(typeof(elms_𝓖[1]))
-                𝗠_ = Dict{Symbol,SymMat}()
-                QType_ = Meta.parse(config[cfg["𝓒"]["tag"]]["𝓖"]["type"])
-                elms_𝓖_ = [Type_([nodes_[i] for i in s[2]],𝗠_) for s in elms[cfg["𝓒"]["tag"]]]
-                elms_𝓖_ = elms_𝓖_∩elms_𝓖
-                set𝓖!(elms_𝓖_,QType_)
-                unique!(elms_𝓖_)
-                set𝑛ᵢⱼ!(elms_𝓖_)
-                elements[name] = [Type(sp(elm,nodes),𝗠) for elm in elms_𝓖_]
-                name_ = cfg["𝓒"]["tag"]*"∩"*name
-                elements[name_] = [Type_(sp(elm,nodes),𝗠_) for elm in elms_𝓖_] 
-                QType = Meta.parse(cfg["𝓖"]["type"])
-                set𝓖!(elements[name_],elms_𝓖_)
-                set𝓖!(elms_𝓖,QType)
-                set𝓖!(elms_𝓖_,elms_𝓖)
-                set𝓖!(elements[name],elms_𝓖_)
-                if haskey(config[cfg["𝓒"]["tag"]]["𝓖"],"𝝭")
-                    ss = Meta.parse.(config[cfg["𝓒"]["tag"]]["𝓖"]["𝝭"])
-                    Type<:ReproducingKernel ? set_memory_𝗠!(elements[name_],ss...) : nothing
-                    set_memory_𝝭!(elements[name_],ss...)
+         # set𝓖
+        element_tag = cfg["𝓒"]["tag"]
+        element_type = eval(Meta.parse(cfg["type"]))
+        integration_tag = haskey(cfg["𝓖"],"tag") ? cfg["𝓖"]["tag"] : element_tag
+        integration_type = Meta.parse(cfg["𝓖"]["type"])
+        elements[name] = element_type[]
+        if haskey(elms,integration_tag)
+            set𝓖!(elms[integration_tag],integration_type)
+            if haskey(cfg["𝓖"],"normal") set𝒏!(elms[integration_tag]) end
+            if integration_tag ≠ element_tag
+                elms[element_tag*"∩"*integration_tag] = unique!(elms[element_tag]∩elms[integration_tag])
+                element_tag = element_tag*"∩"*integration_tag
+                set𝓖!(elms[element_tag],elms[integration_tag])
+            end
+            if haskey(cfg["𝓖"],"𝐶")
+                𝐶_tag = cfg["𝓖"]["𝐶"]
+                set𝐶!(elms[element_tag],elements[𝐶_tag])
+            end
+
+            # set 𝓒
+            nₑ = length(elms[element_tag])
+            if element_type<:Element
+                for elm in elms[element_tag]
+                    𝓒 = [x for x in elm.𝓒]
+                    𝓖 = [ξ for ξ in elm.𝓖]
+                    push!(elements[name],element_type(𝓒,𝓖))
                 end
-            else
-                QType = Meta.parse(config[cfg["𝓒"]["tag"]]["𝓖"]["type"])
-                set𝓖!(elms_𝓖,QType)
-                elements[name] = [Type(sp(elm,nodes),𝗠) for elm in elms_𝓖]
-                QType = Meta.parse(cfg["𝓖"]["type"])
-                set𝓖!(elms_𝓖,QType)
-                set𝓖!(elements[name],elms_𝓖)
+            elseif element_type<:ReproducingKernel
+                if haskey(cfg["𝓒"],"type")
+                    for elm in elms[element_tag]
+                        𝓖 = [ξ for ξ in elm.𝓖]
+                        push!(elements[name],element_type(Node[],𝓖))
+                    end
+                    position_type= Meta.parse(cfg["𝓒"]["type"])
+                    set𝓖!(elms[element_tag],position_type)
+                    for (c,elm) in enumerate(elms[element_tag])
+                        𝓒 = [nodes[i] for i in sp(elm.𝓖)]
+                        push!(elements[name][c].𝓒,𝓒...)
+                    end
+                else
+                    for elm in elms[element_tag]
+                        𝓒 = [nodes[i] for i in sp(elm.𝓒)]
+                        𝓖 = [ξ for ξ in elm.𝓖]
+                        push!(elements[name],element_type(𝓒,𝓖))
+                    end
+                end
+                s = 0
+                for elm in elements[name]
+                    𝓖 = elm.𝓖
+                    data = getfield(𝓖[1],:data)
+                    n = length(elm.𝓒)
+                    for (i,ξ) in enumerate(𝓖)
+                        g = ξ.𝑔
+                        G = ξ.𝐺
+                        C = ξ.𝐶
+                        𝓖[i] = SNode((g,G,C,s),data)
+                        s += n
+                    end
+                end
+            elseif element_type<:TRElement
+                data = getfield(nodes[1],:data)
+                for elm in elms[element_tag]
+                    nodeList = (x.𝐼 for x in elm.𝓒)
+                    𝓒 = [GNode((i,dofs[Set(setdiff(nodeList,i))]),data) for i in nodeList]
+                    𝓖 = [ξ for ξ in elm.𝓖]
+                    push!(elements[name],element_type(𝓒,𝓖))
+                end
             end
-        else
-            QType = Meta.parse(cfg["𝓖"]["type"])
-            set𝓖!(elms_𝓖,QType)
-            set𝑛ᵢⱼ!(elms_𝓖)
-            elements[name] = [Type(sp(elm,nodes),𝗠) for elm in elms_𝓖]
-            set𝓖!(elements[name],elms_𝓖)
-        end
 
-        if haskey(cfg["𝓖"],"𝝭")
-            ss = Meta.parse.(cfg["𝓖"]["𝝭"])
-            Type<:ReproducingKernel ? set_memory_𝗠!(elements[name],ss...) : nothing
-            set_memory_𝝭!(elements[name],ss...)
+            # set shape memory
+            if haskey(cfg,"𝓖")
+                if haskey(cfg["𝓖"],"𝝭") set_memory_𝝭!(elements[name],shape_function[Meta.parse(cfg["𝓖"]["𝝭"])]...) end
+                if element_type<:ReproducingKernel set_memory_𝗠!(elements[name],moment_matrix[Meta.parse(cfg["𝓖"]["𝝭"])]...) end
+            end
         end
     end
-    return elements, nodes
+    return elements,nodes
 end
 
-function importmsh(filename::String,::Val{:test})
-    elems,nodes = importmsh(filename)
-    data = Dict([s=>(2,v) for (s,v) in nodes])
-    dofs = getboundarydofs2D(elems["Ω"])
-    elements = Dict{String,Any}()
-    nodes = Node(nodes...)
-    gnodes = GNode[]
-    elements["∂Ω"] = Vector{Element{:Seg2}}(undef,length(dofs))
-    for (dof,i) in dofs
-        elements["∂Ω"][i] = Element{:Seg2}([nodes[j] for j in dof])
-    end
-    set𝓖!(elements["∂Ω"],:SegGI2)
-    elements["Γ_λ"] = Element{:Tri3}[]
-    elements["Ω"] = DBelement{:Tri3}[]
-    elements["Γ"] = DBelement{:Tri3}[]
-    elements["Γᵍ"] = DBelement{:Tri3}[]
-    haskey(elems,"Γᵗ") ? elements["Γᵗ"] = DBelement{:Tri3}[] : nothing
-    for (type,nodeList) in elems["Ω"]
-        𝓒 = [GNode((dofs[Set(setdiff(nodeList,i))],i),data) for i in nodeList]
-        union!(gnodes,𝓒)
-        push!(elements["Ω"],DBelement{:Tri3}(𝓒))
-        push!(elements["Γ"],DBelement{:Tri3}(𝓒))
-        push!(elements["Γ_λ"],Element{:Tri3}([nodes[i] for i in nodeList]))
-        push!(elements["Γᵍ"],DBelement{:Tri3}(𝓒))
-        haskey(elems,"Γᵗ") ? push!(elements["Γᵗ"],DBelement{:Tri3}(𝓒)) : nothing
-    end
-    set𝓖!(elements["Ω"],:TriGI13)
-    set𝓖_DB!(elements["Γ"],:SegGI2)
-    set𝓖_DB!(elements["Γ_λ"],:SegGI2)
-    if haskey(elems,"Γᵗ")
-        elms_𝓖 = [Element{type}([nodes[i] for i in nodeList])     for (type,nodeList) in elems["Γᵗ"]]
-        elements["Γᵗ"] = elements["Γᵗ"]∩elms_𝓖
-        set𝓖!(elms_𝓖,:SegGI2)
-        set𝓖!(elements["Γᵗ"],elms_𝓖)
-    end
-
-    elms_𝓖 = [Element{type}([nodes[i] for i in nodeList])     for (type,nodeList) in elems["Γᵍ"]]
-    elements["Γᵍ"] = elements["Γᵍ"]∩elms_𝓖
-    set𝓖!(elms_𝓖,:SegGI2)
-    set𝓖!(elements["Γᵍ"],elms_𝓖)
-
-    # elements["Γᵍ"] = DBelement{:Tri3}[]
-    # for (type,nodeList) in elems["Γᵍ"]
-    #     𝐼 = dofs[Set(nodeList)]
-    #     𝓒 = [GNode((0,i),data) for i in nodeList]
-    #     push!(𝓒,GNode((𝐼,0),data))
-    #     push!(elements["Γᵍ"],DBelement{:Seg2}(𝓒))
-    # end
-    # set𝓖!(elements["Γᵍ"],:SegGI2)
-
-    set_memory_𝝭!(elements["Ω"],:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂𝝭∂z)
-    haskey(elems,"Γᵗ") ? set_memory_𝝭!(elements["Γᵗ"],:𝝭) : nothing
-    set_memory_𝝭!(elements["Γᵍ"],:𝝭)
-    set_memory_𝝭!(elements["Γ"],:𝝭)
-    return elements, gnodes
-end
-
-function getboundarydofs2D(elements::Vector{Tuple{Symbol,Vector{Int}}})
+function getboundarydofs(elements::Vector{T}) where T<:AbstractElement{:Tri3}
     dofs = Dict{Set{Int},Int}()
-    idBoundaries = (Tri3=((1,2),(2,3),(3,1)),)
+    idBoundaries = ((1,2),(2,3),(3,1))
     n = 0
-    for (type,nodeList) in elements
-        for bc in idBoundaries[type]
-            dof = Set(nodeList[i] for i in bc)
+    for elm in elements
+        𝓒 = elm.𝓒
+        for bc in idBoundaries
+            dof = Set(𝓒[i].𝐼 for i in bc)
             if ~haskey(dofs,dof)
                 n += 1
                 dofs[dof] = n
             end
         end
     end
-    return dofs
+    return dofs,n
 end

@@ -49,10 +49,10 @@ end
 SNode
 """
 struct SNode<:AbstractNode
-    index::NTuple{3,Int}
+    index::NTuple{4,Int}
     data::Dict{Symbol,Tuple{Int,Vector{Float64}}}
 end
-const SREF = (𝑔=1,𝐺=2,𝑠=3)
+const SREF = (𝑔=1,𝐺=2,𝐶=3,𝑠=4)
 
 """
 GNode
@@ -61,10 +61,14 @@ struct GNode<:AbstractNode
     index::NTuple{2,Int}
     data::Dict{Symbol,Tuple{Int,Vector{Float64}}}
 end
-const GREF = (𝐼=1,𝑖=2)
+const GREF = (𝑖=1,𝐼=2)
 
 for (t,ref) in ((:Node,:REF),(:SNode,:SREF),(:GNode,:GREF))
     @eval begin
+        function $t(data::Dict{Symbol,Tuple{Int,Vector{Float64}}},𝐼s::Pair{Symbol,Int}...)
+            index = (haskey(𝐼s,s) ? 𝐼s[s] : 0 for (s,i) in $ref)
+            return $t(index,data)
+        end
 
         function Base.getproperty(p::$t,f::Symbol)
             if haskey($ref,f)

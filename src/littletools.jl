@@ -7,8 +7,7 @@ const list∇²₂𝝭 = (:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂²𝝭∂x²,:∂�
 const list∇̃²₂𝝭 = (:∂²𝝭∂x²,:∂²𝝭∂x∂y,:∂²𝝭∂y∂x,:∂²𝝭∂y²)
 const list∇³𝝭 = (:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂²𝝭∂x²,:∂²𝝭∂x∂y,:∂²𝝭∂y²,:∂³𝝭∂x³,:∂³𝝭∂x²∂y,:∂³𝝭∂x∂y²,:∂³𝝭∂y³)
 const list∇∇²𝝭 = (:𝝭,:∂∂²𝝭∂x²∂x,:∂∂²𝝭∂x²∂y,:∂∂²𝝭∂x∂y∂x,:∂∂²𝝭∂x∂y∂y,:∂∂²𝝭∂y²∂x,:∂∂²𝝭∂y²∂y)
-for (𝝭,𝒑,list) in ((:check𝝭,:get𝒑,:list𝝭),
-                   (:check∇𝝭,:get∇𝒑,:list∇𝝭),
+for (𝝭,𝒑,list) in ((:check∇𝝭,:get∇𝒑,:list∇𝝭),
                    (:check∇₂𝝭,:get∇₂𝒑,:list∇₂𝝭),
                    (:check∇²𝝭,:get∇²𝒑,:list∇²𝝭),
                    (:check∇∇²𝝭,:get∇∇²𝒑,:list∇∇²𝝭),
@@ -51,4 +50,31 @@ for (𝝭,𝒑,list) in ((:check𝝭,:get𝒑,:list𝝭),
             return f.^0.5
         end
     end
+end
+function check𝝭(a::T,f::Vector{Float64},𝒑::Vector{Float64},𝒑ʰ::Vector{Float64}) where T<:AbstractElement
+    n = get𝑛𝒑(a)
+    for ξ in a.𝓖
+        𝑤 = ξ.𝑤
+        N = ξ[:𝝭]
+        𝒑 = get𝒑(a,(ξ.x,ξ.y,ξ.z))
+        fill!(𝒑ʰ,0.0)
+        for (k,𝒙ᵢ) in enumerate(a.𝓒)
+            𝒑ᵢ = get𝒑(a,(𝒙ᵢ.x,𝒙ᵢ.y,𝒙ᵢ.z))
+            for i in 1:n
+                𝒑ʰ[i] += N[k]*𝒑ᵢ[i]
+            end
+        end
+        f .+= (𝒑 .- 𝒑ʰ).^2 .* 𝑤
+    end
+end
+    
+function check𝝭(as::Vector{T}) where T<:ReproducingKernel
+    nᵖ = get𝑛𝒑(as[1])
+    f = zeros(nᵖ)
+    𝒑 = zeros(nᵖ)
+    𝒑ʰ = zeros(nᵖ)
+    for a in as
+        check𝝭(a,f,𝒑,𝒑ʰ)
+    end
+    return f.^0.5
 end
