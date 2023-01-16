@@ -158,7 +158,7 @@ function RegularGrid(x::Vector{Float64},y::Vector{Float64},z::Vector{Float64};n:
             end
         end
     end
-    return RegularGrid([xmin,ymin,zmin],[dx,dy,dz],Int[nx,ny,nz],cells)
+    return RegularGrid([xmin-1e-12,ymin-1e-12,zmin-1e-12],[dx,dy,dz],Int[nx,ny,nz],cells)
 end
 
 function RegularGrid(nodes::Vector{T};n::Int=1,γ::Int=1) where T<:AbstractNode
