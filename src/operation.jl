@@ -1718,3 +1718,62 @@ function (op::Operator{:∫bdΩ})(ap::T,f::AbstractVector{Float64}) where T<:Abs
         end
     end
 end
+
+"""
+pure meshfree Potential
+"""
+function (op::Operator{:∫∇̃v∇uvbdΩ})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    kᶜ = op.k
+    for (K,ξ) in enumerate(𝓖)
+        N = ξ[:𝝭]
+        B₁ = ξ[:∂𝝭∂x]
+        B̃₁ = ξ[:∂𝝭∂x_]
+        # B₂ = ξ[:∂𝝭∂y]
+        # B₃ = ξ[:∂𝝭∂z]
+        𝑤 = ξ.𝑤
+        b = ξ.b
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[I,J] += kᶜ*B̃₁[i]*B₁[j]*𝑤
+                # k[I,J] += kᶜ*(B₁[i]*B₁[j] + B₂[i]*B₂[j] + B₃[i]*B₃[j])*𝑤
+            end
+        end
+        I = 𝓒[K].𝐼
+        f[I] += b*𝑤
+    end
+end
+
+function (op::Operator{:∫ṽtdΓ})(ap::T,f::AbstractVector{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒;𝓖 = ap.𝓖
+    x = 𝓒[1]
+    I = x.𝐼
+    ξ = ap.𝓖[1]
+    t = ξ.t
+    𝑤 = ξ.𝑤
+    f[I] += t*𝑤
+    # for ξ in 𝓖
+    #     𝑤 = ξ.𝑤
+    #     t = ξ.t
+    #     f[I] += t*𝑤
+    # end
+end
+
+function (op::Operator{:∫ṽgdΓ})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    α = op.α
+    for (i,ξ) in enumerate(𝓖)
+        I = 𝓒[i].𝐼
+        𝑤 = ξ.𝑤
+        N = ξ[:𝝭]
+        g = ξ.g
+        for (j,xⱼ) in enumerate(𝓒)
+            J = xⱼ.𝐼
+            k[I,J] += α*N[j]*𝑤
+        end
+        f[I] += α*g*𝑤
+    end
+end
+

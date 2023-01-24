@@ -254,6 +254,7 @@ Basis function
 @inline get∇³₁𝒑(ap::ReproducingKernel,x::Any) = get𝒑(ap,x), get∂𝒑∂x(ap,x), get∂²𝒑∂x²(ap,x), get∂³𝒑∂x³(ap,x)
 @inline get∇³𝒑(ap::ReproducingKernel,x::Any) = get𝒑(ap,x), get∂𝒑∂x(ap,x), get∂𝒑∂y(ap,x), get∂²𝒑∂x²(ap,x), get∂²𝒑∂x∂y(ap,x), get∂²𝒑∂y²(ap,x), get∂³𝒑∂x³(ap,x), get∂³𝒑∂x²∂y(ap,x), get∂³𝒑∂x∂y²(ap,x), get∂³𝒑∂y³(ap,x)
 @inline get∇∇²𝒑(ap::ReproducingKernel,x::Any) = get𝒑(ap,x), get∂³𝒑∂x³(ap,x), get∂³𝒑∂x²∂y(ap,x), get∂³𝒑∂x²∂y(ap,x), get∂³𝒑∂x∂y²(ap,x), get∂³𝒑∂x∂y²(ap,x), get∂³𝒑∂y³(ap,x)
+@inline get∇𝒑₁(ap::ReproducingKernel{:Linear1D,𝑠,𝜙,T},ξ::Any) where {𝑠,𝜙,T} = get𝒑₁(ap,ξ), get∂𝒑₁∂ξ(ap,ξ)
 @inline get∇𝒑₁(ap::ReproducingKernel{𝒑,𝑠,𝜙,:Seg2},ξ::Any) where {𝒑,𝑠,𝜙} = get𝒑₁(ap,ξ), get∂𝒑₁∂ξ(ap,ξ)
 @inline get∇𝒑₁(ap::ReproducingKernel{𝒑,𝑠,𝜙,:Tri3},ξ::Any) where {𝒑,𝑠,𝜙} = get𝒑₁(ap,ξ), get∂𝒑₁∂ξ(ap,ξ), get∂𝒑₁∂η(ap,ξ)
 @inline get∇𝒑₂(ap::ReproducingKernel{𝒑,𝑠,𝜙,:Tri3},ξ::Any) where {𝒑,𝑠,𝜙} = get𝒑₂(ap,ξ), get∂𝒑₂∂ξ(ap,ξ), get∂𝒑₂∂η(ap,ξ)
@@ -733,30 +734,28 @@ function cal𝗠!(ap::ReproducingKernel,x::SNode)
     return 𝗠
 end
 
-# function cal∇₁𝗠!(ap::ReproducingKernel,x::NTuple{3,Float64})
-#     𝓒 = ap.𝓒
-#     𝗠 = ap.𝗠[:∂1]
-#     ∂𝗠∂x = ap.𝗠[:∂x]
-#     n = get𝑛𝒑(ap)
-#     fill!(𝗠,0.)
-#     fill!(∂𝗠∂x,0.)
-#     for xᵢ in 𝓒
-#         Δx = x - xᵢ
-#         𝒑, ∂𝒑∂x = get∇₁𝒑(ap,Δx)
-#         𝜙, ∂𝜙∂x = get∇₁𝜙(ap,xᵢ,Δx)
-#         for I in 1:n
-#             for J in 1:I
-#                 𝗠[I,J] += 𝜙*𝒑[I]*𝒑[J]
-#                 ∂𝗠∂x[I,J] += ∂𝜙∂x*𝒑[I]*𝒑[J] + 𝜙*∂𝒑∂x[I]*𝒑[J] + 𝜙*𝒑[I]*∂𝒑∂x[J]
-#             end
-#         end
-#     end
-#     cholesky!(𝗠)
-#     U = inverse!(𝗠)
-#     ∂𝗠⁻¹∂x = - UUᵀAUUᵀ!(∂𝗠∂x,U)
-#     𝗠⁻¹ = UUᵀ!(U)
-#     return 𝗠⁻¹, ∂𝗠⁻¹∂x
-# end
+function cal∇₁𝗠!(ap::ReproducingKernel,x::SNode)
+    𝓒 = ap.𝓒
+    𝗠 = get𝗠(ap,:𝗠)
+    ∂𝗠∂x = get𝗠(ap,:∂𝗠∂x)
+    n = get𝑛𝒑(ap)
+    for xᵢ in 𝓒
+        Δx = x - xᵢ
+        𝒑, ∂𝒑∂x = get∇𝒑(ap,Δx)
+        𝜙, ∂𝜙∂x = get∇𝜙(ap,xᵢ,Δx)
+        for I in 1:n
+            for J in 1:I
+                𝗠[I,J] += 𝜙*𝒑[I]*𝒑[J]
+                ∂𝗠∂x[I,J] += ∂𝜙∂x*𝒑[I]*𝒑[J] + 𝜙*∂𝒑∂x[I]*𝒑[J] + 𝜙*𝒑[I]*∂𝒑∂x[J]
+            end
+        end
+    end
+    cholesky!(𝗠)
+    U = inverse!(𝗠)
+    ∂𝗠⁻¹∂x = - UUᵀAUUᵀ!(∂𝗠∂x,U)
+    𝗠⁻¹ = UUᵀ!(U)
+    return 𝗠⁻¹, ∂𝗠⁻¹∂x
+end
 
 function cal∇₂𝗠!(ap::ReproducingKernel,x::SNode)
     𝓒 = ap.𝓒
@@ -818,9 +817,9 @@ function cal∇²₂𝗠!(ap::ReproducingKernel,x::SNode)
     𝗠 = get𝗠(ap,:𝗠)
     ∂𝗠∂x = get𝗠(ap,:∂𝗠∂x)
     ∂𝗠∂y = get𝗠(ap,:∂𝗠∂y)
-    ∂²𝗠∂x² = get𝗠(ap,:∂²𝝭∂x²)
-    ∂²𝗠∂y² = get𝗠(ap,:∂²𝝭∂y²)
-    ∂²𝗠∂x∂y = get𝗠(ap,:∂²𝝭∂x∂y)
+    ∂²𝗠∂x² = get𝗠(ap,:∂²𝗠∂x²)
+    ∂²𝗠∂y² = get𝗠(ap,:∂²𝗠∂y²)
+    ∂²𝗠∂x∂y = get𝗠(ap,:∂²𝗠∂x∂y)
     n = get𝑛𝒑(ap)
     for xᵢ in 𝓒
         Δx = x - xᵢ
@@ -869,12 +868,12 @@ function cal∇²𝗠!(ap::ReproducingKernel,x::SNode)
     ∂𝗠∂x = get𝗠(ap,:∂𝗠∂x)
     ∂𝗠∂y = get𝗠(ap,:∂𝗠∂y)
     ∂𝗠∂z = get𝗠(ap,:∂𝗠∂z)
-    ∂²𝗠∂x² = get𝗠(ap,:∂²𝝭∂x²)
-    ∂²𝗠∂y² = get𝗠(ap,:∂²𝝭∂y²)
-    ∂²𝗠∂z² = get𝗠(ap,:∂²𝝭∂z²)
-    ∂²𝗠∂x∂y = get𝗠(ap,:∂²𝝭∂x∂y)
-    ∂²𝗠∂x∂z = get𝗠(ap,:∂²𝝭∂x∂z)
-    ∂²𝗠∂y∂z = get𝗠(ap,:∂²𝝭∂y∂z)
+    ∂²𝗠∂x² = get𝗠(ap,:∂²𝗠∂x²)
+    ∂²𝗠∂y² = get𝗠(ap,:∂²𝗠∂y²)
+    ∂²𝗠∂z² = get𝗠(ap,:∂²𝗠∂z²)
+    ∂²𝗠∂x∂y = get𝗠(ap,:∂²𝗠∂x∂y)
+    ∂²𝗠∂x∂z = get𝗠(ap,:∂²𝗠∂x∂z)
+    ∂²𝗠∂y∂z = get𝗠(ap,:∂²𝗠∂y∂z)
     n = get𝑛𝒑(ap)
     for xᵢ in 𝓒
         Δx = x - xᵢ
@@ -943,13 +942,13 @@ function cal∇³𝗠!(ap::ReproducingKernel,x::SNode)
     𝗠 = get𝗠(ap,:𝗠)
     ∂𝗠∂x = get𝗠(ap,:∂𝗠∂x)
     ∂𝗠∂y = get𝗠(ap,:∂𝗠∂y)
-    ∂²𝗠∂x² = get𝗠(ap,:∂²𝝭∂x²)
-    ∂²𝗠∂x∂y = get𝗠(ap,:∂²𝝭∂x∂y)
-    ∂²𝗠∂y² = get𝗠(ap,:∂²𝝭∂y²)
-    ∂³𝗠∂x³ = get𝗠(ap,:∂³𝝭∂x³)
-    ∂³𝗠∂x²∂y = get𝗠(ap,:∂³𝝭∂x²∂y)
-    ∂³𝗠∂x∂y² = get𝗠(ap,:∂³𝝭∂x∂y²)
-    ∂³𝗠∂y³ = get𝗠(ap,:∂³𝝭∂y³)
+    ∂²𝗠∂x² = get𝗠(ap,:∂²𝗠∂x²)
+    ∂²𝗠∂x∂y = get𝗠(ap,:∂²𝗠∂x∂y)
+    ∂²𝗠∂y² = get𝗠(ap,:∂²𝗠∂y²)
+    ∂³𝗠∂x³ = get𝗠(ap,:∂³𝗠∂x³)
+    ∂³𝗠∂x²∂y = get𝗠(ap,:∂³𝗠∂x²∂y)
+    ∂³𝗠∂x∂y² = get𝗠(ap,:∂³𝗠∂x∂y²)
+    ∂³𝗠∂y³ = get𝗠(ap,:∂³𝗠∂y³)
     n = get𝑛𝒑(ap)
     for xᵢ in 𝓒
         Δx = x - xᵢ
@@ -1034,6 +1033,28 @@ end
 """
 cal𝗚!
 """
+function cal𝗚!(ap::ReproducingKernel{𝑝,𝑠,𝜙,:Poi1}) where {𝑝,𝑠,𝜙}
+    𝓒 = ap.𝓒
+    𝓖 = ap.𝓖
+    𝗚 = get𝗚(ap,:∇̃)
+    x = 𝓒[1]
+    n = get𝑛𝒑₁(ap)
+    for ξ in 𝓖
+        Δx = x - ξ
+        𝒒 = get𝒑₁(ap,ξ)
+        w = get𝜙(ap,x,Δx)
+        for I in 1:n
+            for J in 1:I
+                𝗚[I,J] += w*𝒒[I]*𝒒[J]
+            end
+        end
+    end
+    cholesky!(𝗚)
+    inverse!(𝗚)
+    UUᵀ!(𝗚)
+    return 𝗚
+end
+
 function cal𝗚!(ap::ReproducingKernel{:Linear1D,𝑠,𝜙,:Seg2}) where {𝑠,𝜙}
     𝗚⁻¹ = get𝗚(ap,:∇̃)
     𝐿 = ap.𝓖[1].𝐿
@@ -1293,6 +1314,20 @@ function set∇𝝭!(ap::ReproducingKernel,𝒙::SNode)
     end
 end
 
+function set∇₁𝝭!(ap::ReproducingKernel,𝒙::SNode)
+    𝓒 = ap.𝓒
+    𝝭 = 𝒙[:𝝭]
+    ∂𝝭∂x = 𝒙[:∂𝝭∂x]
+    𝒑₀ᵀ𝗠⁻¹, 𝒑₀ᵀ∂𝗠⁻¹∂x = cal∇₁𝗠!(ap,𝒙)
+    for (i,𝒙ᵢ) in enumerate(𝓒)
+        Δ𝒙 = 𝒙 - 𝒙ᵢ
+        𝒑, ∂𝒑∂x = get∇𝒑(ap,Δ𝒙)
+        𝜙, ∂𝜙∂x = get∇𝜙(ap,𝒙ᵢ,Δ𝒙)
+        𝝭[i] = 𝒑₀ᵀ𝗠⁻¹*𝒑*𝜙
+        ∂𝝭∂x[i] = 𝒑₀ᵀ∂𝗠⁻¹∂x*𝒑*𝜙 + 𝒑₀ᵀ𝗠⁻¹*∂𝒑∂x*𝜙 + 𝒑₀ᵀ𝗠⁻¹*𝒑*∂𝜙∂x
+    end
+end
+
 function set∇₂𝝭!(ap::ReproducingKernel,𝒙::SNode)
     𝓒 = ap.𝓒
     𝝭 = 𝒙[:𝝭]
@@ -1547,6 +1582,20 @@ end
 """
 set∇̃𝝭!
 """
+function set∇̃₁𝝭!(ap::ReproducingKernel{𝒑,𝑠,𝜙,:Poi1}) where {𝒑,𝑠,𝜙}
+    𝓖 = ap.𝓖
+    ξᵢ = 𝓖[1]
+    ∂𝝭∂x = ξᵢ[:∂𝝭∂x_]
+    𝑤 = ξᵢ.𝑤
+    for ξ in 𝓖
+        n₁ = ξ.n₁
+        for (i,x) in enumerate(𝓖)
+            n₁ = x.n₁
+            ∂𝝭∂x[i] = n₁/𝑤
+        end
+    end
+end
+
 function set∇̃𝝭!(gp::ReproducingKernel{𝒑,𝑠,𝜙,:Seg2},ap::ReproducingKernel{𝒑,𝑠,𝜙,:Seg2}) where {𝒑,𝑠,𝜙}
     𝓒 = gp.𝓒
     𝓖 = gp.𝓖
@@ -1612,19 +1661,16 @@ function set∇̃𝝭!(gp::ReproducingKernel{𝒑,𝑠,𝜙,:Tri3},ap::Reproduci
 end
 
 function set∇̃²𝝭!(gp::ReproducingKernel{𝒑,𝑠,𝜙,:Tri3},ap::ReproducingKernel{𝒑,𝑠,𝜙,:Tri3}) where {𝒑,𝑠,𝜙}
-    x₁ = ap.𝓒[1].x;y₁ = ap.𝓒[1].y
-    x₂ = ap.𝓒[2].x;y₂ = ap.𝓒[2].y
-    x₃ = ap.𝓒[3].x;y₃ = ap.𝓒[3].y
-    𝐴 = get𝐴(ap)
-    n₁₁ = y₃-y₂;n₂₁ = y₁-y₃;n₃₁ = y₂-y₁
-    n₁₂ = x₂-x₃;n₂₂ = x₃-x₁;n₃₂ = x₁-x₂
+    𝓒 = gp.𝓒
+    𝓖 = gp.𝓖
+    𝐴 = 𝓖[1].𝐴
+    n₁₁ = ap.𝓖[1].D₁₁;n₂₁ = ap.𝓖[1].D₂₁;n₃₁ = ap.𝓖[1].D₃₁
+    n₁₂ = ap.𝓖[1].D₁₂;n₂₂ = ap.𝓖[1].D₂₂;n₃₂ = ap.𝓖[1].D₃₂
     s₁₁ = -n₁₂;s₂₁ = -n₂₂;s₃₁ = -n₃₂
     s₁₂ =  n₁₁;s₂₂ =  n₂₁;s₃₂ =  n₃₁
     𝐿₁² = n₁₁^2+n₁₂^2
     𝐿₂² = n₂₁^2+n₂₂^2
     𝐿₃² = n₃₁^2+n₃₂^2
-    𝓒 = gp.𝓒
-    𝓖 = gp.𝓖
     for ξ̂ in 𝓖
         𝒒̂ = get𝒑₂(gp,ξ̂)
         𝗚⁻¹ = cal𝗚₂!(gp)
@@ -2471,7 +2517,7 @@ function set∇̄²𝝭!(ap::ReproducingKernel{𝒑,𝑠,𝜙,:Tri3};Γᵍ::Vect
     end
 end
 
-for set𝝭 in (:set𝝭!,:set∇𝝭!,:set∇₂𝝭!,:set∇²𝝭!,:set∇³𝝭!,:set∇̂³𝝭!,:set∇²₂𝝭!)
+for set𝝭 in (:set𝝭!,:set∇𝝭!,:set∇₁𝝭!,:set∇₂𝝭!,:set∇²𝝭!,:set∇³𝝭!,:set∇̂³𝝭!,:set∇²₂𝝭!)
     @eval begin
         function $set𝝭(aps::Vector{T}) where T<:ReproducingKernel
             for ap in aps
@@ -2498,11 +2544,16 @@ for set𝝭 in (:set∇̃𝝭!,:set∇̃²𝝭!,:set∇∇̃²𝝭!)
     end
 end
 
-function set∇̄𝝭!(aps::Vector{T}) where T<:ReproducingKernel
-    for ap in aps
-        set∇̄𝝭!(ap)
+for set𝝭 in (:set∇̄𝝭!,:set∇̃₁𝝭!)
+    @eval begin
+        function $set𝝭(aps::Vector{T}) where T<:ReproducingKernel
+            for ap in aps
+                $set𝝭(ap)
+            end
+        end
     end
 end
+
 
 function set∇̄²𝝭!(aps::Vector{T};Γᵍ::Vector{T}=T[],Γᶿ::Vector{T}=T[],Γᴾ::Vector{T}=T[]) where T<:ReproducingKernel
     for ap in aps

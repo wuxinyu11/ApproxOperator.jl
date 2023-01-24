@@ -303,6 +303,8 @@ function set𝑫!(aps::Vector{T}) where T<:AbstractElement{:Tri3}
     push!(data,:D₁₂=>(3,zeros(nₑ)))
     push!(data,:D₂₁=>(3,zeros(nₑ)))
     push!(data,:D₂₂=>(3,zeros(nₑ)))
+    push!(data,:D₃₁=>(3,zeros(nₑ)))
+    push!(data,:D₃₂=>(3,zeros(nₑ)))
     for ap in aps
         set𝑫!(ap)
     end
@@ -323,8 +325,10 @@ function set𝑫!(ap::T) where T<:AbstractElement{:Tri3}
     D₃₂ = x₁-x₂
     ap.𝓖[1].D₁₁ = D₁₁
     ap.𝓖[1].D₂₁ = D₂₁
+    ap.𝓖[1].D₃₁ = D₃₁
     ap.𝓖[1].D₁₂ = D₁₂
     ap.𝓖[1].D₂₂ = D₂₂
+    ap.𝓖[1].D₃₂ = D₃₂
     for ξ in ap.𝓖
         if ξ.ξ ≈ 0.0 (ξ.D₁ += D₁₁;ξ.D₂ += D₁₂) end
         if ξ.η ≈ 0.0 (ξ.D₁ += D₂₁;ξ.D₂ += D₂₂) end 

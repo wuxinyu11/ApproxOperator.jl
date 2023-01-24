@@ -83,7 +83,7 @@ function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement{:Tri3},
             g ≠ nothing && g ≤ 3 ? nₑ += 1 : nothing
         end
     end
-    data = Dict([:ξ=>(1,[1.0,0.0,0.0]),:η=>(1,[0.0,1.0,0.0]),:w=>(1,[1.0,1.0,1.0])],:x=>(2,zeros(nₑ)),:y=>(2,zeros(nₑ)),:z=>(2,zeros(nₑ)),:Δn₁s₁=>(2,zeros(nₑ)),:Δn₁s₂n₂s₁=>(2,zeros(nₑ)),:Δn₂s₂=>(2,zeros(nₑ)))
+    data = Dict([:ξ=>(1,[1.0,0.0,0.0]),:η=>(1,[0.0,1.0,0.0]),:w=>(1,[1.0,1.0,1.0]),:x=>(2,zeros(nₑ)),:y=>(2,zeros(nₑ)),:z=>(2,zeros(nₑ)),:Δn₁s₁=>(2,zeros(nₑ)),:Δn₁s₂n₂s₁=>(2,zeros(nₑ)),:Δn₂s₂=>(2,zeros(nₑ))])
     s = 0
     G = 0
     for (c,a) in enumerate(as)
@@ -144,8 +144,8 @@ function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement{:Tri3},
     for (c,a) in enumerate(as)
         empty!(a.𝓖)
         for b in bs
-            i = T<:DiscreteElement ? findfirst(x->x.𝑖==b.𝓒[1].𝐼, a.𝓒) : findfirst(x->x.𝐼==b.𝓒[1].𝐼, a.𝓒)
-            j = T<:DiscreteElement ? findfirst(x->x.𝑖==b.𝓒[2].𝐼, a.𝓒) : findfirst(x->x.𝐼==b.𝓒[2].𝐼, a.𝓒)
+            i = T<:TRElement ? findfirst(x->x.𝑖==b.𝓒[1].𝐼, a.𝓒) : findfirst(x->x.𝐼==b.𝓒[1].𝐼, a.𝓒)
+            j = T<:TRElement ? findfirst(x->x.𝑖==b.𝓒[2].𝐼, a.𝓒) : findfirst(x->x.𝐼==b.𝓒[2].𝐼, a.𝓒)
             if i ≠ nothing && j ≠ nothing && i ≤ 3 && j ≤ 3
                 𝐴 = get𝐴(a)
                 for ξ_ in b.𝓖
