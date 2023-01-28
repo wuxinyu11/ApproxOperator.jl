@@ -376,22 +376,24 @@ function voronoimsh(filename::String)
                 end
             end
         end
-        for (xᵢ,normal_) in normal
-            if length(normal) ≠ 1
-                ind += 1
-                push!(xv,xᵢ.x)
-                push!(yv,xᵢ.y)
-                push!(nodelist[xᵢ],ind)
-                if haskey(nodelist_Γᵍ,xᵢ) push!(nodelist_Γᵍ[xᵢ],ind) end
-                if haskey(nodelist_Γᵗ,xᵢ) push!(nodelist_Γᵗ[xᵢ],ind) end
-            end
+    end
+    for (xᵢ,normal_) in normal
+        if length(normal_) ≠ 1
+            ind += 1
+            push!(xv,xᵢ.x)
+            push!(yv,xᵢ.y)
+            push!(nodelist[xᵢ],ind)
+            if haskey(nodelist_Γᵍ,xᵢ) push!(nodelist_Γᵍ[xᵢ],ind) end
+            if haskey(nodelist_Γᵗ,xᵢ) push!(nodelist_Γᵗ[xᵢ],ind) end
         end
     end
     nodes = [Node(i,data) for i in 1:ind]
-    elements["Ω"] = Element{:Vor}[]
+    elements["Ω"] = Element{:Vor2}[]
     elements["Γᵗ"] = Element{:Seg2}[]
     elements["Γᵍ"] = Element{:Seg2}[]
-    for (node,list) in nodelist
+    # for (node,list) in nodelist
+    for node in nds
+        list = nodelist[node]
         # sort
         # cal centroid
         xc = 0.
@@ -404,46 +406,19 @@ function voronoimsh(filename::String)
         yc = yc/length(list)
         α = [atan(yv[i]-yc,xv[i]-xc) for i in list]
         p = sortperm(α)
-        push!(elements["Ω"],Element{:Vor}([nodes[list[i]] for i in p],SNode[]))
+        push!(elements["Ω"],Element{:Vor2}([nodes[list[i]] for i in p],SNode[]))
     end
     (xmin,xmax) = extrema(getfield(nds[1],:data)[:x][2])
     (ymin,ymax) = extrema(getfield(nds[1],:data)[:y][2])
     xc = 0.5*(xmin+xmax)
     yc = 0.5*(ymin+ymax)
-    for (node,list) in nodelist_Γᵍ
-        if length(list) == 2
-            x₁ = xv[list[1]]
-            x₂ = xv[list[2]]
-            y₁ = yv[list[1]]
-            y₂ = yv[list[2]]
-            xₘ = 0.5*(x₁+x₂)
-            yₘ = 0.5*(y₁+y₂)
-            n₁ = y₂-y₁
-            n₂ = x₁-x₂
-            nc₁ = x₁-xc
-            nc₂ = y₁-yc
-            if n₁*nc₁+n₂*nc₂ > 0
-                push!(elements["Γᵍ"],Element{:Seg2}([nodes[list[1]],nodes[list[2]]],SNode[]))
-            else
-                push!(elements["Γᵍ"],Element{:Seg2}([nodes[list[2]],nodes[list[1]]],SNode[]))
-            end
-        else
-            xc_ = 0.
-            yc_ = 0.
-            for i in list
-                xc_ += xv[i]
-                yc_ += yv[i]
-            end
-            xc_ = xc_/length(list)
-            yc_ = yc_/length(list)
-            α = [atan(yv[i]-yc_,xv[i]-xc_) for i in list]
-            p = sortperm(α)
-            for i in 1:length(p)
-                (I,J) = i ≠ length(p) ? (p[i],p[i+1]) : (p[i],p[1])
-                x₁ = xv[list[I]]
-                x₂ = xv[list[J]]
-                y₁ = yv[list[I]]
-                y₂ = yv[list[J]]
+    for (name,nodelist_) in (("Γᵍ",nodelist_Γᵍ),("Γᵗ",nodelist_Γᵗ))
+        for (node,list) in nodelist_
+            if length(list) == 2
+                x₁ = xv[list[1]]
+                x₂ = xv[list[2]]
+                y₁ = yv[list[1]]
+                y₂ = yv[list[2]]
                 xₘ = 0.5*(x₁+x₂)
                 yₘ = 0.5*(y₁+y₂)
                 n₁ = y₂-y₁
@@ -451,19 +426,37 @@ function voronoimsh(filename::String)
                 nc₁ = x₁-xc
                 nc₂ = y₁-yc
                 if n₁*nc₁+n₂*nc₂ > 0
-                    push!(elements["Γᵍ"],Element{:Seg2}([nodes[list[I]],nodes[list[J]]],SNode[]))
+                    push!(elements[name],Element{:Seg2}([nodes[list[1]],nodes[list[2]]],SNode[]))
+                else
+                    push!(elements[name],Element{:Seg2}([nodes[list[2]],nodes[list[1]]],SNode[]))
                 end
-            end
-        end
-    end
-    for (node,list) in nodelist_Γᵗ
-        α = [atan(yv[i]-yc,xv[i]-xc) for i in list]
-        p = sortperm(α)
-        for i in 1:length(p)
-            (I,J) = i ≠ length(p) ? (i+1,i) : (i,1)
-            nc₁ = (xv[list[J]]-xc)
-            if α[p[I]]-α[p[J]] < π
-                push!(elements["Γᵗ"],Element{:Seg2}([nodes[list[I]],nodes[list[J]]],SNode[]))
+            else
+                xc_ = 0.
+                yc_ = 0.
+                for i in list
+                    xc_ += xv[i]
+                    yc_ += yv[i]
+                end
+                xc_ = xc_/length(list)
+                yc_ = yc_/length(list)
+                α = [atan(yv[i]-yc_,xv[i]-xc_) for i in list]
+                p = sortperm(α)
+                for i in 1:length(p)
+                    (I,J) = i ≠ length(p) ? (p[i],p[i+1]) : (p[i],p[1])
+                    x₁ = xv[list[I]]
+                    x₂ = xv[list[J]]
+                    y₁ = yv[list[I]]
+                    y₂ = yv[list[J]]
+                    xₘ = 0.5*(x₁+x₂)
+                    yₘ = 0.5*(y₁+y₂)
+                    n₁ = y₂-y₁
+                    n₂ = x₁-x₂
+                    nc₁ = x₁-xc
+                    nc₂ = y₁-yc
+                    if n₁*nc₁+n₂*nc₂ > 0
+                        push!(elements[name],Element{:Seg2}([nodes[list[I]],nodes[list[J]]],SNode[]))
+                    end
+                end
             end
         end
     end
