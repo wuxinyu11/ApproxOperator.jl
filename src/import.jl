@@ -462,3 +462,8 @@ function voronoimsh(filename::String)
     end
     return elements, nodes
 end
+
+function voronoimsh(filename::String,config::Dict{T,Any}) where T<:Any
+    elms, nodes = voronoimsh(filename)
+    return generate(elms,nodes,config)
+end

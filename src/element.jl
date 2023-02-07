@@ -192,11 +192,27 @@ function set𝑉!(aps::Vector{T}) where T<:AbstractElement
     push!(getfield(aps[1].𝓖[1],:data),:𝑉=>(3,zeros(nₑ)))
     set𝑉!.(aps)
 end
-function set𝑉!(ap::T) where T<:AbstractElement
-    𝑉 = get𝑉(ap)
-    ap.𝓖[1].𝑉 = 𝑉
+function set𝒙ₘ!(aps::Vector{T}) where T<:AbstractElement
+    nₑ = length(aps)
+    push!(getfield(aps[1].𝓖[1],:data),:xₘ=>(3,zeros(nₑ)),:yₘ=>(3,zeros(nₑ)))
+    set𝒙ₘ!.(aps)
 end
-
+function set𝒙ₘ!(ap::T) where T<:AbstractElement
+    xₘ,yₘ = get𝒙ₘ(ap)
+    ap.𝓖[1].xₘ = xₘ
+    ap.𝓖[1].yₘ = yₘ
+end
+function setm2!(aps::Vector{T}) where T<:AbstractElement
+    nₑ = length(aps)
+    push!(getfield(aps[1].𝓖[1],:data),:m₂₀=>(3,zeros(nₑ)),:m₁₁=>(3,zeros(nₑ)),:m₀₂=>(3,zeros(nₑ)))
+    setm2!.(aps)
+end
+function setm2!(ap::T) where T<:AbstractElement
+    m₂₀,m₁₁,m₀₂ = getm2(ap)
+    ap.𝓖[1].m₂₀ = m₂₀
+    ap.𝓖[1].m₁₁ = m₁₁
+    ap.𝓖[1].m₀₂ = m₀₂
+end
 
 function get𝐿(ap::T) where T<:AbstractElement{:Seg2}
     x₁ = ap.𝓒[1].x
@@ -246,6 +262,80 @@ function get𝐴(ap::T) where T<:AbstractElement{:Tri6}
     𝐴₂ = 0.5*(z₁*x₂+z₂*x₃+z₃*x₁-z₂*x₁-z₃*x₂-z₁*x₃)
     𝐴₃ = 0.5*(x₁*y₂+x₂*y₃+x₃*y₁-x₂*y₁-x₃*y₂-x₁*y₃)
     return (𝐴₁^2 + 𝐴₂^2 + 𝐴₃^2)^0.5
+end
+function get𝐴(ap::T) where T<:AbstractElement{:Vor2}
+    𝓒 = ap.𝓒
+    nᵥ = length(𝓒)
+    𝐴 = 0.0
+    for i in 1:nᵥ-1
+        x₁ = 𝓒[i].x
+        y₁ = 𝓒[i].y
+        x₂ = 𝓒[i+1].x
+        y₂ = 𝓒[i+1].y
+        𝐴 += x₁*y₂-x₂*y₁
+    end
+    x₁ = 𝓒[nᵥ].x
+    y₁ = 𝓒[nᵥ].y
+    x₂ = 𝓒[1].x
+    y₂ = 𝓒[1].y
+    𝐴 += x₁*y₂-x₂*y₁
+    𝐴 *= 0.5
+    return 𝐴
+end
+
+function get𝒙ₘ(ap::AbstractElement)
+    𝓒 = ap.𝓒
+    nᵥ = length(𝓒)
+    𝐴 = ap.𝓖[1].𝐴
+    xₘ = 0.0
+    yₘ = 0.0
+    for i in 1:nᵥ-1
+        x₁ = 𝓒[i].x-x₀
+        y₁ = 𝓒[i].y-y₀
+        x₂ = 𝓒[i+1].x-x₀
+        y₂ = 𝓒[i+1].y-y₀
+        xₘ += (x₁*y₂-x₂*y₁)*(x₁+x₂)
+        yₘ += (x₁*y₂-x₂*y₁)*(y₁+y₂)
+    end
+    x₁ = 𝓒[nᵥ].x
+    y₁ = 𝓒[nᵥ].y
+    x₂ = 𝓒[1].x
+    y₂ = 𝓒[1].y
+    xₘ += (x₁*y₂-x₂*y₁)*(x₁+x₂)
+    yₘ += (x₁*y₂-x₂*y₁)*(y₁+y₂)
+    xₘ /= 6.0*𝐴
+    yₘ /= 6.0*𝐴
+    return xₘ,yₘ
+end
+function getm2(ap::AbstractElement)
+    𝓒 = ap.𝓒
+    nᵥ = length(𝓒)
+    𝐴 = ap.𝓖[1].𝐴
+    xₘ = ap.𝓖[1].xₘ
+    yₘ = ap.𝓖[1].yₘ
+    m₂₀ = 0.0
+    m₁₁ = 0.0
+    m₀₂ = 0.0
+    for i in 1:nᵥ-1
+        x₁ = 𝓒[i].x
+        y₁ = 𝓒[i].y
+        x₂ = 𝓒[i+1].x
+        y₂ = 𝓒[i+1].y
+        m₂₀ += (x₁*y₂-x₂*y₁)*(x₁^2+x₁*x₂+x₂^2)
+        m₁₁ += (x₁*y₂-x₂*y₁)*(2*x₁*y₁+x₁*y₂+x₂*y₁+2*x₂*y₂)
+        m₀₂ += (x₁*y₂-x₂*y₁)*(y₁^2+y₁*y₂+y₂^2)
+    end
+    x₁ = 𝓒[nᵥ].x
+    y₁ = 𝓒[nᵥ].y
+    x₂ = 𝓒[1].x
+    y₂ = 𝓒[1].y
+    m₂₀ += (x₁*y₂-x₂*y₁)*(x₁^2+x₁*x₂+x₂^2)
+    m₁₁ += (x₁*y₂-x₂*y₁)*(2*x₁*y₁+x₁*y₂+x₂*y₁+2*x₂*y₂)
+    m₀₂ += (x₁*y₂-x₂*y₁)*(y₁^2+y₁*y₂+y₂^2)
+    m₂₀ /= 12.0*𝐴
+    m₁₁ /= 24.0*𝐴
+    m₀₂ /= 12.0*𝐴
+    return m₂₀-xₘ^2,m₁₁-xₘ*yₘ,m₀₂-yₘ^2
 end
 
 """
