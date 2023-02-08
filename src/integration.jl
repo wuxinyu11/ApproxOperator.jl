@@ -177,7 +177,16 @@ function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement{:Tri3},
     end
 end
 
-function set𝓖!(as::Vector{Element{:Vor2}},ss::Symbol)
+function set𝓖!(as::Vector{T},ss::Symbol) where T<:AbstractElement{Vor2}
+    if ss == :Node
+        set𝓖_node!(as)
+    else
+        set𝓖_BC!(as,ss)
+    end
+end
+
+function set𝓖_node!(as::Vector{T}) where T<:AbstractElement{Vor2}
+function set𝓖_BC!(as::Vector{T},ss::Symbol) where T<:AbstractElement{Vor2}
     data_ = quadraturerule(ss)
     ξ = data_[:ξ]
     w = data_[:w]

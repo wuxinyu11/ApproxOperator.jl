@@ -465,5 +465,67 @@ end
 
 function voronoimsh(filename::String,config::Dict{T,Any}) where T<:Any
     elms, nodes = voronoimsh(filename)
-    return generate(elms,nodes,config)
+    elements = Dict{String,Any}()
+    x = getfield(nodes[1],:data)[:x][2]
+    y = getfield(nodes[1],:data)[:y][2]
+    z = getfield(nodes[1],:data)[:z][2]
+    n = config["RegularGrid"]["n"]
+    γ = config["RegularGrid"]["γ"]
+    sp = RegularGrid(x,y,z,n=n,γ=γ)
+    delete!(config,"RegularGrid")
+
+    for (name,cfg) in config
+        element_tag = cfg["𝓒"]["tag"]
+        element_type = eval(Meta.parse(cfg["type"]))
+        integration_tag = haskey(cfg["𝓖"],"tag") ? cfg["𝓖"]["tag"] : element_tag
+        integration_type = Meta.parse(cfg["𝓖"]["type"])
+        elements[name] = element_type[]
+        if haskey(elms,integration_tag)
+            if integration_type == :Node
+                for (c,elm) in enumerate(elms[integration_tag])
+                    𝓖 = elm.𝓖
+                    data = getfield(nodes[1],:data)
+                    indices = sp(nodes[c])
+                    for (g,G) in enumerate(indices)
+                        ξ = SNode((g,G,c,0),data)
+                        push!(𝓖,ξ)
+                    end
+                end
+            else
+                set𝓖!(elms[integration_tag],integration_type)
+            end
+            if haskey(cfg["𝓖"],"normal") set𝒏!(elms[integration_tag]) end
+            if integration_tag ≠ element_tag
+                elms[element_tag*"∩"*integration_tag] = unique!(elms[element_tag]∩elms[integration_tag])
+                element_tag = element_tag*"∩"*integration_tag
+                set𝓖!(elms[element_tag],elms[integration_tag])
+            end
+            nₑ = length(elms[element_tag])
+            if haskey(cfg["𝓒"],"type")
+                for elm in elms[element_tag]
+                    𝓖 = [ξ for ξ in elm.𝓖]
+                    push!(elements[name],element_type(Node[],𝓖))
+                end
+                position_type= Meta.parse(cfg["𝓒"]["type"])
+                set𝓖!(elms[element_tag],position_type)
+                for (c,elm) in enumerate(elms[element_tag])
+                    𝓒 = [nodes[i] for i in sp(elm.𝓖)]
+                    push!(elements[name][c].𝓒,𝓒...)
+                end
+            else
+                for elm in elms[element_tag]
+                    𝓒 = [nodes[i] for i in sp(elm.𝓒)]
+                    𝓖 = [ξ for ξ in elm.𝓖]
+                    push!(elements[name],element_type(𝓒,𝓖))
+                end
+            end
+
+            # set shape memory
+            if haskey(cfg,"𝓖")
+                if haskey(cfg["𝓖"],"𝝭") set_memory_𝝭!(elements[name],shape_function[Meta.parse(cfg["𝓖"]["𝝭"])]...) end
+                if element_type<:ReproducingKernel set_memory_𝗠!(elements[name],moment_matrix[Meta.parse(cfg["𝓖"]["𝝭"])]...) end
+            end
+        end
+    end
+    return elements, nodes
 end
