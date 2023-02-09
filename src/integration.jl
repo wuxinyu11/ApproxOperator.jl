@@ -11,7 +11,7 @@ function set𝐶!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement,S<:Abst
                     𝑔 = ξ.𝑔
                     𝐺 = ξ.𝐺
                     𝑠 = ξ.𝑠
-                    𝓖[i] = SNode((𝑔,𝐺,𝐶,𝑠),data)
+                    𝓖[i] = Node((𝑔,𝐺,𝐶,𝑠),data)
                 end
             end
         end
@@ -19,6 +19,7 @@ function set𝐶!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement,S<:Abst
 end
 
 function set𝓖!(as::Vector{T},ss::Symbol) where T<:AbstractElement
+    node_type = Node{(𝑔,𝐺,𝐶,𝑠),4}
     data_ = quadraturerule(ss)
     n = length(data_[:w])
     G = 0
@@ -28,7 +29,7 @@ function set𝓖!(as::Vector{T},ss::Symbol) where T<:AbstractElement
         empty!(a.𝓖)
         for g in 1:n
             G += 1
-            push!(a.𝓖,SNode((g,G,c,s),data))
+            push!(a.𝓖,node_type((g,G,c,s),data))
             s += length(a.𝓒)
         end
     end
@@ -47,7 +48,7 @@ function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement,S<:Abst
         for ξ_ in b.𝓖
             g = ξ_.𝑔
             G = ξ_.𝐺
-            push!(a.𝓖,SNode((g,G,c,s),data))
+            push!(a.𝓖,Node((g,G,c,s),data))
             s += length(a.𝓒)
         end
     end
@@ -64,7 +65,7 @@ function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement{:Seg2},
             g = findfirst(x->x.𝐼==b.𝓒[1].𝐼, a.𝓒)
             if i ≠ nothing && i ≤ 2
                 G += 1
-                ξ = SNode((g,G,c,s),data)
+                ξ = Node((g,G,c,s),data)
                 ξ.x = b.𝓖[1].x
                 ξ.y = b.𝓖[1].y
                 ξ.z = b.𝓖[1].z
@@ -105,7 +106,7 @@ function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement{:Tri3},
             g = findfirst(x->x.𝐼==b.𝓒[1].𝐼, a.𝓒)
             if g ≠ nothing && g ≤ 3
                 G += 1
-                ξ = SNode((g,G,c,s),data)
+                ξ = Node((g,G,c,s),data)
                 s += length(a.𝓒)
                 if g == 1
                     ξ.x = a.𝓒[1].x
@@ -150,7 +151,7 @@ function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement{:Tri3},
                 𝐴 = get𝐴(a)
                 for ξ_ in b.𝓖
                     G += 1
-                    ξ = SNode((ξ_.𝑔,G,c,s),data)
+                    ξ = Node((ξ_.𝑔,G,c,s),data)
                     s += length(a.𝓒)
                     if i == 1
                         ξ.ξ = (1.0-ξ_.ξ)/2.0
@@ -177,72 +178,72 @@ function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement{:Tri3},
     end
 end
 
-function set𝓖!(as::Vector{T},ss::Symbol) where T<:AbstractElement{Vor2}
-    if ss == :Node
-        set𝓖_node!(as)
-    else
-        set𝓖_BC!(as,ss)
-    end
-end
+# function set𝓖!(as::Vector{T},ss::Symbol) where T<:AbstractElement{Vor2}
+#     if ss == :Node
+#         set𝓖_node!(as)
+#     else
+#         set𝓖_BC!(as,ss)
+#     end
+# end
 
-function set𝓖_node!(as::Vector{T}) where T<:AbstractElement{Vor2}
-function set𝓖_BC!(as::Vector{T},ss::Symbol) where T<:AbstractElement{Vor2}
-    data_ = quadraturerule(ss)
-    ξ = data_[:ξ]
-    w = data_[:w]
-    n = length(w)
-    G = 0
-    s = 0
-    data = Dict([s=>(1,v) for (s,v) in data_])
-    x = Float64[]
-    y = Float64[]
-    z = Float64[]
-    𝑤 = Float64[]
-    𝐿 = Float64[]
-    D₁ = Float64[]
-    D₂ = Float64[]
-    push!(data,:x=>(2,x),:y=>(2,y),:z=>(2,z),:𝑤=>(2,𝑤),:𝐿=>(2,𝐿),:D₁=>(2,D₁),:D₂=>(2,D₂))
-    push!(data,:𝐴=>(3,zeros(length(as))))
-    if ξ[1] == -1.0
-        index = 1:n-1
-    else
-        index = 1:n
-    end
-    for (c,a) in enumerate(as)
-        empty!(a.𝓖)
-        nᵥ = length(a.𝓒)
-        𝐴c = 0.0
-        for i in 1:nᵥ
-            𝐴c += i≠nᵥ ? a.𝓒[i].x*a.𝓒[i+1].y-a.𝓒[i+1].x*a.𝓒[i].y : a.𝓒[i].x*a.𝓒[1].y-a.𝓒[1].x*a.𝓒[i].y
-        end
-        𝐴c *= 0.5
-        for i in 1:nᵥ
-            x₁ = a.𝓒[i].x
-            y₁ = a.𝓒[i].y
-            z₁ = a.𝓒[i].z
-            (x₂,y₂,z₂) = i≠nᵥ ? (a.𝓒[i].x,a.𝓒[i].y,a.𝓒[i].z) : (a.𝓒[1].x,a.𝓒[1].y,a.𝓒[1].z)
-            𝐿ᵢ = ((x₁-x₂)^2+(y₁-y₂)^2)^0.5
-            D₁ᵢ = y₂-y₁
-            D₂ᵢ = x₁-x₂
-            for g in index
-                G += 1
-                N₁ = (1-ξ[g])/2
-                N₂ = (1+ξ[g])/2
-                push!(x,N₁*x₁+N₂*x₂)
-                push!(y,N₁*y₁+N₂*y₂)
-                push!(z,N₁*z₁+N₂*z₂)
-                push!(𝑤,w[g]*𝐿ᵢ/2)
-                push!(𝐿,𝐿ᵢ)
-                push!(D₁,D₁ᵢ)
-                push!(D₂,D₂ᵢ)
-                ξᵢ = SNode((g,G,c,s),data)
-                ξᵢ.𝐴 = 𝐴c
-                push!(a.𝓖,ξᵢ)
-                s += length(a.𝓒)
-            end
-        end
-    end
-end
+# function set𝓖_node!(as::Vector{T}) where T<:AbstractElement{Vor2}
+# function set𝓖_BC!(as::Vector{T},ss::Symbol) where T<:AbstractElement{Vor2}
+#     data_ = quadraturerule(ss)
+#     ξ = data_[:ξ]
+#     w = data_[:w]
+#     n = length(w)
+#     G = 0
+#     s = 0
+#     data = Dict([s=>(1,v) for (s,v) in data_])
+#     x = Float64[]
+#     y = Float64[]
+#     z = Float64[]
+#     𝑤 = Float64[]
+#     𝐿 = Float64[]
+#     D₁ = Float64[]
+#     D₂ = Float64[]
+#     push!(data,:x=>(2,x),:y=>(2,y),:z=>(2,z),:𝑤=>(2,𝑤),:𝐿=>(2,𝐿),:D₁=>(2,D₁),:D₂=>(2,D₂))
+#     push!(data,:𝐴=>(3,zeros(length(as))))
+#     if ξ[1] == -1.0
+#         index = 1:n-1
+#     else
+#         index = 1:n
+#     end
+#     for (c,a) in enumerate(as)
+#         empty!(a.𝓖)
+#         nᵥ = length(a.𝓒)
+#         𝐴c = 0.0
+#         for i in 1:nᵥ
+#             𝐴c += i≠nᵥ ? a.𝓒[i].x*a.𝓒[i+1].y-a.𝓒[i+1].x*a.𝓒[i].y : a.𝓒[i].x*a.𝓒[1].y-a.𝓒[1].x*a.𝓒[i].y
+#         end
+#         𝐴c *= 0.5
+#         for i in 1:nᵥ
+#             x₁ = a.𝓒[i].x
+#             y₁ = a.𝓒[i].y
+#             z₁ = a.𝓒[i].z
+#             (x₂,y₂,z₂) = i≠nᵥ ? (a.𝓒[i].x,a.𝓒[i].y,a.𝓒[i].z) : (a.𝓒[1].x,a.𝓒[1].y,a.𝓒[1].z)
+#             𝐿ᵢ = ((x₁-x₂)^2+(y₁-y₂)^2)^0.5
+#             D₁ᵢ = y₂-y₁
+#             D₂ᵢ = x₁-x₂
+#             for g in index
+#                 G += 1
+#                 N₁ = (1-ξ[g])/2
+#                 N₂ = (1+ξ[g])/2
+#                 push!(x,N₁*x₁+N₂*x₂)
+#                 push!(y,N₁*y₁+N₂*y₂)
+#                 push!(z,N₁*z₁+N₂*z₂)
+#                 push!(𝑤,w[g]*𝐿ᵢ/2)
+#                 push!(𝐿,𝐿ᵢ)
+#                 push!(D₁,D₁ᵢ)
+#                 push!(D₂,D₂ᵢ)
+#                 ξᵢ = Node((g,G,c,s),data)
+#                 ξᵢ.𝐴 = 𝐴c
+#                 push!(a.𝓖,ξᵢ)
+#                 s += length(a.𝓒)
+#             end
+#         end
+#     end
+# end
 
 function set𝓖_DB!(aps::Vector{T},s::Symbol) where T<:AbstractElement
     data_ = quadraturerule(s)
@@ -266,7 +267,7 @@ function set𝓖_DB!(aps::Vector{T},s::Symbol) where T<:AbstractElement
         empty!(ap.𝓖)
         for g in 1:3*n
             G += 1
-            push!(ap.𝓖,SNode((g,G,c,s),data))
+            push!(ap.𝓖,Node((g,G,c,s),data))
             s += length(ap.𝓒)
         end
         x₁ = ap.𝓒[1].x

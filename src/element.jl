@@ -1,16 +1,13 @@
 """
-# Element
+Element{T}<:AbstractElement{T}
 """
 struct Element{T}<:AbstractElement{T}
     𝓒::Vector{Node}
-    𝓖::Vector{SNode}
+    𝓖::Vector{Node}
 end
-Element{T}(𝓒::Vector{Node}) where T = Element{T}(𝓒,SNode[])
-Element{T}(a::S) where {T,S<:AbstractElement} = Element{T}(a.𝓒)
 
 """
-set𝒙!(ap::T,x::SNode) where T<:AbstractElement
-get𝒙(ap::T,ξ::Float64...) where T<:AbstractElement
+set𝒙!(ap::T,x::Node) where T<:AbstractElement
 """
 function set𝒙!(aps::Vector{T}) where T<:AbstractElement
     nᵢ = getnᵢ(aps)
@@ -27,12 +24,16 @@ function set𝒙!(ap::T) where T<:AbstractElement
         ξ.z = z
     end
 end
+
+"""
+get𝒙(ap::T,ξ::Float64...) where T<:AbstractElement
+"""
 @inline get𝒙(ap::T,::Any) where T<:AbstractElement{:Poi1} = (ap.𝓒[1].x,ap.𝓒[1].y,ap.𝓒[1].z)
-@inline get𝒙(ap::T,ξ::SNode) where T<:AbstractElement{:Seg2} = get𝒙(ap,ξ.ξ)
-@inline get𝒙(ap::T,ξ::SNode) where T<:AbstractElement{:Seg3} = get𝒙(ap,ξ.ξ)
-@inline get𝒙(ap::T,ξ::SNode) where T<:AbstractElement{:Tri3} = get𝒙(ap,ξ.ξ,ξ.η)
-@inline get𝒙(ap::T,ξ::SNode) where T<:AbstractElement{:Tri6} = get𝒙(ap,ξ.ξ,ξ.η)
-@inline get𝒙(ap::T,ξ::SNode) where T<:AbstractElement{:Quad} = get𝒙(ap,ξ.ξ,ξ.η)
+@inline get𝒙(ap::T,ξ::Node) where T<:AbstractElement{:Seg2} = get𝒙(ap,ξ.ξ)
+@inline get𝒙(ap::T,ξ::Node) where T<:AbstractElement{:Seg3} = get𝒙(ap,ξ.ξ)
+@inline get𝒙(ap::T,ξ::Node) where T<:AbstractElement{:Tri3} = get𝒙(ap,ξ.ξ,ξ.η)
+@inline get𝒙(ap::T,ξ::Node) where T<:AbstractElement{:Tri6} = get𝒙(ap,ξ.ξ,ξ.η)
+@inline get𝒙(ap::T,ξ::Node) where T<:AbstractElement{:Quad} = get𝒙(ap,ξ.ξ,ξ.η)
 
 function get𝒙(ap::T,ξ::Float64) where T<:AbstractElement{:Seg2}
     x₁ = ap.𝓒[1].x
@@ -113,7 +114,7 @@ function get𝒙(ap::T,ξ::Float64,η::Float64) where T<:AbstractElement{:Quad}
     return (x₁*N₁+x₂*N₂+x₃*N₃+x₄*N₄,y₁*N₁+y₂*N₂+y₃*N₃+y₄*N₄,z₁*N₁+z₂*N₂+z₃*N₃+z₄*N₄)
 end
 
-function get𝑱(ap::T,ξ::SNode) where T<:AbstractElement{:Quad}
+function get𝑱(ap::T,ξ::Node) where T<:AbstractElement{:Quad}
     x₁ = ap.𝓒[1].x
     x₂ = ap.𝓒[2].x
     x₃ = ap.𝓒[3].x
@@ -132,24 +133,24 @@ function get𝑱(ap::T,ξ::SNode) where T<:AbstractElement{:Quad}
 end
 
 """
-get𝐽(ap::T,x::SNode) where T<:AbstractElement
+get𝐽(ap::T,x::Node) where T<:AbstractElement
 """
 @inline get𝐽(  ::T,::Any) where T<:AbstractElement{:Poi1} = 1.0
 @inline get𝐽(ap::T,::Any) where T<:AbstractElement{:Seg2} = 0.5*get𝐿(ap)
 @inline get𝐽(ap::T,::Any) where T<:AbstractElement{:Tri3} = 2.0*get𝐴(ap)
-@inline function get𝐽(ap::T,ξ::SNode) where T<:AbstractElement{:Quad}
+@inline function get𝐽(ap::T,ξ::Node) where T<:AbstractElement{:Quad}
     J₁₁,J₂₁,J₁₂,J₂₂ = get𝑱(ap,ξ)
     return J₁₁*J₂₂-J₂₁*J₁₂
 end
 
 """
 set𝑤!(ap::T) where T<:AbstractElement
-get𝑤(ap::T,x::SNode) where T<:AbstractElement
+get𝑤(ap::T,x::Node) where T<:AbstractElement
 """
 function set𝑤!(aps::Vector{T}) where T<:AbstractElement
     nᵢ = getnᵢ(aps)
     data = getfield(aps[end].𝓖[end],:data)
-    push!(data,:𝑤=>(2,zeros(nᵢ)))
+    push!(data,:𝑤=>(:𝐺,zeros(nᵢ)))
     set𝑤!.(aps)
 end
 function set𝑤!(ap::T) where T<:AbstractElement
@@ -160,11 +161,11 @@ function set𝑤!(ap::T) where T<:AbstractElement
     end
 end
 @inline get𝑤(  ::T,::Any) where T<:AbstractElement{:Poi1} = 1.0
-@inline get𝑤(ap::T,ξ::SNode) where T<:AbstractElement{:Seg2} = 0.5*get𝐿(ap)*ξ.w
-@inline get𝑤(ap::T,ξ::SNode) where T<:AbstractElement{:Seg3} = 0.5*get𝐿(ap)*ξ.w
-@inline get𝑤(ap::T,ξ::SNode) where T<:AbstractElement{:Tri3} = get𝐴(ap)*ξ.w
-@inline get𝑤(ap::T,ξ::SNode) where T<:AbstractElement{:Tri6} = get𝐴(ap)*ξ.w
-@inline get𝑤(ap::T,ξ::SNode) where T<:AbstractElement{:Quad} = get𝐽(ap,ξ)*ξ.w
+@inline get𝑤(ap::T,ξ::Node) where T<:AbstractElement{:Seg2} = 0.5*get𝐿(ap)*ξ.w
+@inline get𝑤(ap::T,ξ::Node) where T<:AbstractElement{:Seg3} = 0.5*get𝐿(ap)*ξ.w
+@inline get𝑤(ap::T,ξ::Node) where T<:AbstractElement{:Tri3} = get𝐴(ap)*ξ.w
+@inline get𝑤(ap::T,ξ::Node) where T<:AbstractElement{:Tri6} = get𝐴(ap)*ξ.w
+@inline get𝑤(ap::T,ξ::Node) where T<:AbstractElement{:Quad} = get𝐽(ap,ξ)*ξ.w
 
 """
 get𝐿,get𝐴,get𝑉
@@ -364,8 +365,7 @@ function set𝒏!(ap::T) where T<:AbstractElement{:Seg2}
 end
 
 """
-set𝐷!
-get𝐷!
+set𝑫!
 """
 function set𝑫!(aps::Vector{T}) where T<:AbstractElement{:Seg2}
     n = getnᵢ(aps)
@@ -462,22 +462,22 @@ function set𝝭!(ap::Element{S}) where S
 end
 
 """
-get𝝭(ap::Element,ξ::SNode)
+get𝝭(ap::Element,ξ::Node)
 """
 # ------------- Poi1 ---------------
-function set𝝭!(ap::Element{:Poi1},x::SNode)
+function set𝝭!(ap::Element{:Poi1},x::Node)
     𝝭 = x[:𝝭]
     𝝭[1] = 1.0
 end
 
 # ------------- Seg2 ---------------
-function set𝝭!(ap::Element{:Seg2},x::SNode)
+function set𝝭!(ap::Element{:Seg2},x::Node)
     𝝭 = x[:𝝭]
     𝝭[1] = 0.5*(1.0-x.ξ)
     𝝭[2] = 0.5*(1.0+x.ξ)
 end
 
-function set∇𝝭!(ap::Element{:Seg2},x::SNode)
+function set∇𝝭!(ap::Element{:Seg2},x::Node)
     𝐿 = get𝐿(ap)
     ∂𝝭∂x = x[:∂𝝭∂x]
     ∂𝝭∂x[1] = -1.0/𝐿
@@ -485,7 +485,7 @@ function set∇𝝭!(ap::Element{:Seg2},x::SNode)
 end
 
 # ------------- Seg3 ---------------
-function set𝝭!(ap::Element{:Seg3},x::SNode)
+function set𝝭!(ap::Element{:Seg3},x::Node)
     𝝭 = x[:𝝭]
     ξ = x.ξ
     𝝭[1] = 0.5*ξ*(ξ-1.0)
@@ -493,7 +493,7 @@ function set𝝭!(ap::Element{:Seg3},x::SNode)
     𝝭[3] = 0.5*ξ*(ξ+1.0)
 end
 
-function set∇𝝭!(ap::Element{:Seg3},x::SNode)
+function set∇𝝭!(ap::Element{:Seg3},x::Node)
     𝐿 = get𝐿(ap)
     ∂𝝭∂x = x[:∂𝝭∂x]
     x₁ = ap.𝓒[1].x
@@ -507,13 +507,13 @@ end
 
 
 # ------------- Tri3 ---------------
-function set𝝭!(ap::Element{:Tri3},x::SNode)
+function set𝝭!(ap::Element{:Tri3},x::Node)
     𝝭 = x[:𝝭]
     𝝭[1] = x.ξ
     𝝭[2] = x.η
     𝝭[3] = 1.0-x.ξ-x.η
 end
-function set∇𝝭!(ap::Element{:Tri3},x::SNode)
+function set∇𝝭!(ap::Element{:Tri3},x::Node)
     𝐴 = get𝐴(ap)
     x₁ = ap.𝓒[1].x
     x₂ = ap.𝓒[2].x
@@ -532,7 +532,7 @@ function set∇𝝭!(ap::Element{:Tri3},x::SNode)
 end
 
 # ------------- Tri6 ---------------
-function set𝝭!(ap::Element{:Tri6},x::SNode)
+function set𝝭!(ap::Element{:Tri6},x::Node)
     𝝭 = x[:𝝭]
     ξ = x.ξ
     η = x.η
@@ -544,7 +544,7 @@ function set𝝭!(ap::Element{:Tri6},x::SNode)
     𝝭[5] = 4*η*γ
     𝝭[6] = 4*γ*ξ
 end
-function set∇𝝭!(ap::Element{:Tri6},x::SNode)
+function set∇𝝭!(ap::Element{:Tri6},x::Node)
     𝐴 = get𝐴(ap)
     ξ = x.ξ
     η = x.η
@@ -578,7 +578,7 @@ function set∇𝝭!(ap::Element{:Tri6},x::SNode)
 end
 
 # ------------- Quad ---------------
-function set𝝭!(ap::Element{:Quad},x::SNode)
+function set𝝭!(ap::Element{:Quad},x::Node)
     ξ = x.ξ
     η = x.η
     𝝭 = x[:𝝭]
@@ -588,7 +588,7 @@ function set𝝭!(ap::Element{:Quad},x::SNode)
     𝝭[4] = 0.25*(1.0-ξ)*(1.0+η)
 end
 
-function set∇𝝭!(ap::Element{:Quad},x::SNode)
+function set∇𝝭!(ap::Element{:Quad},x::Node)
     x₁ = ap.𝓒[1].x
     x₂ = ap.𝓒[2].x
     x₃ = ap.𝓒[3].x
@@ -640,10 +640,10 @@ Crouzeix-Raviart element
 """
 struct TRElement{T}<:AbstractElement{T}
     𝓒::Vector{GNode}
-    𝓖::Vector{SNode}
+    𝓖::Vector{Node}
 end
 
-function set𝝭!(ap::TRElement{:Tri3},x::SNode)
+function set𝝭!(ap::TRElement{:Tri3},x::Node)
     ξ₁ = x.ξ
     ξ₂ = x.η
     ξ₃ = 1.0-x.ξ-x.η
@@ -656,7 +656,7 @@ function set𝝭!(ap::TRElement{:Tri3},x::SNode)
     𝝭[3] = N₃
 end
 
-function set∇𝝭!(ap::TRElement{:Tri3},x::SNode)
+function set∇𝝭!(ap::TRElement{:Tri3},x::Node)
     x₁ = ap.𝓒[1].x
     x₂ = ap.𝓒[2].x
     x₃ = ap.𝓒[3].x
@@ -674,7 +674,7 @@ function set∇𝝭!(ap::TRElement{:Tri3},x::SNode)
     ∂𝝭∂y[3] = (x₁-x₂)/𝐴
 end
 
-function set∇̃𝝭!(ap::TRElement{:Tri3},x::SNode)
+function set∇̃𝝭!(ap::TRElement{:Tri3},x::Node)
     x₁ = ap.𝓒[1].x
     x₂ = ap.𝓒[2].x
     x₃ = ap.𝓒[3].x
