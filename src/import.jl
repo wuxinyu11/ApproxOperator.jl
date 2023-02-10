@@ -8,6 +8,7 @@ const shape_function = (
     ∇²₂𝝭=(:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂²𝝭∂x²,:∂²𝝭∂x∂y,:∂²𝝭∂y²),∇̃²𝝭=(:∂²𝝭∂x²,:∂²𝝭∂x∂y,:∂²𝝭∂y²),
     ∇³𝝭=(:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂²𝝭∂x²,:∂²𝝭∂x∂y,:∂²𝝭∂y²,:∂³𝝭∂x³,:∂³𝝭∂x²∂y,:∂³𝝭∂x∂y²,:∂³𝝭∂y³),
     ∇∇̃²𝝭=(:𝝭,:∂𝝭∂x,:∂𝝭∂y,:∂²𝝭∂x²,:∂²𝝭∂x∂y,:∂²𝝭∂y²,:∂²𝝭∂x²_,:∂²𝝭∂x∂y_,:∂²𝝭∂y²_,:∂∂²𝝭∂x²∂x,:∂∂²𝝭∂x²∂y,:∂∂²𝝭∂x∂y∂x,:∂∂²𝝭∂x∂y∂y,:∂∂²𝝭∂y²∂x,:∂∂²𝝭∂y²∂y,:∂∂²𝝭∂x²∂x_,:∂∂²𝝭∂x²∂y_,:∂∂²𝝭∂x∂y∂x_,:∂∂²𝝭∂x∂y∂y_,:∂∂²𝝭∂y²∂x_,:∂∂²𝝭∂y²∂y_),
+    ∇̃ᵥ₂𝝭=(:𝝭,:∂𝝭∂x,:∂𝝭∂y),
     test=(:𝝭,:∂𝝭∂x,:∂𝝭∂x_)
 )
 const moment_matrix = (
@@ -16,6 +17,7 @@ const moment_matrix = (
     ∇²₂𝝭=(:𝗠,:∂𝗠∂x,:∂𝗠∂y,:∂²𝗠∂x²,:∂²𝗠∂x∂y,:∂²𝗠∂y²),∇̃²𝝭=(:∇̃²,),
     ∇³𝝭=(:𝗠,:∂𝗠∂x,:∂𝗠∂y,:∂²𝗠∂x²,:∂²𝗠∂x∂y,:∂²𝗠∂y²,:∂³𝗠∂x³,:∂³𝗠∂x²∂y,:∂³𝗠∂x∂y²,:∂³𝗠∂y³),
     ∇∇̃²𝝭=(:𝗠,:∂𝗠∂x,:∂𝗠∂y,:∇̃²,:∂∇̃²∂ξ,:∂∇̃²∂η),
+    ∇̃ᵥ₂𝝭=(:𝗠,:∇̃),
     test=(:𝗠,:∂𝗠∂x,:∇̃)
 )
 function set_memory_𝝭!(aps::Vector{T},ss::Symbol...) where T<:AbstractElement
@@ -304,8 +306,10 @@ function voronoimsh(filename::String)
     ind = 0
     xv = Float64[]
     yv = Float64[]
+    zv = Float64[]
     push!(data,:x=>(1,xv))
     push!(data,:y=>(1,yv))
+    push!(data,:z=>(1,zv))
     nodelist = Dict(node=>Int[] for node in nds)
     nodelist_Γᵗ = Dict{Node,Vector{Int}}()
     nodelist_Γᵍ = Dict{Node,Vector{Int}}()
@@ -344,6 +348,7 @@ function voronoimsh(filename::String)
                 end
                 push!(xv,xc)
                 push!(yv,yc)
+                push!(zv,0.0)
                 for xᵢ in el.𝓒
                     push!(nodelist[xᵢ],ind)
                 end
@@ -361,6 +366,7 @@ function voronoimsh(filename::String)
                 yc = 0.5*(y₁+y₂)
                 push!(xv,xc)
                 push!(yv,yc)
+                push!(zv,0.0)
                 if name == "Γᵍ"
                     for xᵢ in el.𝓒
                         push!(nodelist[xᵢ],ind)
@@ -382,6 +388,7 @@ function voronoimsh(filename::String)
             ind += 1
             push!(xv,xᵢ.x)
             push!(yv,xᵢ.y)
+            push!(zv,0.0)
             push!(nodelist[xᵢ],ind)
             if haskey(nodelist_Γᵍ,xᵢ) push!(nodelist_Γᵍ[xᵢ],ind) end
             if haskey(nodelist_Γᵗ,xᵢ) push!(nodelist_Γᵗ[xᵢ],ind) end
@@ -464,7 +471,8 @@ function voronoimsh(filename::String)
 end
 
 function voronoimsh(filename::String,config::Dict{T,Any}) where T<:Any
-    elms, nodes = voronoimsh(filename)
+    elms, nds = voronoimsh(filename)
+    ~, nodes = importmsh(filename)
     elements = Dict{String,Any}()
     x = getfield(nodes[1],:data)[:x][2]
     y = getfield(nodes[1],:data)[:y][2]
@@ -482,15 +490,21 @@ function voronoimsh(filename::String,config::Dict{T,Any}) where T<:Any
         elements[name] = element_type[]
         if haskey(elms,integration_tag)
             if integration_type == :Node
+                data_ = getfield(nodes[1],:data)
+                data = Dict([:x=>data_[:x],:y=>data_[:y],:z=>data_[:z]])
+                G = 0
                 for (c,elm) in enumerate(elms[integration_tag])
                     𝓖 = elm.𝓖
-                    data = getfield(nodes[1],:data)
                     indices = sp(nodes[c])
-                    for (g,G) in enumerate(indices)
+                    for g in indices
+                        G += 1
                         ξ = SNode((g,G,c,0),data)
                         push!(𝓖,ξ)
                     end
                 end
+                set𝐴!(elms[integration_tag])
+                set𝒙ₘ!(elms[integration_tag])
+                setm2!(elms[integration_tag])
             else
                 set𝓖!(elms[integration_tag],integration_type)
             end
@@ -507,7 +521,20 @@ function voronoimsh(filename::String,config::Dict{T,Any}) where T<:Any
                     push!(elements[name],element_type(Node[],𝓖))
                 end
                 position_type= Meta.parse(cfg["𝓒"]["type"])
-                set𝓖!(elms[element_tag],position_type)
+                if position_type == :Node
+                    data_ = getfield(nodes[1],:data)
+                    data = Dict([:x=>(2,data_[:x][2]),:y=>(2,data_[:y][2]),:z=>(2,data_[:z][2])])
+                    for (c,elm) in enumerate(elms[element_tag])
+                        𝓖 = elm.𝓖
+                        indices = sp(nodes[c])
+                        for (g,G) in enumerate(indices)
+                            ξ = SNode((g,G,c,0),data)
+                            push!(𝓖,ξ)
+                        end
+                    end
+                else
+                    set𝓖!(elms[element_tag],position_type)
+                end
                 for (c,elm) in enumerate(elms[element_tag])
                     𝓒 = [nodes[i] for i in sp(elm.𝓖)]
                     push!(elements[name][c].𝓒,𝓒...)
@@ -517,6 +544,19 @@ function voronoimsh(filename::String,config::Dict{T,Any}) where T<:Any
                     𝓒 = [nodes[i] for i in sp(elm.𝓒)]
                     𝓖 = [ξ for ξ in elm.𝓖]
                     push!(elements[name],element_type(𝓒,𝓖))
+                end
+            end
+            s = 0
+            for elm in elements[name]
+                𝓖 = elm.𝓖
+                data = getfield(𝓖[1],:data)
+                n = length(elm.𝓒)
+                for (i,ξ) in enumerate(𝓖)
+                    g = ξ.𝑔
+                    G = ξ.𝐺
+                    C = ξ.𝐶
+                    𝓖[i] = SNode((g,G,C,s),data)
+                    s += n
                 end
             end
 
@@ -529,3 +569,4 @@ function voronoimsh(filename::String,config::Dict{T,Any}) where T<:Any
     end
     return elements, nodes
 end
+

@@ -1,4 +1,3 @@
-
 function set𝐶!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement,S<:AbstractElement}
     for a in as
         a_𝓒 = Set(a.𝓒)
@@ -177,16 +176,15 @@ function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement{:Tri3},
     end
 end
 
-function set𝓖!(as::Vector{T},ss::Symbol) where T<:AbstractElement{Vor2}
-    if ss == :Node
-        set𝓖_node!(as)
-    else
-        set𝓖_BC!(as,ss)
-    end
-end
+# function set𝓖!(as::Vector{T},ss::Symbol) where T<:AbstractElement{Vor2}
+#     if ss == :Node
+#         set𝓖_node!(as)
+#     else
+#         set𝓖_BC!(as,ss)
+#     end
+# end
 
-function set𝓖_node!(as::Vector{T}) where T<:AbstractElement{Vor2}
-function set𝓖_BC!(as::Vector{T},ss::Symbol) where T<:AbstractElement{Vor2}
+function set𝓖!(as::Vector{T},ss::Symbol) where T<:AbstractElement{:Vor2}
     data_ = quadraturerule(ss)
     ξ = data_[:ξ]
     w = data_[:w]
@@ -220,14 +218,14 @@ function set𝓖_BC!(as::Vector{T},ss::Symbol) where T<:AbstractElement{Vor2}
             x₁ = a.𝓒[i].x
             y₁ = a.𝓒[i].y
             z₁ = a.𝓒[i].z
-            (x₂,y₂,z₂) = i≠nᵥ ? (a.𝓒[i].x,a.𝓒[i].y,a.𝓒[i].z) : (a.𝓒[1].x,a.𝓒[1].y,a.𝓒[1].z)
+            (x₂,y₂,z₂) = i≠nᵥ ? (a.𝓒[i+1].x,a.𝓒[i+1].y,a.𝓒[i+1].z) : (a.𝓒[1].x,a.𝓒[1].y,a.𝓒[1].z)
             𝐿ᵢ = ((x₁-x₂)^2+(y₁-y₂)^2)^0.5
             D₁ᵢ = y₂-y₁
             D₂ᵢ = x₁-x₂
             for g in index
                 G += 1
-                N₁ = (1-ξ[g])/2
-                N₂ = (1+ξ[g])/2
+                N₁ = 0.5*(1-ξ[g])
+                N₂ = 0.5*(1+ξ[g])
                 push!(x,N₁*x₁+N₂*x₂)
                 push!(y,N₁*y₁+N₂*y₂)
                 push!(z,N₁*z₁+N₂*z₂)
@@ -241,6 +239,56 @@ function set𝓖_BC!(as::Vector{T},ss::Symbol) where T<:AbstractElement{Vor2}
                 s += length(a.𝓒)
             end
         end
+    end
+end
+
+function set𝑤ᵣₖ!(ap::ReproducingKernel{:Quadratic2D},xᵢ::Node)
+    𝓒 = ap.𝓒
+    𝓖 = ap.𝓖
+    data = getfield(𝓖[1],:data)
+    fill!(data[:𝗔][2],0.)
+    𝗔 = SymMat(6,data[:𝗔][2])
+    𝐴 = 𝓖[1].𝐴
+    xₘ = 𝓖[1].xₘ
+    yₘ = 𝓖[1].yₘ
+    m₂₀ = 𝓖[1].m₂₀
+    m₁₁ = 𝓖[1].m₁₁
+    m₀₂ = 𝓖[1].m₀₂
+
+    for x in 𝓖
+        Δx = x - xᵢ
+        𝜙 = get𝜙(ap,xᵢ,Δx)
+        𝒑 = (1.0,x.x-xₘ,x.y-yₘ,(x.x-xₘ)^2,(x.x-xₘ)*(x.y-yₘ),(x.y-yₘ)^2)
+        for I in 1:6
+            for J in 1:I
+                𝗔[I,J] += 𝜙*𝒑[I]*𝒑[J]
+            end
+        end
+    end
+    cholesky!(𝗔)
+    𝗔⁻¹ = inverse!(𝗔)
+    UUᵀ!(𝗔⁻¹)
+    𝗯 = (𝐴,0.0,0.0,𝐴*m₂₀,𝐴*m₁₁,𝐴*m₀₂)
+    for x in 𝓖
+        Δx = x - xᵢ
+        𝜙 = get𝜙(ap,xᵢ,Δx)
+        𝒑 = (1.0,x.x-xₘ,x.y-yₘ,(x.x-xₘ)^2,(x.x-xₘ)*(x.y-yₘ),(x.y-yₘ)^2)
+        x.𝑤 = 0.0
+        for i in 1:6
+            for j in 1:6
+                x.𝑤 += 𝜙*𝒑[i]*𝗔⁻¹[i,j]*𝗯[j]
+            end
+        end
+    end
+end
+
+function set𝑤ᵣₖ!(aps::Vector{T},nodes::Vector{Node}) where T<:ReproducingKernel
+    push!(getfield(aps[1].𝓖[1],:data),:𝗔=>(0,zeros(21)))
+    data = getfield(aps[end].𝓖[end],:data)
+    nᵢ = aps[end].𝓖[end].𝐺
+    push!(data,:𝑤=>(2,zeros(nᵢ)))
+    for (i,ap) in enumerate(aps)
+        set𝑤ᵣₖ!(ap,nodes[i])
     end
 end
 
@@ -306,6 +354,8 @@ function set𝓖_DB!(aps::Vector{T},s::Symbol) where T<:AbstractElement
         end
     end
 end
+
+
 """
 quadraturerule(s::Symbol)
 """

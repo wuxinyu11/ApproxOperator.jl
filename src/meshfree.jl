@@ -259,6 +259,7 @@ Basis function
 @inline get∇𝒑₁(ap::ReproducingKernel{𝒑,𝑠,𝜙,:Tri3},ξ::Any) where {𝒑,𝑠,𝜙} = get𝒑₁(ap,ξ), get∂𝒑₁∂ξ(ap,ξ), get∂𝒑₁∂η(ap,ξ)
 @inline get∇𝒑₂(ap::ReproducingKernel{𝒑,𝑠,𝜙,:Tri3},ξ::Any) where {𝒑,𝑠,𝜙} = get𝒑₂(ap,ξ), get∂𝒑₂∂ξ(ap,ξ), get∂𝒑₂∂η(ap,ξ)
 @inline get∇²𝒑₂(ap::ReproducingKernel{𝒑,𝑠,𝜙,:Tri3},ξ::Any) where {𝒑,𝑠,𝜙} = get𝒑₂(ap,ξ), get∂𝒑₂∂ξ(ap,ξ), get∂𝒑₂∂η(ap,ξ), get∂²𝒑₂∂ξ²(ap,ξ), get∂²𝒑₂∂ξ∂η(ap,ξ), get∂²𝒑₂∂η²(ap,ξ)
+@inline get∇𝒑₁(ap::ReproducingKernel{𝒑,𝑠,𝜙,:Vor2},x::Float64,y::Float64) where {𝒑,𝑠,𝜙} = get𝒑₁(ap,x,y), get∂𝒑₁∂ξ(ap,x,y), get∂𝒑₁∂η(ap,x,y)
 
 # ------------ Linear1D ---------------
 @inline get𝑛𝒑(::ReproducingKernel{:Linear1D}) = 2
@@ -1041,11 +1042,33 @@ function cal𝗚!(ap::ReproducingKernel{𝑝,𝑠,𝜙,:Poi1}) where {𝑝,𝑠,
     n = get𝑛𝒑₁(ap)
     for ξ in 𝓖
         Δx = x - ξ
-        𝒒 = get𝒑₁(ap,ξ)
+        𝒒 = get𝒑₁(ap)
         w = get𝜙(ap,x,Δx)
         for I in 1:n
             for J in 1:I
                 𝗚[I,J] += w*𝒒[I]*𝒒[J]
+            end
+        end
+    end
+    cholesky!(𝗚)
+    inverse!(𝗚)
+    UUᵀ!(𝗚)
+    return 𝗚
+end
+
+function cal𝗚!(ap::ReproducingKernel{𝑝,𝑠,𝜙,:Vor2},x::Node) where {𝑝,𝑠,𝜙}
+    𝓒 = ap.𝓒
+    𝓖 = ap.𝓖
+    𝗚 = get𝗚(ap,:∇̃)
+    n = get𝑛𝒑₁(ap)
+    for ξ in 𝓖
+        Δx = ξ - x
+        𝒒 = get𝒑₁(ap,ξ.x,ξ.y)
+        w = get𝜙(ap,x,Δx)
+        𝑤 = ξ.𝑤
+        for I in 1:n
+            for J in 1:I
+                𝗚[I,J] += 𝑤*w*𝒒[I]*𝒒[J]
             end
         end
     end
@@ -1652,6 +1675,53 @@ function set∇̃𝝭!(gp::ReproducingKernel{𝒑,𝑠,𝜙,:Tri3},ap::Reproduci
             b₂ = 𝒒̂ᵀ𝗚⁻¹∂𝒒∂ξ*D₁₂ + 𝒒̂ᵀ𝗚⁻¹∂𝒒∂η*D₂₂
             W₁ = 𝒒̂ᵀ𝗚⁻¹𝒒*D₁*wᵇ + b₁*w/2
             W₂ = 𝒒̂ᵀ𝗚⁻¹𝒒*D₂*wᵇ + b₂*w/2
+            for i in 1:length(𝓒)
+                ∂𝝭∂x[i] += 𝝭[i]*W₁
+                ∂𝝭∂y[i] += 𝝭[i]*W₂
+            end
+        end
+    end
+end
+
+function set∇̃𝝭!(gp::ReproducingKernel{𝒑,𝑠,𝜙,:Vor2},ap::ReproducingKernel{𝒑,𝑠,𝜙,:Vor2},x::Node) where {𝒑,𝑠,𝜙}
+    𝓒 = gp.𝓒
+    𝓖 = gp.𝓖
+    for ξ̂ in 𝓖
+        𝒒̂ = get𝒑₁(gp,ξ̂.x,ξ̂.y)
+        Δx = ξ̂ - x
+        ϕ = get𝜙(gp,x,Δx)
+        𝗚⁻¹ = cal𝗚!(gp,x)
+        𝒒̂ᵀ𝗚⁻¹ = 𝒒̂*𝗚⁻¹
+        ∂𝝭∂x = ξ̂[:∂𝝭∂x]
+        ∂𝝭∂y = ξ̂[:∂𝝭∂y]
+        for i in 1:length(𝓒)
+            ∂𝝭∂x[i] = 0.0
+            ∂𝝭∂y[i] = 0.0
+        end
+        for ξ in 𝓖
+            𝑤 = ξ.𝑤
+            𝝭 = ξ[:𝝭]
+            ~, ∂𝒒∂x, ∂𝒒∂y = get∇𝒑₁(ap,ξ.x,ξ.y)
+            𝒒̂ᵀ𝗚⁻¹∂𝒒∂x = 𝒒̂ᵀ𝗚⁻¹*∂𝒒∂x
+            𝒒̂ᵀ𝗚⁻¹∂𝒒∂y = 𝒒̂ᵀ𝗚⁻¹*∂𝒒∂y
+            b₁ = 𝒒̂ᵀ𝗚⁻¹∂𝒒∂x
+            b₂ = 𝒒̂ᵀ𝗚⁻¹∂𝒒∂y
+            W₁ = b₁*ϕ*𝑤
+            W₂ = b₂*ϕ*𝑤
+            for i in 1:length(𝓒)
+                ∂𝝭∂x[i] -= 𝝭[i]*W₁
+                ∂𝝭∂y[i] -= 𝝭[i]*W₂
+            end
+        end
+        for ξ in ap.𝓖
+            w = ξ.w
+            𝝭 = ξ[:𝝭]
+            𝒒 = get𝒑₁(ap,ξ.x,ξ.y)
+            𝒒̂ᵀ𝗚⁻¹𝒒 =  𝒒̂ᵀ𝗚⁻¹*𝒒
+            D₁ = ξ.D₁
+            D₂ = ξ.D₂
+            W₁ = 𝒒̂ᵀ𝗚⁻¹𝒒*D₁*w*ϕ
+            W₂ = 𝒒̂ᵀ𝗚⁻¹𝒒*D₂*w*ϕ
             for i in 1:length(𝓒)
                 ∂𝝭∂x[i] += 𝝭[i]*W₁
                 ∂𝝭∂y[i] += 𝝭[i]*W₂
@@ -2544,6 +2614,20 @@ for set𝝭 in (:set∇̃𝝭!,:set∇̃²𝝭!,:set∇∇̃²𝝭!)
     end
 end
 
+for set𝝭 in (:set∇̃𝝭!,)
+    @eval begin
+        function $set𝝭(gps::Vector{T},aps::Vector{S},nodes::Vector{Node}) where {T<:ReproducingKernel,S<:ReproducingKernel}
+            if length(gps) ≠ length(aps) || length(gps) ≠ length(nodes)
+                error("Miss match element numbers")
+            else
+                for i in 1:length(gps)
+                    $set𝝭(gps[i],aps[i],nodes[i])
+                end
+            end
+        end
+    end
+end
+
 for set𝝭 in (:set∇̄𝝭!,:set∇̃₁𝝭!)
     @eval begin
         function $set𝝭(aps::Vector{T}) where T<:ReproducingKernel
@@ -2553,7 +2637,6 @@ for set𝝭 in (:set∇̄𝝭!,:set∇̃₁𝝭!)
         end
     end
 end
-
 
 function set∇̄²𝝭!(aps::Vector{T};Γᵍ::Vector{T}=T[],Γᶿ::Vector{T}=T[],Γᴾ::Vector{T}=T[]) where T<:ReproducingKernel
     for ap in aps

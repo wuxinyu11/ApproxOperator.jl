@@ -73,12 +73,10 @@ for (t,ref) in ((:Node,:REF),(:SNode,:SREF),(:GNode,:GREF))
         function Base.getproperty(p::$t,f::Symbol)
             if haskey($ref,f)
                 return getfield(p,:index)[$ref[f]]
-            elseif haskey(getfield(p,:data),f)
+            else
                 i,v = getfield(p,:data)[f]
                 j = getfield(p,:index)[i]
                 return v[j]
-            else
-                return 0.0
             end
         end
 
