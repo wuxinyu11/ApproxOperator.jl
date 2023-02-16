@@ -52,6 +52,25 @@ function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement,S<:Abst
     end
 end
 
+function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement{:Vor2},S<:AbstractElement{:Seg2}}
+    data = getfield(bs[1].𝓖[1],:data)
+    s = 0
+    nₑ = length(as)
+    𝐴 = zeros(nₑ)
+    push!(data,:𝐴=>(3,𝐴))
+    for c in 1:nₑ
+        a = as[c]
+        b = bs[c]
+        𝐴[c] = get𝐴(a)
+        empty!(a.𝓖)
+        for ξ_ in b.𝓖
+            g = ξ_.𝑔
+            G = ξ_.𝐺
+            push!(a.𝓖,SNode((g,G,c,s),data))
+            s += length(a.𝓒)
+        end
+    end
+end
 function set𝓖!(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement{:Seg2},S<:AbstractElement{:Poi1}}
     nₑ = length(bs)
     data = Dict([:ξ=>(1,[-1.0,1.0]),:w=>(1,[1.0,1.0])],:x=>(2,zeros(nₑ)),:y=>(2,zeros(nₑ)),:z=>(2,zeros(nₑ)))
@@ -209,16 +228,15 @@ function set𝓖!(as::Vector{T},ss::Symbol) where T<:AbstractElement{:Vor2}
     for (c,a) in enumerate(as)
         empty!(a.𝓖)
         nᵥ = length(a.𝓒)
-        𝐴c = 0.0
-        for i in 1:nᵥ
-            𝐴c += i≠nᵥ ? a.𝓒[i].x*a.𝓒[i+1].y-a.𝓒[i+1].x*a.𝓒[i].y : a.𝓒[i].x*a.𝓒[1].y-a.𝓒[1].x*a.𝓒[i].y
-        end
-        𝐴c *= 0.5
+        𝐴c = get𝐴(a)
+        # push!(D₁,zeros(nᵥ*length(index))...)
+        # push!(D₂,zeros(nᵥ*length(index))...)
         for i in 1:nᵥ
             x₁ = a.𝓒[i].x
             y₁ = a.𝓒[i].y
             z₁ = a.𝓒[i].z
             (x₂,y₂,z₂) = i≠nᵥ ? (a.𝓒[i+1].x,a.𝓒[i+1].y,a.𝓒[i+1].z) : (a.𝓒[1].x,a.𝓒[1].y,a.𝓒[1].z)
+            (x₀,y₀,z₀) = i≠1 ? (a.𝓒[i-1].x,a.𝓒[i-1].y,a.𝓒[i-1].z) : (a.𝓒[nᵥ].x,a.𝓒[nᵥ].y,a.𝓒[nᵥ].z)
             𝐿ᵢ = ((x₁-x₂)^2+(y₁-y₂)^2)^0.5
             D₁ᵢ = y₂-y₁
             D₂ᵢ = x₁-x₂
@@ -231,8 +249,13 @@ function set𝓖!(as::Vector{T},ss::Symbol) where T<:AbstractElement{:Vor2}
                 push!(z,N₁*z₁+N₂*z₂)
                 push!(𝑤,w[g]*𝐿ᵢ/2)
                 push!(𝐿,𝐿ᵢ)
-                push!(D₁,D₁ᵢ)
-                push!(D₂,D₂ᵢ)
+                if g == 1 && ξ[g] == -1.0
+                    push!(D₁,y₂-y₀)
+                    push!(D₂,x₀-x₂)
+                else
+                    push!(D₁,D₁ᵢ)
+                    push!(D₂,D₂ᵢ)
+                end
                 ξᵢ = SNode((g,G,c,s),data)
                 ξᵢ.𝐴 = 𝐴c
                 push!(a.𝓖,ξᵢ)
@@ -241,6 +264,44 @@ function set𝓖!(as::Vector{T},ss::Symbol) where T<:AbstractElement{:Vor2}
         end
     end
 end
+
+function set𝑤ᵣₖ!(ap::ReproducingKernel{:Linear2D},xᵢ::Node)
+    𝓒 = ap.𝓒
+    𝓖 = ap.𝓖
+    data = getfield(𝓖[1],:data)
+    fill!(data[:𝗔][2],0.)
+    𝗔 = SymMat(3,data[:𝗔][2])
+    𝐴 = 𝓖[1].𝐴
+    xₘ = 𝓖[1].xₘ
+    yₘ = 𝓖[1].yₘ
+
+    for x in 𝓖
+        Δx = x - xᵢ
+        𝜙 = get𝜙(ap,xᵢ,Δx)
+        𝒑 = (1.0,x.x-xₘ,x.y-yₘ)
+        for I in 1:3
+            for J in 1:I
+                𝗔[I,J] += 𝜙*𝒑[I]*𝒑[J]
+            end
+        end
+    end
+    cholesky!(𝗔)
+    𝗔⁻¹ = inverse!(𝗔)
+    UUᵀ!(𝗔⁻¹)
+    𝗯 = (𝐴,0.0,0.0)
+    for x in 𝓖
+        Δx = x - xᵢ
+        𝜙 = get𝜙(ap,xᵢ,Δx)
+        𝒑 = (1.0,x.x-xₘ,x.y-yₘ)
+        x.𝑤 = 0.0
+        for i in 1:3
+            for j in 1:3
+                x.𝑤 += 𝜙*𝒑[i]*𝗔⁻¹[i,j]*𝗯[j]
+            end
+        end
+    end
+end
+
 
 function set𝑤ᵣₖ!(ap::ReproducingKernel{:Quadratic2D},xᵢ::Node)
     𝓒 = ap.𝓒
@@ -268,7 +329,7 @@ function set𝑤ᵣₖ!(ap::ReproducingKernel{:Quadratic2D},xᵢ::Node)
     cholesky!(𝗔)
     𝗔⁻¹ = inverse!(𝗔)
     UUᵀ!(𝗔⁻¹)
-    𝗯 = (𝐴,0.0,0.0,𝐴*m₂₀,𝐴*m₁₁,𝐴*m₀₂)
+    𝗯 = (𝐴,0.0,0.0,𝐴*(m₂₀-xₘ^2),𝐴*(m₁₁-xₘ*yₘ),𝐴*(m₀₂-yₘ^2))
     for x in 𝓖
         Δx = x - xᵢ
         𝜙 = get𝜙(ap,xᵢ,Δx)
@@ -283,7 +344,11 @@ function set𝑤ᵣₖ!(ap::ReproducingKernel{:Quadratic2D},xᵢ::Node)
 end
 
 function set𝑤ᵣₖ!(aps::Vector{T},nodes::Vector{Node}) where T<:ReproducingKernel
-    push!(getfield(aps[1].𝓖[1],:data),:𝗔=>(0,zeros(21)))
+    if T<:ReproducingKernel{:Linear2D}
+        push!(getfield(aps[1].𝓖[1],:data),:𝗔=>(0,zeros(6)))
+    elseif T<:ReproducingKernel{:Quadratic2D}
+        push!(getfield(aps[1].𝓖[1],:data),:𝗔=>(0,zeros(21)))
+    end
     data = getfield(aps[end].𝓖[end],:data)
     nᵢ = aps[end].𝓖[end].𝐺
     push!(data,:𝑤=>(2,zeros(nᵢ)))

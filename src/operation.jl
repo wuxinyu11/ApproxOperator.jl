@@ -69,8 +69,9 @@ end
 
 function prescribe!(aps::Vector{T},sf::Pair{Symbol,F}) where {T<:AbstractElement,F<:Function}
     s,f = sf
-    n = length(getfield(aps[1].𝓖[1],:data)[:x][2])
-    haskey(getfield(aps[1].𝓖[1],:data),s) ? nothing : push!(getfield(aps[1].𝓖[1],:data),s=>(2,zeros(n)))
+    data = getfield(aps[1].𝓖[1],:data)
+    n = length(data[:x][2])
+    haskey(data,s) ? nothing : push!(data,s=>(data[:x][1],zeros(n)))
     for ap in aps
         prescribe!(ap,sf)
     end
@@ -122,6 +123,26 @@ function (op::Operator{:∫∇v∇uvbdΩ})(ap::T,k::AbstractMatrix{Float64},f::A
             for (j,xⱼ) in enumerate(𝓒)
                 J = xⱼ.𝐼
                 k[I,J] += kᶜ*(B₁[i]*B₁[j] + B₂[i]*B₂[j] + B₃[i]*B₃[j])*𝑤
+            end
+            f[I] += N[i]*b*𝑤
+        end
+    end
+end
+
+function (op::Operator{:∫∇v∇uvbdxdy})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    kᶜ = op.k
+    for ξ in 𝓖
+        N = ξ[:𝝭]
+        B₁ = ξ[:∂𝝭∂x]
+        B₂ = ξ[:∂𝝭∂y]
+        𝑤 = ξ.𝑤
+        b = ξ.b
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[I,J] += kᶜ*(B₁[i]*B₁[j] + B₂[i]*B₂[j])*𝑤
             end
             f[I] += N[i]*b*𝑤
         end
@@ -306,6 +327,30 @@ function (op::Operator{:∫∇𝑛vgds})(ap::T,k::AbstractMatrix{Float64},f::Abs
                 k[I,J] += (-kᶜ*((B₁[i]*n₁+B₂[i]*n₂)*N[j]+N[i]*(B₁[j]*n₁+B₂[j]*n₂)) + α*N[i]*N[j])*𝑤
             end
             f[I] += (-kᶜ*(B₁[i]*n₁+B₂[i]*n₂) + α*N[i])*g*𝑤
+        end
+    end
+end
+
+function (op::Operator{:∫∇̃𝑛vgds})(ap::T,k::AbstractMatrix{Float64},f::AbstractVector{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒;𝓖 = ap.𝓖
+    kᶜ = op.k
+    for ξ in 𝓖
+        N = ξ[:𝝭]
+        B₁ = ξ[:∂𝝭∂x]
+        B₂ = ξ[:∂𝝭∂y]
+        B̄₁ = ξ[:∂𝝭∂x_]
+        B̄₂ = ξ[:∂𝝭∂y_]
+        𝑤 = ξ.𝑤
+        n₁ = ξ.n₁
+        n₂ = ξ.n₂
+        g = ξ.g
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                k[I,J] -= kᶜ*((B₁[i]*n₁+B₂[i]*n₂-B̄₁[i]*n₁-B̄₂[i]*n₂)*N[j]+N[i]*(B₁[j]*n₁+B₂[j]*n₂))*𝑤
+            end
+            f[I] -= kᶜ*(B₁[i]*n₁+B₂[i]*n₂-B̄₁[i]*n₁-B̄₂[i]*n₂)*g*𝑤
         end
     end
 end
@@ -1777,3 +1822,20 @@ function (op::Operator{:∫ṽgdΓ})(ap::T,k::AbstractMatrix{Float64},f::Abstrac
     end
 end
 
+"""
+Integration constraint
+"""
+function (op::Operator{:∫∫vᵢpᵢdxdy})(ap::T,f::AbstractVector{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    for ξ in 𝓖
+        B₁ = ξ[:∂𝝭∂x]
+        B₂ = ξ[:∂𝝭∂y]
+        p₁ = ξ.p₁
+        p₂ = ξ.p₂
+        𝑤 = ξ.𝑤
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            f[I] += (B₁[i]*p₁ + B₂[i]*p₂)*𝑤
+        end
+    end
+end

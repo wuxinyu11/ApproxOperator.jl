@@ -282,6 +282,15 @@ function get𝐴(ap::T) where T<:AbstractElement{:Vor2}
     𝐴 *= 0.5
     return 𝐴
 end
+function get𝐴(ap::T) where T<:AbstractElement{:Vor2}
+    𝓒 = ap.𝓒
+    nᵥ = length(𝓒)
+    𝐴 = 0.0
+    for i in 1:nᵥ
+        𝐴 += i≠nᵥ ? 𝓒[i].x*𝓒[i+1].y-𝓒[i+1].x*𝓒[i].y : 𝓒[i].x*𝓒[1].y-𝓒[1].x*𝓒[i].y
+    end
+    return 0.5*𝐴
+end
 
 function get𝒙ₘ(ap::AbstractElement)
     𝓒 = ap.𝓒
@@ -335,7 +344,7 @@ function getm2(ap::AbstractElement)
     m₂₀ /= 12.0*𝐴
     m₁₁ /= 24.0*𝐴
     m₀₂ /= 12.0*𝐴
-    return m₂₀-xₘ^2,m₁₁-xₘ*yₘ,m₀₂-yₘ^2
+    return m₂₀,m₁₁,m₀₂
 end
 
 """
@@ -728,6 +737,11 @@ end
     i = findfirst(x->x==b.𝓒[1],a.𝓒)
     return i ≠ nothing && i ≤ 3 ? a : nothing
 end
+@inline function intersect(a::T,b::S) where {T<:AbstractElement,S<:AbstractElement{:Seg2}}
+    i = findfirst(x->x==b.𝓒[1],a.𝓒)
+    j = findfirst(x->x==b.𝓒[2],a.𝓒)
+    return i ≠ nothing && j ≠ nothing ? a : nothing
+end
 @inline function intersect(a::T,b::S) where {T<:AbstractElement{:Tri3},S<:AbstractElement{:Seg2}}
     i = findfirst(x->x==b.𝓒[1],a.𝓒)
     j = findfirst(x->x==b.𝓒[2],a.𝓒)
@@ -747,6 +761,18 @@ function intersect(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement,S<:Abs
         end
     end
     return aps
+end
+
+function intersect(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement{:Vor2},S<:AbstractElement{:Seg2}}
+    aps = T[]
+    ids = Int[]
+    for b in bs
+        for (i,a) in enumerate(as)
+            ap = a∩b
+            ap ≠ nothing ? (push!(aps,ap);push!(ids,i)) : nothing
+        end
+    end
+    return aps, ids
 end
 
 """
