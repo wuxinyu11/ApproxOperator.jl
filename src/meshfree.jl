@@ -714,6 +714,28 @@ function get∂³𝜙∂r³(::ReproducingKernel{𝒑,𝑠,:QuinticSpline},r::Flo
     end
 end
 
+function cal𝗠ₕₘ!(ap::ReproducingKernel,x::Node)
+    𝓒 = ap.𝓒
+    𝗠 = get𝗠(ap,:𝗠)
+    n = get𝑛𝒑(ap)
+    for xᵢ in 𝓒
+        r = ((x.x - xᵢ.x)^2 + (x.x - xᵢ.x)^2 + (x.x - xᵢ.x)^2)^0.5
+        if r < xᵢ.s
+            𝐴 = xᵢ.𝐴
+            𝒑 = get𝒑(ap,Δx)
+            for I in 1:n
+                for J in 1:I
+                    𝗠[I,J] += 𝐴*𝒑[I]*𝒑[J]
+                end
+            end
+        end
+    end
+    cholesky!(𝗠)
+    inverse!(𝗠)
+    UUᵀ!(𝗠)
+    return 𝗠
+end
+
 function cal𝗠!(ap::ReproducingKernel,x::Node)
     𝓒 = ap.𝓒
     𝗠 = get𝗠(ap,:𝗠)

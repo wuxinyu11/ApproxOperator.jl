@@ -3,7 +3,6 @@ module ApproxOperator
 import Base: +, -, *, /, getindex, setindex!, getproperty, setproperty!, length, push!, fill!, issubset, intersect
 import InteractiveUtils: subtypes
 
-abstract type AbstractNode end
 abstract type AbstractElement{T} end
 abstract type SpatialPartition end
 
@@ -20,6 +19,5 @@ export set𝝭!, set𝝭𝑛!, set𝝭̄!, set∇𝝭!, set∇₁𝝭!, set∇�
 
 # debug
 include("littletools.jl")
-export check𝝭, check∇𝝭, check∇₁𝝭, check∇₂𝝭, check∇²𝝭, check∇²₂𝝭, check∇³𝝭, check∇∇²𝝭
 
 end
