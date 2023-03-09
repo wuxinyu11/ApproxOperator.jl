@@ -8,19 +8,6 @@ struct RV
     v::Vector{Float64}
 end
 
-"""
-+, -, * of type RV
-"""
-+(r::RV,a::Float64) = r.v[r.i] + a
-+(a::Float64,r::RV) = r.v[r.i] + a
-+(r::RV,s::RV) = r.v[r.i] + s.v[s.i]
--(r::RV,a::Float64) = r.v[r.i] - a
--(a::Float64,r::RV) = a - r.v[r.i]
--(r::RV,s::RV) = r.v[r.i] - s.v[s.i]
-*(r::RV,a::Float64) = r.v[r.i] * a
-*(a::Float64,r::RV) = r.v[r.i] * a
-*(r::RV,s::RV) = r.v[r.i] * s.v[s.i]
-
 getindex(r::RV,i::Int) = r.v[r.i+i]
 function setindex!(r::RV,x::Float64,i::Int)
     r.v[r.i+i] = x
@@ -38,7 +25,7 @@ end
 function Base.getproperty(p::Node{T,N},s::Symbol) where {T,N}
     index = getfield(p,:index)
     if haskey(T,s)
-        return index[T[s]]
+        return index[findfirst(x->x==s,keys(T))]
     else
         i,v = getfield(p,:data)[s]
         return v[index[i]]
@@ -58,9 +45,12 @@ end
 +(a::T,b::S) where {T<:Node,S<:Node} = (a.x+b.x,a.y+b.y,a.z+b.z)
 -(a::T,b::S) where {T<:Node,S<:Node} = (a.x-b.x,a.y-b.y,a.z-b.z)
 
-function push!(p::Node{T,N},svs::Pair{Symbol,Tuple{Symbol,Vector{Float64}}}...) where {T,N}
-    for (s,(i,v)) in svs
-        push!(getfield(p,:data),s=>(T[i],v))
-    end
+function push!(p::Node{T,N},sv::Pair{Symbol,Tuple{Symbol,Vector{Float64}}}) where {T,N}
+    (s,v) = sv
+    push!(getfield(p,:data),s=>(findfirst(x->x==v[1],keys(T)),v[2]))
 end
-push!(ps::Vector{T},svs::Pair{Symbol,Vector{Float64}}...) where T<:Node = push!(ps[1],svs...)
+function push!(p::Node{T,N},sv::Pair{Symbol,Symbol}) where {T,N}
+    (s,v) = sv
+    push!(getfield(p,:data),s=>(findfirst(x->x==v,keys(T)),zeros(T[v])))
+end
+push!(ps::Vector{T},sv::Pair) where T<:Node = push!(ps[1],sv)

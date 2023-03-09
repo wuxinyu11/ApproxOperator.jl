@@ -9,9 +9,7 @@ abstract type SpatialPartition end
 include("node.jl")
 include("element.jl")
 include("meshfree.jl")
-include("integration.jl")
 include("operation.jl")
-include("import.jl")
 
 export getnₚ, prescribe!, Operator
 export set𝓖!

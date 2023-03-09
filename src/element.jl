@@ -236,11 +236,6 @@ end
     j = findfirst(x->x==b.𝓒[2],a.𝓒)
     return i ≠ nothing && j ≠ nothing && i ≤ 3 && j ≤ 3 ? a : nothing
 end
-@inline function intersect(a::T,b::S) where {T<:TRElement{:Tri3},S<:AbstractElement{:Seg2}}
-    i = findfirst(x->x.𝑖==b.𝓒[1].𝐼, a.𝓒)
-    j = findfirst(x->x.𝑖==b.𝓒[2].𝐼, a.𝓒)
-    return i ≠ nothing && j ≠ nothing && i ≤ 3 && j ≤ 3 ? a : nothing
-end
 function intersect(as::Vector{T},bs::Vector{S}) where {T<:AbstractElement,S<:AbstractElement}
     aps = T[]
     for b in bs
@@ -257,15 +252,6 @@ getnₚ,getnᵢ,getnₛ
 """
 getnₚ(ap::T) where T<:AbstractElement = length(getfield(ap.𝓒[1],:data)[:x][2])
 @inline getnₚ(aps::Vector{T}) where T<:AbstractElement = getnₚ(aps[1])
-function getnₚ(aps::Vector{T}) where T<:TRElement
-    nₚ = 0
-    for ap in aps
-        for x in ap.𝓒
-            nₚ = max(nₚ,x.𝐼)
-        end
-    end
-    return nₚ
-end
 
 function getnᵢ(aps::Vector{T}) where T<:AbstractElement
     ap = aps[end]
