@@ -105,6 +105,21 @@ function get∇³𝜙(ap::ReproducingKernel{𝒑,:□,𝜙},x::Node,Δx::NTuple{
     return wx*wy*wz, ∂wx*wy*wz, wx*∂wy*wz, ∂²wx*wy*wz, ∂wx*∂wy*wz, wx*∂²wy*wz, ∂³wx*wy*wz, ∂²wx*∂wy*wz, ∂wx*∂²wy*wz, wx*∂³wy*wz
 end
 
+function get𝜙(ap::ReproducingKernel{𝒑,:○},x::Node,Δx::NTuple{3,Float64}) where 𝒑
+    r = (Δx[1]^2+Δx[2]^2+Δx[3]^2)^0.5/x.s
+    w = get𝜙ᵣ(ap,r)
+    return w
+end
+
+function get∇𝜙(ap::ReproducingKernel{𝒑,:○},x::Node,Δx::NTuple{3,Float64}) where 𝒑
+    r = (Δx[1]^2+Δx[2]^2+Δx[3]^2)^0.5/x.s
+    ∂rx = abs(Δx[1])/x.s/(r+eps())
+    ∂ry = abs(Δx[2])/x.s/(r+eps())
+    ∂rz = abs(Δx[3])/x.s/(r+eps())
+    w = get𝜙ᵣ(ap,r)
+    ∂wr = get∂𝜙∂r(ap,r)
+    return w, ∂wr*∂rx, ∂wr*∂ry, ∂wr*∂rz
+end
 function get𝜙ᵣ(::ReproducingKernel{𝒑,𝑠,:CubicSpline},r::Float64) where {𝒑,𝑠}
     if r > 1.0
         return 0.0
