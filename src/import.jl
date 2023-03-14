@@ -510,8 +510,9 @@ function voronoimsh(filename::String,config::Dict{T,Any}) where T<:Any
                 setm2!(elms[integration_tag])
             elseif integration_type == :Vor2
                 nₚ = length(nodes)
+                A = zeros(nₚ)
                 data_ = getfield(nodes[1],:data)
-                data = Dict([:x=>data_[:x],:y=>data_[:y],:z=>data_[:z],:𝑤=>(1,zeros(nₚ)),:𝐴=>(1,zeros(nₚ))])
+                data = Dict([:x=>data_[:x],:y=>data_[:y],:z=>data_[:z],:𝑤=>(1,zeros(nₚ)),:𝐴=>(1,A),:m₀=>(1,A)])
                 for (c,elm) in enumerate(elms[integration_tag])
                     𝐴 = get𝐴(elm)
                     𝓖 = elm.𝓖

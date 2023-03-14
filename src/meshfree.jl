@@ -733,6 +733,14 @@ function get∂³𝜙∂r³(::ReproducingKernel{𝒑,𝑠,:QuinticSpline},r::Flo
     end
 end
 
+function get𝜙ᵣ(ap::ReproducingKernel{𝒑,𝑠,:Constant},r::Float64) where {𝒑,𝑠}
+    if r > 1.0
+        return 0.0
+    else
+        ap.𝓖[1].m₀
+    end
+end
+
 function cal𝗠!(ap::ReproducingKernel,x::SNode)
     𝓒 = ap.𝓒
     𝗠 = get𝗠(ap,:𝗠)
