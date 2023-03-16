@@ -190,7 +190,22 @@ function (op::Operator{:∫vgdΓ})(ap::T,k::AbstractMatrix{Float64},f::AbstractV
         end
     end
 end
-
+function (op::Operator{:∫kMdΩ})(ap::T,m::AbstractMatrix{Float64}) where T<:AbstractElement
+    𝓒 = ap.𝓒; 𝓖 = ap.𝓖
+    ρ = op.ρ
+    h = op.h
+    for ξ in 𝓖
+        𝑤 = ξ.𝑤
+        N = ξ[:𝝭]
+        for (i,xᵢ) in enumerate(𝓒)
+            I = xᵢ.𝐼
+            for (j,xⱼ) in enumerate(𝓒)
+                J = xⱼ.𝐼
+                m[I,J] += ρ*h*N[i]*N[j]*𝑤
+            end
+        end
+    end
+end
 function (op::Operator{:∫λgdΓ})(ap1::T,ap2::S,g::AbstractMatrix{Float64},q::AbstractVector{Float64}) where {T<:AbstractElement,S<:AbstractElement}
     for j in 1:length(ap1.𝓖)
         ξ₁ = ap1.𝓖[j]
